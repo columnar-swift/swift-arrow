@@ -23,13 +23,15 @@ public protocol DataWriter {
   func append(_ data: Data)
 }
 
-public class ArrowWriter {  // swiftlint:disable:this type_body_length
+public class ArrowWriter {
   public class InMemDataWriter: DataWriter {
     public private(set) var data: Data
     public var count: Int { return data.count }
+    
     public init(_ data: Data) {
       self.data = data
     }
+    
     convenience init() {
       self.init(Data())
     }
@@ -54,27 +56,31 @@ public class ArrowWriter {  // swiftlint:disable:this type_body_length
   }
 
   public class Info {
-    public let type: org_apache_arrow_flatbuf_MessageHeader
+    public let type: MessageHeader
     public let schema: ArrowSchema
     public let batches: [RecordBatch]
+    
     public init(
-      _ type: org_apache_arrow_flatbuf_MessageHeader, schema: ArrowSchema, batches: [RecordBatch]
+      _ type: MessageHeader,
+      schema: ArrowSchema,
+      batches: [RecordBatch]
     ) {
       self.type = type
       self.schema = schema
       self.batches = batches
     }
 
-    public convenience init(_ type: org_apache_arrow_flatbuf_MessageHeader, schema: ArrowSchema) {
+    public convenience init(_ type: MessageHeader, schema: ArrowSchema) {
       self.init(type, schema: schema, batches: [RecordBatch]())
     }
   }
 
   public init() {}
 
-  private func writeField(_ fbb: inout FlatBufferBuilder, field: ArrowField) -> Result<
-    Offset, ArrowError
-  > {
+  private func writeField(
+    _ fbb: inout FlatBufferBuilder,
+    field: ArrowField
+  ) -> Result<Offset, ArrowError> {
     var fieldsOffset: Offset?
     if let nestedField = field.type as? ArrowTypeStruct {
       var offsets = [Offset]()
@@ -86,38 +92,38 @@ public class ArrowWriter {  // swiftlint:disable:this type_body_length
           return .failure(error)
         }
       }
-
       fieldsOffset = fbb.createVector(ofOffsets: offsets)
     }
 
     let nameOffset = fbb.create(string: field.name)
     let fieldTypeOffsetResult = toFBType(&fbb, arrowType: field.type)
-    let startOffset = org_apache_arrow_flatbuf_Field.startField(&fbb)
-    org_apache_arrow_flatbuf_Field.add(name: nameOffset, &fbb)
-    org_apache_arrow_flatbuf_Field.add(nullable: field.isNullable, &fbb)
+    let startOffset = FlatField.startField(&fbb)
+    FlatField.add(name: nameOffset, &fbb)
+    FlatField.add(nullable: field.isNullable, &fbb)
     if let childrenOffset = fieldsOffset {
-      org_apache_arrow_flatbuf_Field.addVectorOf(children: childrenOffset, &fbb)
+      FlatField.addVectorOf(children: childrenOffset, &fbb)
     }
 
     switch toFBTypeEnum(field.type) {
     case .success(let type):
-      org_apache_arrow_flatbuf_Field.add(typeType: type, &fbb)
+      FlatField.add(typeType: type, &fbb)
     case .failure(let error):
       return .failure(error)
     }
 
     switch fieldTypeOffsetResult {
     case .success(let offset):
-      org_apache_arrow_flatbuf_Field.add(type: offset, &fbb)
-      return .success(org_apache_arrow_flatbuf_Field.endField(&fbb, start: startOffset))
+      FlatField.add(type: offset, &fbb)
+      return .success(FlatField.endField(&fbb, start: startOffset))
     case .failure(let error):
       return .failure(error)
     }
   }
 
-  private func writeSchema(_ fbb: inout FlatBufferBuilder, schema: ArrowSchema) -> Result<
-    Offset, ArrowError
-  > {
+  private func writeSchema(
+    _ fbb: inout FlatBufferBuilder,
+    schema: ArrowSchema
+  ) -> Result<Offset, ArrowError> {
     var fieldOffsets = [Offset]()
     for field in schema.fields {
       switch writeField(&fbb, field: field) {
@@ -127,34 +133,40 @@ public class ArrowWriter {  // swiftlint:disable:this type_body_length
         return .failure(error)
       }
     }
-
     let fieldsOffset: Offset = fbb.createVector(ofOffsets: fieldOffsets)
     let schemaOffset =
-      org_apache_arrow_flatbuf_Schema.createSchema(
+      Schema.createSchema(
         &fbb,
         endianness: .little,
-        fieldsVectorOffset: fieldsOffset)
+        fieldsVectorOffset: fieldsOffset
+      )
     return .success(schemaOffset)
-
   }
 
   private func writeRecordBatches(
     _ writer: inout DataWriter,
     batches: [RecordBatch]
-  ) -> Result<[org_apache_arrow_flatbuf_Block], ArrowError> {
-    var rbBlocks = [org_apache_arrow_flatbuf_Block]()
-
+  ) -> Result<[Block], ArrowError> {
+    var rbBlocks: [Block] = .init()
     for batch in batches {
       let startIndex = writer.count
       switch writeRecordBatch(batch: batch) {
       case .success(let rbResult):
-        withUnsafeBytes(of: CONTINUATIONMARKER.littleEndian) { writer.append(Data($0)) }
-        withUnsafeBytes(of: rbResult.1.o.littleEndian) { writer.append(Data($0)) }
+        withUnsafeBytes(of: CONTINUATIONMARKER.littleEndian) {
+          writer.append(Data($0))
+        }
+        withUnsafeBytes(of: rbResult.1.o.littleEndian) {
+          writer.append(Data($0))
+        }
         writer.append(rbResult.0)
         addPadForAlignment(&writer)
         let metadataLength = writer.count - startIndex
         let bodyStart = writer.count
-        switch writeRecordBatchData(&writer, fields: batch.schema.fields, columns: batch.columns) {
+        switch writeRecordBatchData(
+          &writer,
+          fields: batch.schema.fields,
+          columns: batch.columns
+        ) {
         case .success:
           let bodyLength = writer.count - bodyStart
           let expectedSize = startIndex + metadataLength + bodyLength
@@ -165,7 +177,7 @@ public class ArrowWriter {  // swiftlint:disable:this type_body_length
               ))
           }
           rbBlocks.append(
-            org_apache_arrow_flatbuf_Block(
+            Block(
               offset: Int64(startIndex),
               metaDataLength: Int32(metadataLength),
               bodyLength: Int64(bodyLength)
@@ -183,20 +195,27 @@ public class ArrowWriter {  // swiftlint:disable:this type_body_length
   }
 
   private func writeFieldNodes(
-    _ fields: [ArrowField], columns: [ArrowArrayHolder], offsets: inout [Offset],
+    _ fields: [ArrowField],
+    columns: [ArrowArrayHolder],
+    offsets: inout [Offset],
     fbb: inout FlatBufferBuilder
   ) {
     for index in (0..<fields.count).reversed() {
       let column = columns[index]
-      let fieldNode =
-        org_apache_arrow_flatbuf_FieldNode(
+      let fieldNode = FieldNode(
           length: Int64(column.length),
-          nullCount: Int64(column.nullCount))
+          nullCount: Int64(column.nullCount)
+      )
       offsets.append(fbb.create(struct: fieldNode))
       if let nestedType = column.type as? ArrowTypeStruct {
         let nestedArray = column.array as? NestedArray
         if let nestedFields = nestedArray?.fields {
-          writeFieldNodes(nestedType.fields, columns: nestedFields, offsets: &offsets, fbb: &fbb)
+          writeFieldNodes(
+            nestedType.fields,
+            columns: nestedFields,
+            offsets: &offsets,
+            fbb: &fbb
+          )
         }
       }
     }
@@ -206,7 +225,7 @@ public class ArrowWriter {  // swiftlint:disable:this type_body_length
     _ fields: [ArrowField],
     columns: [ArrowArrayHolder],
     bufferOffset: inout Int,
-    buffers: inout [org_apache_arrow_flatbuf_Buffer],
+    buffers: inout [Buffer],
     fbb: inout FlatBufferBuilder
   ) {
     for index in 0..<fields.count {
@@ -214,7 +233,7 @@ public class ArrowWriter {  // swiftlint:disable:this type_body_length
       let colBufferDataSizes = column.getBufferDataSizes()
       for var bufferDataSize in colBufferDataSizes {
         bufferDataSize = getPadForAlignment(bufferDataSize)
-        let buffer = org_apache_arrow_flatbuf_Buffer(
+        let buffer = Buffer(
           offset: Int64(bufferOffset), length: Int64(bufferDataSize))
         buffers.append(buffer)
         bufferOffset += bufferDataSize
@@ -230,43 +249,53 @@ public class ArrowWriter {  // swiftlint:disable:this type_body_length
     }
   }
 
-  private func writeRecordBatch(batch: RecordBatch) -> Result<(Data, Offset), ArrowError> {
+  private func writeRecordBatch(
+    batch: RecordBatch
+  ) -> Result<(Data, Offset), ArrowError> {
     let schema = batch.schema
     var fbb = FlatBufferBuilder()
 
     // write out field nodes
     var fieldNodeOffsets = [Offset]()
     fbb.startVector(
-      schema.fields.count, elementSize: MemoryLayout<org_apache_arrow_flatbuf_FieldNode>.size)
-    writeFieldNodes(schema.fields, columns: batch.columns, offsets: &fieldNodeOffsets, fbb: &fbb)
+      schema.fields.count,
+      elementSize: MemoryLayout<FieldNode>.size
+    )
+    writeFieldNodes(
+      schema.fields,
+      columns: batch.columns,
+      offsets: &fieldNodeOffsets,
+      fbb: &fbb
+    )
     let nodeOffset = fbb.endVector(len: fieldNodeOffsets.count)
-
     // write out buffers
-    var buffers = [org_apache_arrow_flatbuf_Buffer]()
-    var bufferOffset = Int(0)
+    var buffers: [Buffer] = .init()
+    var bufferOffset: Int = 0
     writeBufferInfo(
       schema.fields, columns: batch.columns,
       bufferOffset: &bufferOffset, buffers: &buffers,
-      fbb: &fbb)
-    org_apache_arrow_flatbuf_RecordBatch.startVectorOfBuffers(batch.schema.fields.count, in: &fbb)
+      fbb: &fbb
+    )
+    FlatRecordBatch.startVectorOfBuffers(batch.schema.fields.count, in: &fbb)
     for buffer in buffers.reversed() {
       fbb.create(struct: buffer)
     }
-
     let batchBuffersOffset = fbb.endVector(len: buffers.count)
-    let startRb = org_apache_arrow_flatbuf_RecordBatch.startRecordBatch(&fbb)
-    org_apache_arrow_flatbuf_RecordBatch.addVectorOf(nodes: nodeOffset, &fbb)
-    org_apache_arrow_flatbuf_RecordBatch.addVectorOf(buffers: batchBuffersOffset, &fbb)
-    org_apache_arrow_flatbuf_RecordBatch.add(length: Int64(batch.length), &fbb)
-    let recordBatchOffset = org_apache_arrow_flatbuf_RecordBatch.endRecordBatch(
-      &fbb, start: startRb)
+    let startRb = FlatRecordBatch.startRecordBatch(&fbb)
+    FlatRecordBatch.addVectorOf(nodes: nodeOffset, &fbb)
+    FlatRecordBatch.addVectorOf(buffers: batchBuffersOffset, &fbb)
+    FlatRecordBatch.add(length: Int64(batch.length), &fbb)
+    let recordBatchOffset = FlatRecordBatch.endRecordBatch(
+      &fbb,
+      start: startRb
+    )
     let bodySize = Int64(bufferOffset)
-    let startMessage = org_apache_arrow_flatbuf_Message.startMessage(&fbb)
-    org_apache_arrow_flatbuf_Message.add(version: .max, &fbb)
-    org_apache_arrow_flatbuf_Message.add(bodyLength: Int64(bodySize), &fbb)
-    org_apache_arrow_flatbuf_Message.add(headerType: .recordbatch, &fbb)
-    org_apache_arrow_flatbuf_Message.add(header: recordBatchOffset, &fbb)
-    let messageOffset = org_apache_arrow_flatbuf_Message.endMessage(&fbb, start: startMessage)
+    let startMessage = Message.startMessage(&fbb)
+    Message.add(version: .max, &fbb)
+    Message.add(bodyLength: Int64(bodySize), &fbb)
+    Message.add(headerType: .recordbatch, &fbb)
+    Message.add(header: recordBatchOffset, &fbb)
+    let messageOffset = Message.endMessage(&fbb, start: startMessage)
     fbb.finish(offset: messageOffset)
     return .success((fbb.data, Offset(offset: UInt32(fbb.data.count))))
   }
@@ -285,10 +314,15 @@ public class ArrowWriter {  // swiftlint:disable:this type_body_length
           guard let nestedArray = column.array as? NestedArray,
             let nestedFields = nestedArray.fields
           else {
-            return .failure(.invalid("Struct type array expected for nested type"))
+            return .failure(
+              .invalid("Struct type array expected for nested type")
+            )
           }
-
-          switch writeRecordBatchData(&writer, fields: nestedType.fields, columns: nestedFields) {
+          switch writeRecordBatchData(
+            &writer,
+            fields: nestedType.fields,
+            columns: nestedFields
+          ) {
           case .success:
             continue
           case .failure(let error):
@@ -297,28 +331,26 @@ public class ArrowWriter {  // swiftlint:disable:this type_body_length
         }
       }
     }
-
     return .success(true)
   }
 
   private func writeFooter(
     schema: ArrowSchema,
-    rbBlocks: [org_apache_arrow_flatbuf_Block]
+    rbBlocks: [Block]
   ) -> Result<Data, ArrowError> {
     var fbb: FlatBufferBuilder = FlatBufferBuilder()
     switch writeSchema(&fbb, schema: schema) {
     case .success(let schemaOffset):
       fbb.startVector(
-        rbBlocks.count, elementSize: MemoryLayout<org_apache_arrow_flatbuf_Block>.size)
+        rbBlocks.count, elementSize: MemoryLayout<Block>.size)
       for blkInfo in rbBlocks.reversed() {
         fbb.create(struct: blkInfo)
       }
-
       let rbBlkEnd = fbb.endVector(len: rbBlocks.count)
-      let footerStartOffset = org_apache_arrow_flatbuf_Footer.startFooter(&fbb)
-      org_apache_arrow_flatbuf_Footer.add(schema: schemaOffset, &fbb)
-      org_apache_arrow_flatbuf_Footer.addVectorOf(recordBatches: rbBlkEnd, &fbb)
-      let footerOffset = org_apache_arrow_flatbuf_Footer.endFooter(&fbb, start: footerStartOffset)
+      let footerStartOffset = Footer.startFooter(&fbb)
+      Footer.add(schema: schemaOffset, &fbb)
+      Footer.addVectorOf(recordBatches: rbBlkEnd, &fbb)
+      let footerOffset = Footer.endFooter(&fbb, start: footerStartOffset)
       fbb.finish(offset: footerOffset)
       return .success(fbb.data)
     case .failure(let error):
@@ -464,14 +496,13 @@ public class ArrowWriter {  // swiftlint:disable:this type_body_length
       return .failure(error)
     }
 
-    let startMessage = org_apache_arrow_flatbuf_Message.startMessage(&fbb)
-    org_apache_arrow_flatbuf_Message.add(bodyLength: Int64(0), &fbb)
-    org_apache_arrow_flatbuf_Message.add(headerType: .schema, &fbb)
-    org_apache_arrow_flatbuf_Message.add(header: Offset(offset: UOffset(schemaSize)), &fbb)
-    org_apache_arrow_flatbuf_Message.add(version: .max, &fbb)
-    let messageOffset = org_apache_arrow_flatbuf_Message.endMessage(&fbb, start: startMessage)
+    let startMessage = Message.startMessage(&fbb)
+    Message.add(bodyLength: Int64(0), &fbb)
+    Message.add(headerType: .schema, &fbb)
+    Message.add(header: Offset(offset: UOffset(schemaSize)), &fbb)
+    Message.add(version: .max, &fbb)
+    let messageOffset = Message.endMessage(&fbb, start: startMessage)
     fbb.finish(offset: messageOffset)
     return .success(fbb.data)
   }
 }
-// swiftlint:disable:this file_length

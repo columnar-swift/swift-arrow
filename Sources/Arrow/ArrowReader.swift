@@ -20,32 +20,32 @@ let CONTINUATIONMARKER = UInt32(0xFFFF_FFFF)
 
 public class ArrowReader {  // swiftlint:disable:this type_body_length
   private class RecordBatchData {
-    let schema: org_apache_arrow_flatbuf_Schema
-    let recordBatch: org_apache_arrow_flatbuf_RecordBatch
+    let schema: Schema
+    let recordBatch: FlatRecordBatch
     private var fieldIndex: Int32 = 0
     private var nodeIndex: Int32 = 0
     private var bufferIndex: Int32 = 0
     init(
-      _ recordBatch: org_apache_arrow_flatbuf_RecordBatch,
-      schema: org_apache_arrow_flatbuf_Schema
+      _ recordBatch: FlatRecordBatch,
+      schema: Schema
     ) {
       self.recordBatch = recordBatch
       self.schema = schema
     }
 
-    func nextNode() -> org_apache_arrow_flatbuf_FieldNode? {
+    func nextNode() -> FieldNode? {
       if nodeIndex >= self.recordBatch.nodesCount { return nil }
       defer { nodeIndex += 1 }
       return self.recordBatch.nodes(at: nodeIndex)
     }
 
-    func nextBuffer() -> org_apache_arrow_flatbuf_Buffer? {
+    func nextBuffer() -> Buffer? {
       if bufferIndex >= self.recordBatch.buffersCount { return nil }
       defer { bufferIndex += 1 }
       return self.recordBatch.buffers(at: bufferIndex)
     }
 
-    func nextField() -> org_apache_arrow_flatbuf_Field? {
+    func nextField() -> FlatField? {
       if fieldIndex >= self.schema.fieldsCount { return nil }
       defer { fieldIndex += 1 }
       return self.schema.fields(at: fieldIndex)
@@ -63,14 +63,14 @@ public class ArrowReader {  // swiftlint:disable:this type_body_length
   }
 
   public class ArrowReaderResult {
-    fileprivate var messageSchema: org_apache_arrow_flatbuf_Schema?
+    fileprivate var messageSchema: Schema?
     public var schema: ArrowSchema?
     public var batches = [RecordBatch]()
   }
 
   public init() {}
 
-  private func loadSchema(_ schema: org_apache_arrow_flatbuf_Schema) -> Result<
+  private func loadSchema(_ schema: Schema) -> Result<
     ArrowSchema, ArrowError
   > {
     let builder = ArrowSchema.Builder()
@@ -89,7 +89,7 @@ public class ArrowReader {  // swiftlint:disable:this type_body_length
 
   private func loadStructData(
     _ loadInfo: DataLoadInfo,
-    field: org_apache_arrow_flatbuf_Field
+    field: FlatField
   )
     -> Result<ArrowArrayHolder, ArrowError>
   {
@@ -122,7 +122,7 @@ public class ArrowReader {  // swiftlint:disable:this type_body_length
       rbLength: UInt(loadInfo.batchData.recordBatch.length))
   }
 
-  private func loadListData(_ loadInfo: DataLoadInfo, field: org_apache_arrow_flatbuf_Field)
+  private func loadListData(_ loadInfo: DataLoadInfo, field: FlatField)
     -> Result<ArrowArrayHolder, ArrowError>
   {
     guard let node = loadInfo.batchData.nextNode() else {
@@ -162,7 +162,7 @@ public class ArrowReader {  // swiftlint:disable:this type_body_length
 
   private func loadPrimitiveData(
     _ loadInfo: DataLoadInfo,
-    field: org_apache_arrow_flatbuf_Field
+    field: FlatField
   )
     -> Result<ArrowArrayHolder, ArrowError>
   {
@@ -193,7 +193,7 @@ public class ArrowReader {  // swiftlint:disable:this type_body_length
 
   private func loadVariableData(
     _ loadInfo: DataLoadInfo,
-    field: org_apache_arrow_flatbuf_Field
+    field: FlatField
   )
     -> Result<ArrowArrayHolder, ArrowError>
   {
@@ -231,7 +231,7 @@ public class ArrowReader {  // swiftlint:disable:this type_body_length
 
   private func loadField(
     _ loadInfo: DataLoadInfo,
-    field: org_apache_arrow_flatbuf_Field
+    field: FlatField
   )
     -> Result<ArrowArrayHolder, ArrowError>
   {
@@ -250,8 +250,8 @@ public class ArrowReader {  // swiftlint:disable:this type_body_length
   }
 
   private func loadRecordBatch(
-    _ recordBatch: org_apache_arrow_flatbuf_RecordBatch,
-    schema: org_apache_arrow_flatbuf_Schema,
+    _ recordBatch: FlatRecordBatch,
+    schema: Schema,
     arrowSchema: ArrowSchema,
     data: Data,
     messageEndOffset: Int64
@@ -275,16 +275,16 @@ public class ArrowReader {  // swiftlint:disable:this type_body_length
         return .failure(error)
       }
     }
-
     return .success(RecordBatch(arrowSchema, columns: columns))
   }
 
-  /*
-   This is for reading the Arrow streaming format. The Arrow streaming format
-   is slightly different from the Arrow File format as it doesn't contain a header
-   and footer.
-   */
-  public func readStreaming(  // swiftlint:disable:this function_body_length
+  /// This is for reading the Arrow streaming format. The Arrow streaming format
+  /// is slightly different from the Arrow File format as it doesn't contain a header
+  /// and footer.
+  /// - Parameters:
+  ///   - input: The buffer to read from
+  /// - Returns: An `ArrowReaderResult` If successful, otherwise an `ArrowError`.
+  public func readStreaming(
     _ input: Data,
     useUnalignedBuffers: Bool = false
   ) -> Result<ArrowReaderResult, ArrowError> {
@@ -292,7 +292,7 @@ public class ArrowReader {  // swiftlint:disable:this type_body_length
     var offset: Int = 0
     var length = getUInt32(input, offset: offset)
     var streamData = input
-    var schemaMessage: org_apache_arrow_flatbuf_Schema?
+    var schemaMessage: Schema?
     while length != 0 {
       if length == CONTINUATIONMARKER {
         offset += Int(MemoryLayout<UInt32>.size)
@@ -301,7 +301,6 @@ public class ArrowReader {  // swiftlint:disable:this type_body_length
           return .success(result)
         }
       }
-
       offset += Int(MemoryLayout<UInt32>.size)
       streamData = input[offset...]
       var dataBuffer = ByteBuffer(
@@ -311,7 +310,7 @@ public class ArrowReader {  // swiftlint:disable:this type_body_length
       let message: Message = getRoot(byteBuffer: &dataBuffer)
       switch message.headerType {
       case .recordbatch:
-        let rbMessage = message.header(type: org_apache_arrow_flatbuf_RecordBatch.self)!
+        let rbMessage = message.header(type: FlatRecordBatch.self)!
         let recordBatchResult = loadRecordBatch(
           rbMessage,
           schema: schemaMessage!,
@@ -327,7 +326,7 @@ public class ArrowReader {  // swiftlint:disable:this type_body_length
         offset += Int(message.bodyLength + Int64(length))
         length = getUInt32(input, offset: offset)
       case .schema:
-        schemaMessage = message.header(type: org_apache_arrow_flatbuf_Schema.self)!
+        schemaMessage = message.header(type: Schema.self)!
         let schemaResult = loadSchema(schemaMessage!)
         switch schemaResult {
         case .success(let schema):
@@ -349,7 +348,7 @@ public class ArrowReader {  // swiftlint:disable:this type_body_length
    random accessing the data.  The Arrow file format contains a header and
    footer around the Arrow streaming format.
    */
-  public func readFile(  // swiftlint:disable:this function_body_length
+  public func readFile(
     _ fileData: Data,
     useUnalignedBuffers: Bool = false
   ) -> Result<ArrowReaderResult, ArrowError> {
@@ -398,7 +397,7 @@ public class ArrowReader {  // swiftlint:disable:this type_body_length
       let message: Message = getRoot(byteBuffer: &mbb)
       switch message.headerType {
       case .recordbatch:
-        let rbMessage = message.header(type: org_apache_arrow_flatbuf_RecordBatch.self)!
+        let rbMessage = message.header(type: FlatRecordBatch.self)!
         let recordBatchResult = loadRecordBatch(
           rbMessage,
           schema: footer.schema!,
@@ -451,7 +450,7 @@ public class ArrowReader {  // swiftlint:disable:this type_body_length
     let message: Message = getRoot(byteBuffer: &mbb)
     switch message.headerType {
     case .schema:
-      let sMessage = message.header(type: org_apache_arrow_flatbuf_Schema.self)!
+      let sMessage = message.header(type: Schema.self)!
       switch loadSchema(sMessage) {
       case .success(let schema):
         result.schema = schema
@@ -461,7 +460,7 @@ public class ArrowReader {  // swiftlint:disable:this type_body_length
         return .failure(error)
       }
     case .recordbatch:
-      let rbMessage = message.header(type: org_apache_arrow_flatbuf_RecordBatch.self)!
+      let rbMessage = message.header(type: FlatRecordBatch.self)!
       let recordBatchResult = loadRecordBatch(
         rbMessage, schema: result.messageSchema!, arrowSchema: result.schema!,
         data: dataBody, messageEndOffset: 0)
