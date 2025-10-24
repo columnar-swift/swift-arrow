@@ -15,8 +15,10 @@
 import FlatBuffers
 import Foundation
 
-private func makeBinaryHolder(_ buffers: [ArrowBuffer],
-                              nullCount: UInt) -> Result<ArrowArrayHolder, ArrowError> {
+private func makeBinaryHolder(
+  _ buffers: [ArrowBuffer],
+  nullCount: UInt
+) -> Result<ArrowArrayHolder, ArrowError> {
   do {
     let arrowType = ArrowType(ArrowType.ArrowBinary)
     let arrowData = try ArrowData(arrowType, buffers: buffers, nullCount: nullCount)
@@ -28,8 +30,10 @@ private func makeBinaryHolder(_ buffers: [ArrowBuffer],
   }
 }
 
-private func makeStringHolder(_ buffers: [ArrowBuffer],
-                              nullCount: UInt) -> Result<ArrowArrayHolder, ArrowError> {
+private func makeStringHolder(
+  _ buffers: [ArrowBuffer],
+  nullCount: UInt
+) -> Result<ArrowArrayHolder, ArrowError> {
   do {
     let arrowType = ArrowType(ArrowType.ArrowString)
     let arrowData = try ArrowData(arrowType, buffers: buffers, nullCount: nullCount)
@@ -41,16 +45,16 @@ private func makeStringHolder(_ buffers: [ArrowBuffer],
   }
 }
 
-private func makeDateHolder(_ field: ArrowField,
-                            buffers: [ArrowBuffer],
-                            nullCount: UInt
+private func makeDateHolder(
+  _ field: ArrowField,
+  buffers: [ArrowBuffer],
+  nullCount: UInt
 ) -> Result<ArrowArrayHolder, ArrowError> {
   do {
     if field.type.id == .date32 {
       let arrowData = try ArrowData(field.type, buffers: buffers, nullCount: nullCount)
       return .success(ArrowArrayHolderImpl(try Date32Array(arrowData)))
     }
-    
     let arrowData = try ArrowData(field.type, buffers: buffers, nullCount: nullCount)
     return .success(ArrowArrayHolderImpl(try Date64Array(arrowData)))
   } catch let error as ArrowError {
@@ -60,9 +64,10 @@ private func makeDateHolder(_ field: ArrowField,
   }
 }
 
-private func makeTimeHolder(_ field: ArrowField,
-                            buffers: [ArrowBuffer],
-                            nullCount: UInt
+private func makeTimeHolder(
+  _ field: ArrowField,
+  buffers: [ArrowBuffer],
+  nullCount: UInt
 ) -> Result<ArrowArrayHolder, ArrowError> {
   do {
     if field.type.id == .time32 {
@@ -73,7 +78,6 @@ private func makeTimeHolder(_ field: ArrowField,
         return .failure(.invalid("Incorrect field type for time: \(field.type)"))
       }
     }
-    
     if let arrowType = field.type as? ArrowTypeTime64 {
       let arrowData = try ArrowData(arrowType, buffers: buffers, nullCount: nullCount)
       return .success(ArrowArrayHolderImpl(try FixedArray<Time64>(arrowData)))
@@ -87,9 +91,10 @@ private func makeTimeHolder(_ field: ArrowField,
   }
 }
 
-private func makeTimestampHolder(_ field: ArrowField,
-                                 buffers: [ArrowBuffer],
-                                 nullCount: UInt
+private func makeTimestampHolder(
+  _ field: ArrowField,
+  buffers: [ArrowBuffer],
+  nullCount: UInt
 ) -> Result<ArrowArrayHolder, ArrowError> {
   do {
     if let arrowType = field.type as? ArrowTypeTimestamp {
@@ -105,8 +110,10 @@ private func makeTimestampHolder(_ field: ArrowField,
   }
 }
 
-private func makeBoolHolder(_ buffers: [ArrowBuffer],
-                            nullCount: UInt) -> Result<ArrowArrayHolder, ArrowError> {
+private func makeBoolHolder(
+  _ buffers: [ArrowBuffer],
+  nullCount: UInt
+) -> Result<ArrowArrayHolder, ArrowError> {
   do {
     let arrowType = ArrowType(ArrowType.ArrowBool)
     let arrowData = try ArrowData(arrowType, buffers: buffers, nullCount: nullCount)
@@ -163,10 +170,11 @@ func makeArrayHolder(
   rbLength: UInt
 ) -> Result<ArrowArrayHolder, ArrowError> {
   let arrowField = fromProto(field: field)
-  return makeArrayHolder(arrowField, buffers: buffers, nullCount: nullCount, children: children, rbLength: rbLength)
+  return makeArrayHolder(
+    arrowField, buffers: buffers, nullCount: nullCount, children: children, rbLength: rbLength)
 }
 
-func makeArrayHolder( // swiftlint:disable:this cyclomatic_complexity
+func makeArrayHolder(  // swiftlint:disable:this cyclomatic_complexity
   _ field: ArrowField,
   buffers: [ArrowBuffer],
   nullCount: UInt,
@@ -208,19 +216,23 @@ func makeArrayHolder( // swiftlint:disable:this cyclomatic_complexity
   case .timestamp:
     return makeTimestampHolder(field, buffers: buffers, nullCount: nullCount)
   case .strct:
-    return makeNestedHolder(field, buffers: buffers, nullCount: nullCount, children: children!, rbLength: rbLength)
+    return makeNestedHolder(
+      field, buffers: buffers, nullCount: nullCount, children: children!, rbLength: rbLength)
   case .list:
-    return makeNestedHolder(field, buffers: buffers, nullCount: nullCount, children: children!, rbLength: rbLength)
+    return makeNestedHolder(
+      field, buffers: buffers, nullCount: nullCount, children: children!, rbLength: rbLength)
   default:
     return .failure(.unknownType("Type \(typeId) currently not supported"))
   }
 }
 
-func makeBuffer(_ buffer: org_apache_arrow_flatbuf_Buffer, fileData: Data,
-                length: UInt, messageOffset: Int64) -> ArrowBuffer {
+func makeBuffer(
+  _ buffer: org_apache_arrow_flatbuf_Buffer, fileData: Data,
+  length: UInt, messageOffset: Int64
+) -> ArrowBuffer {
   let startOffset = messageOffset + buffer.offset
   let endOffset = startOffset + buffer.length
-  let bufferData = [UInt8](fileData[startOffset ..< endOffset])
+  let bufferData = [UInt8](fileData[startOffset..<endOffset])
   return ArrowBuffer.createBuffer(bufferData, length: length)
 }
 
@@ -233,85 +245,94 @@ func isFixedPrimitive(_ type: org_apache_arrow_flatbuf_Type_) -> Bool {
   }
 }
 
-func findArrowType( // swiftlint:disable:this cyclomatic_complexity function_body_length
-  _ field: org_apache_arrow_flatbuf_Field) -> ArrowType {
-    let type = field.typeType
-    switch type {
-    case .int:
-      let intType = field.type(type: org_apache_arrow_flatbuf_Int.self)!
-      let bitWidth = intType.bitWidth
-      if bitWidth == 8 { return ArrowType(intType.isSigned ? ArrowType.ArrowInt8 : ArrowType.ArrowUInt8) }
-      if bitWidth == 16 { return ArrowType(intType.isSigned ? ArrowType.ArrowInt16 : ArrowType.ArrowUInt16) }
-      if bitWidth == 32 { return ArrowType(intType.isSigned ? ArrowType.ArrowInt32 : ArrowType.ArrowUInt32) }
-      if bitWidth == 64 { return ArrowType(intType.isSigned ? ArrowType.ArrowInt64 : ArrowType.ArrowUInt64) }
-      return ArrowType(ArrowType.ArrowUnknown)
-    case .bool:
-      return ArrowType(ArrowType.ArrowBool)
-    case .floatingpoint:
-      let floatType = field.type(type: org_apache_arrow_flatbuf_FloatingPoint.self)!
-      switch floatType.precision {
-      case .single:
-        return ArrowType(ArrowType.ArrowFloat)
-      case .double:
-        return ArrowType(ArrowType.ArrowDouble)
-      default:
-        return ArrowType(ArrowType.ArrowUnknown)
-      }
-    case .utf8:
-      return ArrowType(ArrowType.ArrowString)
-    case .binary:
-      return ArrowType(ArrowType.ArrowBinary)
-    case .date:
-      let dateType = field.type(type: org_apache_arrow_flatbuf_Date.self)!
-      if dateType.unit == .day {
-        return ArrowType(ArrowType.ArrowDate32)
-      }
-      
-      return ArrowType(ArrowType.ArrowDate64)
-    case .time:
-      let timeType = field.type(type: org_apache_arrow_flatbuf_Time.self)!
-      if timeType.unit == .second || timeType.unit == .millisecond {
-        return ArrowTypeTime32(timeType.unit == .second ? .seconds : .milliseconds)
-      }
-      
-      return ArrowTypeTime64(timeType.unit == .microsecond ? .microseconds : .nanoseconds)
-    case .timestamp:
-      let timestampType = field.type(type: org_apache_arrow_flatbuf_Timestamp.self)!
-      let arrowUnit: ArrowTimestampUnit
-      switch timestampType.unit {
-      case .second:
-        arrowUnit = .seconds
-      case .millisecond:
-        arrowUnit = .milliseconds
-      case .microsecond:
-        arrowUnit = .microseconds
-      case .nanosecond:
-        arrowUnit = .nanoseconds
-      }
-      
-      let timezone = timestampType.timezone
-      return ArrowTypeTimestamp(arrowUnit, timezone: timezone)
-    case .struct_:
-      _ = field.type(type: org_apache_arrow_flatbuf_Struct_.self)!
-      var fields = [ArrowField]()
-      for index in 0..<field.childrenCount {
-        let childField = field.children(at: index)!
-        let childType = findArrowType(childField)
-        fields.append(
-          ArrowField(childField.name ?? "", type: childType, isNullable: childField.nullable))
-      }
-      
-      return ArrowTypeStruct(ArrowType.ArrowStruct, fields: fields)
-    case .list:
-      guard field.childrenCount == 1, let childField = field.children(at: 0) else {
-        return ArrowType(ArrowType.ArrowUnknown)
-      }
-      let childType = findArrowType(childField)
-      return ArrowTypeList(childType)
+func findArrowType(  // swiftlint:disable:this cyclomatic_complexity function_body_length
+  _ field: org_apache_arrow_flatbuf_Field
+) -> ArrowType {
+  let type = field.typeType
+  switch type {
+  case .int:
+    let intType = field.type(type: org_apache_arrow_flatbuf_Int.self)!
+    let bitWidth = intType.bitWidth
+    if bitWidth == 8 {
+      return ArrowType(intType.isSigned ? ArrowType.ArrowInt8 : ArrowType.ArrowUInt8)
+    }
+    if bitWidth == 16 {
+      return ArrowType(intType.isSigned ? ArrowType.ArrowInt16 : ArrowType.ArrowUInt16)
+    }
+    if bitWidth == 32 {
+      return ArrowType(intType.isSigned ? ArrowType.ArrowInt32 : ArrowType.ArrowUInt32)
+    }
+    if bitWidth == 64 {
+      return ArrowType(intType.isSigned ? ArrowType.ArrowInt64 : ArrowType.ArrowUInt64)
+    }
+    return ArrowType(ArrowType.ArrowUnknown)
+  case .bool:
+    return ArrowType(ArrowType.ArrowBool)
+  case .floatingpoint:
+    let floatType = field.type(type: org_apache_arrow_flatbuf_FloatingPoint.self)!
+    switch floatType.precision {
+    case .single:
+      return ArrowType(ArrowType.ArrowFloat)
+    case .double:
+      return ArrowType(ArrowType.ArrowDouble)
     default:
       return ArrowType(ArrowType.ArrowUnknown)
     }
+  case .utf8:
+    return ArrowType(ArrowType.ArrowString)
+  case .binary:
+    return ArrowType(ArrowType.ArrowBinary)
+  case .date:
+    let dateType = field.type(type: org_apache_arrow_flatbuf_Date.self)!
+    if dateType.unit == .day {
+      return ArrowType(ArrowType.ArrowDate32)
+    }
+
+    return ArrowType(ArrowType.ArrowDate64)
+  case .time:
+    let timeType = field.type(type: org_apache_arrow_flatbuf_Time.self)!
+    if timeType.unit == .second || timeType.unit == .millisecond {
+      return ArrowTypeTime32(timeType.unit == .second ? .seconds : .milliseconds)
+    }
+
+    return ArrowTypeTime64(timeType.unit == .microsecond ? .microseconds : .nanoseconds)
+  case .timestamp:
+    let timestampType = field.type(type: org_apache_arrow_flatbuf_Timestamp.self)!
+    let arrowUnit: ArrowTimestampUnit
+    switch timestampType.unit {
+    case .second:
+      arrowUnit = .seconds
+    case .millisecond:
+      arrowUnit = .milliseconds
+    case .microsecond:
+      arrowUnit = .microseconds
+    case .nanosecond:
+      arrowUnit = .nanoseconds
+    }
+
+    let timezone = timestampType.timezone
+    return ArrowTypeTimestamp(arrowUnit, timezone: timezone)
+  case .struct_:
+    _ = field.type(type: org_apache_arrow_flatbuf_Struct_.self)!
+    var fields = [ArrowField]()
+    for index in 0..<field.childrenCount {
+      let childField = field.children(at: index)!
+      let childType = findArrowType(childField)
+      fields.append(
+        ArrowField(childField.name ?? "", type: childType, isNullable: childField.nullable))
+    }
+
+    return ArrowTypeStruct(ArrowType.ArrowStruct, fields: fields)
+  case .list:
+    guard field.childrenCount == 1, let childField = field.children(at: 0) else {
+      return ArrowType(ArrowType.ArrowUnknown)
+    }
+    let childType = findArrowType(childField)
+    return ArrowTypeList(childType)
+  default:
+    return ArrowType(ArrowType.ArrowUnknown)
   }
+}
 
 func validateBufferIndex(_ recordBatch: org_apache_arrow_flatbuf_RecordBatch, index: Int32) throws {
   if index >= recordBatch.buffersCount {

@@ -21,34 +21,38 @@ public class ArrowData {
   public let nullCount: UInt
   public let length: UInt
   public let stride: Int
-  
+
   convenience init(_ arrowType: ArrowType, buffers: [ArrowBuffer], nullCount: UInt) throws {
-    try self.init(arrowType, buffers: buffers,
-                  children: [ArrowData](), nullCount: nullCount,
-                  length: buffers[1].length)
+    try self.init(
+      arrowType, buffers: buffers,
+      children: [ArrowData](), nullCount: nullCount,
+      length: buffers[1].length)
   }
-  
-  init(_ arrowType: ArrowType, buffers: [ArrowBuffer], children: [ArrowData], nullCount: UInt, length: UInt) throws {
+
+  init(
+    _ arrowType: ArrowType, buffers: [ArrowBuffer], children: [ArrowData], nullCount: UInt,
+    length: UInt
+  ) throws {
     let infoType = arrowType.info
     switch infoType {
-    case let .primitiveInfo(typeId):
+    case .primitiveInfo(let typeId):
       if typeId == ArrowTypeId.unknown {
         throw ArrowError.unknownType("Unknown primitive type for data")
       }
-    case let .variableInfo(typeId):
+    case .variableInfo(let typeId):
       if typeId == ArrowTypeId.unknown {
         throw ArrowError.unknownType("Unknown variable type for data")
       }
-    case let .timeInfo(typeId):
+    case .timeInfo(let typeId):
       if typeId == ArrowTypeId.unknown {
         throw ArrowError.unknownType("Unknown time type for data")
       }
-    case let .complexInfo(typeId):
+    case .complexInfo(let typeId):
       if typeId == ArrowTypeId.unknown {
         throw ArrowError.unknownType("Unknown complex type for data")
       }
     }
-    
+
     self.type = arrowType
     self.buffers = buffers
     self.children = children
@@ -56,7 +60,7 @@ public class ArrowData {
     self.length = length
     self.stride = arrowType.getStride()
   }
-  
+
   public func isNull(_ at: UInt) -> Bool {
     let nullBuffer = buffers[0]
     return nullBuffer.length > 0 && !BitUtility.isSet(at, buffer: nullBuffer)

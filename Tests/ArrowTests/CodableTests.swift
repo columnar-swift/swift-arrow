@@ -13,9 +13,10 @@
 // limitations under the License.
 
 import XCTest
+
 @testable import Arrow
 
-final class CodableTests: XCTestCase { // swiftlint:disable:this type_body_length
+final class CodableTests: XCTestCase {  // swiftlint:disable:this type_body_length
   public class TestClass: Codable {
     public var propBool: Bool
     public var propInt8: Int8
@@ -30,7 +31,7 @@ final class CodableTests: XCTestCase { // swiftlint:disable:this type_body_lengt
     public var propDouble: Double?
     public var propString: String
     public var propDate: Date
-    
+
     public required init() {
       self.propBool = false
       self.propInt8 = 1
@@ -47,8 +48,8 @@ final class CodableTests: XCTestCase { // swiftlint:disable:this type_body_lengt
       self.propDate = Date.now
     }
   }
-  
-  func testArrowKeyedDecoder() throws { // swiftlint:disable:this function_body_length
+
+  func testArrowKeyedDecoder() throws {  // swiftlint:disable:this function_body_length
     let date1 = Date(timeIntervalSinceReferenceDate: 86400 * 5000 + 352)
     let boolBuilder = try ArrowArrayBuilders.loadBoolArrayBuilder()
     let int8Builder: NumberArrayBuilder<Int8> = try ArrowArrayBuilders.loadNumberArrayBuilder()
@@ -63,7 +64,7 @@ final class CodableTests: XCTestCase { // swiftlint:disable:this type_body_lengt
     let doubleBuilder: NumberArrayBuilder<Double> = try ArrowArrayBuilders.loadNumberArrayBuilder()
     let stringBuilder = try ArrowArrayBuilders.loadStringArrayBuilder()
     let dateBuilder = try ArrowArrayBuilders.loadDate64ArrayBuilder()
-    
+
     boolBuilder.append(false, true, false)
     int8Builder.append(10, 11, 12)
     int16Builder.append(20, 21, 22)
@@ -120,7 +121,7 @@ final class CodableTests: XCTestCase { // swiftlint:disable:this type_body_lengt
       throw err
     }
   }
-  
+
   func testArrowSingleDecoderWithoutNull() throws {
     let int8Builder: NumberArrayBuilder<Int8> = try ArrowArrayBuilders.loadNumberArrayBuilder()
     int8Builder.append(10, 11, 12)
@@ -139,7 +140,7 @@ final class CodableTests: XCTestCase { // swiftlint:disable:this type_body_lengt
       throw err
     }
   }
-  
+
   func testArrowSingleDecoderWithNull() throws {
     let int8WNilBuilder: NumberArrayBuilder<Int8> = try ArrowArrayBuilders.loadNumberArrayBuilder()
     int8WNilBuilder.append(10, nil, 12, nil)
@@ -162,7 +163,7 @@ final class CodableTests: XCTestCase { // swiftlint:disable:this type_body_lengt
       throw err
     }
   }
-  
+
   func testArrowMapDecoderWithoutNull() throws {
     let int8Builder: NumberArrayBuilder<Int8> = try ArrowArrayBuilders.loadNumberArrayBuilder()
     let stringBuilder = try ArrowArrayBuilders.loadStringArrayBuilder()
@@ -171,7 +172,8 @@ final class CodableTests: XCTestCase { // swiftlint:disable:this type_body_lengt
     switch RecordBatch.Builder()
       .addColumn("propInt8", arrowArray: try int8Builder.toHolder())
       .addColumn("propString", arrowArray: try stringBuilder.toHolder())
-      .finish() {
+      .finish()
+    {
     case .success(let rb):
       let decoder = ArrowDecoder(rb)
       let testData = try decoder.decode([Int8: String].self)
@@ -181,11 +183,12 @@ final class CodableTests: XCTestCase { // swiftlint:disable:this type_body_lengt
     case .failure(let err):
       throw err
     }
-    
+
     switch RecordBatch.Builder()
       .addColumn("propString", arrowArray: try stringBuilder.toHolder())
       .addColumn("propInt8", arrowArray: try int8Builder.toHolder())
-      .finish() {
+      .finish()
+    {
     case .success(let rb):
       let decoder = ArrowDecoder(rb)
       let testData = try decoder.decode([String: Int8].self)
@@ -196,7 +199,7 @@ final class CodableTests: XCTestCase { // swiftlint:disable:this type_body_lengt
       throw err
     }
   }
-  
+
   func testArrowMapDecoderWithNull() throws {
     let int8Builder: NumberArrayBuilder<Int8> = try ArrowArrayBuilders.loadNumberArrayBuilder()
     let stringWNilBuilder = try ArrowArrayBuilders.loadStringArrayBuilder()
@@ -222,13 +225,13 @@ final class CodableTests: XCTestCase { // swiftlint:disable:this type_body_lengt
       throw err
     }
   }
-  
+
   func getArrayValue<T>(_ rb: RecordBatch, colIndex: Int, rowIndex: UInt) -> T? {
     let anyArray = rb.columns[colIndex].array
     return anyArray.asAny(UInt(rowIndex)) as? T
   }
-  
-  func testArrowKeyedEncoder() throws { // swiftlint:disable:this function_body_length
+
+  func testArrowKeyedEncoder() throws {  // swiftlint:disable:this function_body_length
     var infos = [TestClass]()
     for index in 0..<10 {
       let tClass = TestClass()
@@ -248,7 +251,7 @@ final class CodableTests: XCTestCase { // swiftlint:disable:this type_body_lengt
       tClass.propDate = Date.now
       infos.append(tClass)
     }
-    
+
     let rb = try ArrowEncoder.encode(infos)!
     XCTAssertEqual(Int(rb.length), infos.count)
     XCTAssertEqual(rb.columns.count, 13)
@@ -282,17 +285,17 @@ final class CodableTests: XCTestCase { // swiftlint:disable:this type_body_lengt
       } else {
         XCTAssertEqual(getArrayValue(rb, colIndex: 10, rowIndex: UInt(index)), Double?(nil))
       }
-      
+
       XCTAssertEqual(getArrayValue(rb, colIndex: 11, rowIndex: UInt(index)), String(offset + 11))
     }
   }
-  
+
   func testArrowUnkeyedEncoder() throws {
     var testMap = [Int8: String?]()
     for index in 0..<10 {
       testMap[Int8(index)] = "test\(index)"
     }
-    
+
     let rb = try ArrowEncoder.encode(testMap)
     XCTAssertEqual(Int(rb.length), testMap.count)
     XCTAssertEqual(rb.columns.count, 2)
@@ -304,7 +307,7 @@ final class CodableTests: XCTestCase { // swiftlint:disable:this type_body_lengt
       XCTAssertEqual("test\(key)", value)
     }
   }
-  
+
   func testArrowSingleEncoder() throws {
     var intArray = [Int32?]()
     for index in 0..<100 {
@@ -314,7 +317,7 @@ final class CodableTests: XCTestCase { // swiftlint:disable:this type_body_lengt
         intArray.append(Int32(index))
       }
     }
-    
+
     let rb = try ArrowEncoder.encode(intArray)!
     XCTAssertEqual(Int(rb.length), intArray.count)
     XCTAssertEqual(rb.columns.count, 1)

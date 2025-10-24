@@ -1,4 +1,3 @@
-
 // Copyright 2025 The Apache Software Foundation
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,14 +13,17 @@
 // limitations under the License.
 
 import XCTest
+
 @testable import Arrow
 
 final class TableTests: XCTestCase {
   func testSchema() throws {
     let schemaBuilder = ArrowSchema.Builder()
-    let schema = schemaBuilder.addField("col1", type: ArrowType(ArrowType.ArrowInt8), isNullable: true)
-      .addField("col2", type: ArrowType(ArrowType.ArrowBool), isNullable: false)
-      .finish()
+    let schema = schemaBuilder.addField(
+      "col1", type: ArrowType(ArrowType.ArrowInt8), isNullable: true
+    )
+    .addField("col2", type: ArrowType(ArrowType.ArrowBool), isNullable: false)
+    .finish()
     XCTAssertEqual(schema.fields.count, 2)
     XCTAssertEqual(schema.fields[0].name, "col1")
     XCTAssertEqual(schema.fields[0].type.info, ArrowType.ArrowInt8)
@@ -30,7 +32,7 @@ final class TableTests: XCTestCase {
     XCTAssertEqual(schema.fields[1].type.info, ArrowType.ArrowBool)
     XCTAssertEqual(schema.fields[1].isNullable, false)
   }
-  
+
   func testSchemaNested() {
     class StructTest {
       var field0: Bool = false
@@ -48,19 +50,19 @@ final class TableTests: XCTestCase {
       var field12 = Data()
       var field13: Date = Date.now
     }
-    
+
     let testObj = StructTest()
     var fields = [ArrowField]()
-    let buildStructType = {() -> ArrowTypeStruct in
+    let buildStructType = { () -> ArrowTypeStruct in
       let mirror = Mirror(reflecting: testObj)
       for (property, value) in mirror.children {
         let arrowType = ArrowType(ArrowType.infoForType(type(of: value)))
         fields.append(ArrowField(property!, type: arrowType, isNullable: true))
       }
-      
+
       return ArrowTypeStruct(ArrowType.ArrowStruct, fields: fields)
     }
-    
+
     let structType = buildStructType()
     XCTAssertEqual(structType.id, ArrowTypeId.strct)
     XCTAssertEqual(structType.fields.count, 14)
@@ -79,7 +81,7 @@ final class TableTests: XCTestCase {
     XCTAssertEqual(structType.fields[12].type.id, ArrowTypeId.binary)
     XCTAssertEqual(structType.fields[13].type.id, ArrowTypeId.date64)
   }
-  
+
   func testTable() throws {
     let doubleBuilder: NumberArrayBuilder<Double> = try ArrowArrayBuilders.loadNumberArrayBuilder()
     doubleBuilder.append(11.11)
@@ -118,7 +120,7 @@ final class TableTests: XCTestCase {
     XCTAssertEqual(col1[0], 11.11)
     XCTAssertEqual(col2[1], "test22")
   }
-  
+
   func testTableWithChunkedData() throws {
     let uint8Builder: NumberArrayBuilder<UInt8> = try ArrowArrayBuilders.loadNumberArrayBuilder()
     uint8Builder.append(10)
@@ -140,7 +142,9 @@ final class TableTests: XCTestCase {
     date32Builder.append(date2)
     date32Builder.append(date1)
     date32Builder.append(date2)
-    let intArray = try ChunkedArray([uint8Builder.finish(), uint8Builder2.finish(), uint8Builder3.finish()])
+    let intArray = try ChunkedArray([
+      uint8Builder.finish(), uint8Builder2.finish(), uint8Builder3.finish(),
+    ])
     let stringArray = try ChunkedArray([stringBuilder.finish(), stringBuilder2.finish()])
     let dateArray = try ChunkedArray([date32Builder.finish()])
     let table = ArrowTable.Builder()
@@ -171,7 +175,7 @@ final class TableTests: XCTestCase {
     XCTAssertEqual(col2.asString(0), "test10")
     XCTAssertEqual(col2.asString(2), "test33")
   }
-  
+
   func testTableToRecordBatch() throws {
     let uint8Builder: NumberArrayBuilder<UInt8> = try ArrowArrayBuilders.loadNumberArrayBuilder()
     uint8Builder.append(10)

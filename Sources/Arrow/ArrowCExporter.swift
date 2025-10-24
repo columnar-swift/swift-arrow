@@ -12,9 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import Foundation
 import ArrowC
 import Atomics
+import Foundation
 
 // The memory used by UnsafeAtomic is not automatically
 // reclaimed. Since this value is initialized once
@@ -31,7 +31,7 @@ public class ArrowCExporter {
       ArrowCExporter.exportedData[id] = self
     }
   }
-  
+
   private class ExportSchema: ExportData {
     public let arrowTypeNameCstr: UnsafePointer<CChar>
     public let nameCstr: UnsafePointer<CChar>
@@ -49,7 +49,7 @@ public class ArrowCExporter {
       super.init()
     }
   }
-  
+
   private class ExportArray: ExportData {
     private let arrowData: ArrowData
     private(set) var data = [UnsafeRawPointer?]()
@@ -63,37 +63,38 @@ public class ArrowCExporter {
       for arrowBuffer in arrowData.buffers {
         self.data.append(arrowBuffer.rawPointer)
       }
-      
+
       self.buffers = UnsafeMutablePointer<UnsafeRawPointer?>.allocate(capacity: self.data.count)
       self.buffers.initialize(from: &self.data, count: self.data.count)
       super.init()
     }
-    
+
     deinit {
       self.buffers.deinitialize(count: self.data.count)
       self.buffers.deallocate()
     }
   }
-  
+
   @MainActor private static var exportedData = [Int: ExportData]()
   public init() {}
-  
+
   @MainActor
-  public func exportType(_ cSchema: inout ArrowC.ArrowSchema, arrowType: ArrowType, name: String = "") ->
-  Result<Bool, ArrowError> {
+  public func exportType(
+    _ cSchema: inout ArrowC.ArrowSchema, arrowType: ArrowType, name: String = ""
+  ) -> Result<Bool, ArrowError> {
     do {
       let exportSchema = try ExportSchema(arrowType, name: name)
       cSchema.format = exportSchema.arrowTypeNameCstr
       cSchema.name = exportSchema.nameCstr
       cSchema.private_data =
-      UnsafeMutableRawPointer(mutating: UnsafeRawPointer(bitPattern: exportSchema.id))
-      cSchema.release = {(data: UnsafeMutablePointer<ArrowC.ArrowSchema>?) in
+        UnsafeMutableRawPointer(mutating: UnsafeRawPointer(bitPattern: exportSchema.id))
+      cSchema.release = { (data: UnsafeMutablePointer<ArrowC.ArrowSchema>?) in
         let arraySchema = data!.pointee
         let exportId = Int(bitPattern: arraySchema.private_data)
         guard ArrowCExporter.exportedData[exportId] != nil else {
           fatalError("Export schema not found with id \(exportId)")
         }
-        
+
         // the data associated with this exportSchema object
         // which includes the C strings for the format and name
         // be deallocated upon removal
@@ -105,13 +106,14 @@ public class ArrowCExporter {
     }
     return .success(true)
   }
-  
+
   @MainActor
-  public func exportField(_ schema: inout ArrowC.ArrowSchema, field: ArrowField) ->
-  Result<Bool, ArrowError> {
+  public func exportField(_ schema: inout ArrowC.ArrowSchema, field: ArrowField) -> Result<
+    Bool, ArrowError
+  > {
     return exportType(&schema, arrowType: field.type, name: field.name)
   }
-  
+
   @MainActor
   public func exportArray(_ cArray: inout ArrowC.ArrowArray, arrowData: ArrowData) {
     let exportArray = ExportArray(arrowData)
@@ -125,14 +127,14 @@ public class ArrowCExporter {
     cArray.children = nil
     cArray.dictionary = nil
     cArray.private_data =
-    UnsafeMutableRawPointer(mutating: UnsafeRawPointer(bitPattern: exportArray.id))
-    cArray.release = {(data: UnsafeMutablePointer<ArrowC.ArrowArray>?) in
+      UnsafeMutableRawPointer(mutating: UnsafeRawPointer(bitPattern: exportArray.id))
+    cArray.release = { (data: UnsafeMutablePointer<ArrowC.ArrowArray>?) in
       let arrayData = data!.pointee
       let exportId = Int(bitPattern: arrayData.private_data)
       guard ArrowCExporter.exportedData[exportId] != nil else {
         fatalError("Export data not found with id \(exportId)")
       }
-      
+
       // the data associated with this exportArray object
       // which includes the entire arrowData object
       // and the buffers UnsafeMutablePointer[] will

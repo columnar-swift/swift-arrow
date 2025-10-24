@@ -36,7 +36,7 @@ let package = Package(
     .package(
       url: "https://github.com/apple/swift-atomics.git",
       from: "1.3.0"
-    )
+    ),
   ],
   targets: [
     .target(
@@ -50,7 +50,7 @@ let package = Package(
       dependencies: [
         "ArrowC",
         .product(name: "FlatBuffers", package: "flatbuffers"),
-        .product(name: "Atomics", package: "swift-atomics")
+        .product(name: "Atomics", package: "swift-atomics"),
       ],
       swiftSettings: [
         // build: .unsafeFlags(["-warnings-as-errors"])
@@ -65,6 +65,6 @@ let package = Package(
       swiftSettings: [
         // build: .unsafeFlags(["-warnings-as-errors"])
       ]
-    )
+    ),
   ]
 )

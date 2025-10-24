@@ -12,15 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import ArrowC
 import Foundation
 import XCTest
+
 @testable import Arrow
-import ArrowC
 
 final class CDataTests: XCTestCase {
   func makeSchema() -> Arrow.ArrowSchema {
     let schemaBuilder = ArrowSchema.Builder()
-    return schemaBuilder
+    return
+      schemaBuilder
       .addField("colBool", type: ArrowType(ArrowType.ArrowBool), isNullable: false)
       .addField("colUInt8", type: ArrowType(ArrowType.ArrowUInt8), isNullable: true)
       .addField("colUInt16", type: ArrowType(ArrowType.ArrowUInt16), isNullable: true)
@@ -49,7 +51,7 @@ final class CDataTests: XCTestCase {
       .addField("colDouble", type: ArrowType(ArrowType.ArrowDouble), isNullable: false)
       .finish()
   }
-  
+
   func checkImportField(_ cSchema: ArrowC.ArrowSchema, name: String, type: ArrowType.Info) throws {
     let importer = ArrowCImporter()
     switch importer.importField(cSchema) {
@@ -60,7 +62,7 @@ final class CDataTests: XCTestCase {
       throw error
     }
   }
-  
+
   @MainActor
   func testImportExportSchema() throws {
     let schema = makeSchema()
@@ -75,7 +77,7 @@ final class CDataTests: XCTestCase {
       }
     }
   }
-  
+
   @MainActor
   func testImportExportArray() throws {
     let stringBuilder = try ArrowArrayBuilders.loadStringArrayBuilder()
@@ -86,7 +88,7 @@ final class CDataTests: XCTestCase {
         stringBuilder.append("test" + String(index))
       }
     }
-    
+
     XCTAssertEqual(stringBuilder.nullCount, 10)
     XCTAssertEqual(stringBuilder.length, 100)
     XCTAssertEqual(stringBuilder.capacity, 648)
@@ -99,14 +101,17 @@ final class CDataTests: XCTestCase {
     defer {
       cArrayMutPtr.deallocate()
     }
-    
+
     let importer = ArrowCImporter()
-    switch importer.importArray(UnsafePointer(cArrayMutPtr), arrowType: ArrowType(ArrowType.ArrowString)) {
+    switch importer.importArray(
+      UnsafePointer(cArrayMutPtr), arrowType: ArrowType(ArrowType.ArrowString))
+    {
     case .success(let holder):
       let builder = RecordBatch.Builder()
       switch builder
         .addColumn("test", arrowArray: holder)
-        .finish() {
+        .finish()
+      {
       case .success(let rb):
         XCTAssertEqual(rb.columnCount, 1)
         XCTAssertEqual(rb.length, 100)

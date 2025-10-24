@@ -13,6 +13,7 @@
 // limitations under the License.
 
 import XCTest
+
 @testable import Arrow
 
 final class ArrayBuilderTests: XCTestCase {
@@ -41,13 +42,13 @@ final class ArrayBuilderTests: XCTestCase {
     XCTAssertTrue(ArrowArrayBuilders.isValidBuilderType(Double?.self))
     XCTAssertTrue(ArrowArrayBuilders.isValidBuilderType(Date?.self))
     XCTAssertTrue(ArrowArrayBuilders.isValidBuilderType(Bool?.self))
-    
+
     XCTAssertFalse(ArrowArrayBuilders.isValidBuilderType(Int.self))
     XCTAssertFalse(ArrowArrayBuilders.isValidBuilderType(UInt.self))
     XCTAssertFalse(ArrowArrayBuilders.isValidBuilderType(Int?.self))
     XCTAssertFalse(ArrowArrayBuilders.isValidBuilderType(UInt?.self))
   }
-  
+
   func testLoadArrayBuilders() throws {
     XCTAssertNotNil(try ArrowArrayBuilders.loadBuilder(Int8.self))
     XCTAssertNotNil(try ArrowArrayBuilders.loadBuilder(Int16.self))
@@ -73,7 +74,7 @@ final class ArrayBuilderTests: XCTestCase {
     XCTAssertNotNil(try ArrowArrayBuilders.loadBuilder(Double?.self))
     XCTAssertNotNil(try ArrowArrayBuilders.loadBuilder(Date?.self))
     XCTAssertNotNil(try ArrowArrayBuilders.loadBuilder(Bool?.self))
-    
+
     XCTAssertThrowsError(try ArrowArrayBuilders.loadBuilder(Int.self))
     XCTAssertThrowsError(try ArrowArrayBuilders.loadBuilder(UInt.self))
     XCTAssertThrowsError(try ArrowArrayBuilders.loadBuilder(Int?.self))

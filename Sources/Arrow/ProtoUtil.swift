@@ -12,10 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
 import Foundation
 
-func fromProto( // swiftlint:disable:this cyclomatic_complexity function_body_length
+func fromProto(  // swiftlint:disable:this cyclomatic_complexity function_body_length
   field: FlatField
 ) -> ArrowField {
   let type = field.typeType
@@ -75,7 +74,7 @@ func fromProto( // swiftlint:disable:this cyclomatic_complexity function_body_le
     case .nanosecond:
       arrowUnit = .nanoseconds
     }
-    
+
     let timezone = timestampType.timezone
     arrowType = ArrowTypeTimestamp(arrowUnit, timezone: timezone?.isEmpty == true ? nil : timezone)
   case .struct_:
@@ -84,7 +83,7 @@ func fromProto( // swiftlint:disable:this cyclomatic_complexity function_body_le
       let childField = field.children(at: index)!
       children.append(fromProto(field: childField))
     }
-    
+
     arrowType = ArrowTypeStruct(ArrowType.ArrowStruct, fields: children)
   case .list:
     guard field.childrenCount == 1, let childField = field.children(at: 0) else {
@@ -96,6 +95,6 @@ func fromProto( // swiftlint:disable:this cyclomatic_complexity function_body_le
   default:
     arrowType = ArrowType(ArrowType.ArrowUnknown)
   }
-  
+
   return ArrowField(field.name ?? "", type: arrowType, isNullable: field.nullable)
 }

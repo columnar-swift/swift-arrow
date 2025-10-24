@@ -86,7 +86,7 @@ public class ArrowTypeTime32: ArrowType {
     self.unit = unit
     super.init(ArrowType.ArrowTime32)
   }
-  
+
   public override var cDataFormatId: String {
     get throws {
       switch self.unit {
@@ -105,7 +105,7 @@ public class ArrowTypeTime64: ArrowType {
     self.unit = unit
     super.init(ArrowType.ArrowTime64)
   }
-  
+
   public override var cDataFormatId: String {
     get throws {
       switch self.unit {
@@ -128,18 +128,18 @@ public enum ArrowTimestampUnit {
 public class ArrowTypeTimestamp: ArrowType {
   let unit: ArrowTimestampUnit
   let timezone: String?
-  
+
   public init(_ unit: ArrowTimestampUnit, timezone: String? = nil) {
     self.unit = unit
     self.timezone = timezone
-    
+
     super.init(ArrowType.ArrowTimestamp)
   }
-  
+
   public convenience init(type: ArrowTypeId) {
     self.init(.milliseconds, timezone: nil)
   }
-  
+
   public override var cDataFormatId: String {
     get throws {
       let unitChar: String
@@ -149,7 +149,7 @@ public class ArrowTypeTimestamp: ArrowType {
       case .microseconds: unitChar = "u"
       case .nanoseconds: unitChar = "n"
       }
-      
+
       if let timezone = self.timezone {
         return "ts\(unitChar):\(timezone)"
       } else {
@@ -169,7 +169,7 @@ public class ArrowTypeStruct: ArrowType {
 
 public class ArrowTypeList: ArrowType {
   let elementType: ArrowType
-  
+
   public init(_ elementType: ArrowType) {
     self.elementType = elementType
     super.init(ArrowType.ArrowList)
@@ -199,11 +199,11 @@ public class ArrowType {
   public static let ArrowTimestamp = Info.timeInfo(ArrowTypeId.timestamp)
   public static let ArrowStruct = Info.complexInfo(ArrowTypeId.strct)
   public static let ArrowList = Info.complexInfo(ArrowTypeId.list)
-  
+
   public init(_ info: ArrowType.Info) {
     self.info = info
   }
-  
+
   public var id: ArrowTypeId {
     switch self.info {
     case .primitiveInfo(let id):
@@ -216,49 +216,50 @@ public class ArrowType {
       return id
     }
   }
-  
+
   public enum Info: Sendable {
     case primitiveInfo(ArrowTypeId)
     case variableInfo(ArrowTypeId)
     case timeInfo(ArrowTypeId)
     case complexInfo(ArrowTypeId)
   }
-  
-  public static func infoForType( // swiftlint:disable:this cyclomatic_complexity
-    _ type: Any.Type) -> ArrowType.Info {
-      if type == String.self {
-        return ArrowType.ArrowString
-      } else if type == Date.self {
-        return ArrowType.ArrowDate64
-      } else if type == Bool.self {
-        return ArrowType.ArrowBool
-      } else if type == Data.self {
-        return ArrowType.ArrowBinary
-      } else if type == Int8.self {
-        return ArrowType.ArrowInt8
-      } else if type == Int16.self {
-        return ArrowType.ArrowInt16
-      } else if type == Int32.self {
-        return ArrowType.ArrowInt32
-      } else if type == Int64.self {
-        return ArrowType.ArrowInt64
-      } else if type == UInt8.self {
-        return ArrowType.ArrowUInt8
-      } else if type == UInt16.self {
-        return ArrowType.ArrowUInt16
-      } else if type == UInt32.self {
-        return ArrowType.ArrowUInt32
-      } else if type == UInt64.self {
-        return ArrowType.ArrowUInt64
-      } else if type == Float.self {
-        return ArrowType.ArrowFloat
-      } else if type == Double.self {
-        return ArrowType.ArrowDouble
-      } else {
-        return ArrowType.ArrowUnknown
-      }
+
+  public static func infoForType(  // swiftlint:disable:this cyclomatic_complexity
+    _ type: Any.Type
+  ) -> ArrowType.Info {
+    if type == String.self {
+      return ArrowType.ArrowString
+    } else if type == Date.self {
+      return ArrowType.ArrowDate64
+    } else if type == Bool.self {
+      return ArrowType.ArrowBool
+    } else if type == Data.self {
+      return ArrowType.ArrowBinary
+    } else if type == Int8.self {
+      return ArrowType.ArrowInt8
+    } else if type == Int16.self {
+      return ArrowType.ArrowInt16
+    } else if type == Int32.self {
+      return ArrowType.ArrowInt32
+    } else if type == Int64.self {
+      return ArrowType.ArrowInt64
+    } else if type == UInt8.self {
+      return ArrowType.ArrowUInt8
+    } else if type == UInt16.self {
+      return ArrowType.ArrowUInt16
+    } else if type == UInt32.self {
+      return ArrowType.ArrowUInt32
+    } else if type == UInt64.self {
+      return ArrowType.ArrowUInt64
+    } else if type == Float.self {
+      return ArrowType.ArrowFloat
+    } else if type == Double.self {
+      return ArrowType.ArrowDouble
+    } else {
+      return ArrowType.ArrowUnknown
     }
-  
+  }
+
   public static func infoForNumericType<T>(_ type: T.Type) -> ArrowType.Info {
     if type == Int8.self {
       return ArrowType.ArrowInt8
@@ -284,9 +285,10 @@ public class ArrowType {
       return ArrowType.ArrowUnknown
     }
   }
-  
-  public func getStride( // swiftlint:disable:this cyclomatic_complexity
-  ) -> Int {
+
+  public func getStride(  // swiftlint:disable:this cyclomatic_complexity
+    ) -> Int
+  {
     switch self.id {
     case .int8:
       return MemoryLayout<Int8>.stride
@@ -330,7 +332,7 @@ public class ArrowType {
       fatalError("Stride requested for unknown type: \(self)")
     }
   }
-  
+
   public var cDataFormatId: String {
     get throws {
       switch self.id {
@@ -398,74 +400,78 @@ public class ArrowType {
       }
     }
   }
-  
-  public static func fromCDataFormatId( // swiftlint:disable:this cyclomatic_complexity
-    _ from: String) throws -> ArrowType {
-      if from == "c" {
-        return ArrowType(ArrowType.ArrowInt8)
-      } else if from == "s" {
-        return ArrowType(ArrowType.ArrowInt16)
-      } else if from == "i" {
-        return ArrowType(ArrowType.ArrowInt32)
-      } else if  from == "l" {
-        return ArrowType(ArrowType.ArrowInt64)
-      } else if  from == "C" {
-        return ArrowType(ArrowType.ArrowUInt8)
-      } else if  from == "S" {
-        return ArrowType(ArrowType.ArrowUInt16)
-      } else if  from == "I" {
-        return ArrowType(ArrowType.ArrowUInt32)
-      } else if  from == "L" {
-        return ArrowType(ArrowType.ArrowUInt64)
-      } else if  from == "f" {
-        return ArrowType(ArrowType.ArrowFloat)
-      } else if  from == "g" {
-        return ArrowType(ArrowType.ArrowDouble)
-      } else if  from == "b" {
-        return ArrowType(ArrowType.ArrowBool)
-      } else if  from == "tdD" {
-        return ArrowType(ArrowType.ArrowDate32)
-      } else if  from == "tdm" {
-        return ArrowType(ArrowType.ArrowDate64)
-      } else if  from == "tts" {
-        return ArrowTypeTime32(.seconds)
-      } else if  from == "ttm" {
-        return ArrowTypeTime32(.milliseconds)
-      } else if  from == "ttu" {
-        return ArrowTypeTime64(.microseconds)
-      } else if  from == "ttn" {
-        return ArrowTypeTime64(.nanoseconds)
-      } else if from.starts(with: "ts") {
-        let components = from.split(separator: ":", maxSplits: 1)
-        guard let unitPart = components.first, unitPart.count == 3 else {
-          throw ArrowError.invalid("Invalid timestamp format '\(from)'. Expected format 'ts[s|m|u|n][:timezone]'")
-        }
-        
-        let unitChar = unitPart.suffix(1)
-        let unit: ArrowTimestampUnit
-        switch unitChar {
-        case "s": unit = .seconds
-        case "m": unit = .milliseconds
-        case "u": unit = .microseconds
-        case "n": unit = .nanoseconds
-        default: throw ArrowError.invalid("Unrecognized timestamp unit '\(unitChar)'. Expected 's', 'm', 'u', or 'n'.")
-        }
-        
-        let timezone = components.count > 1 ? String(components[1]) : nil
-        return ArrowTypeTimestamp(unit, timezone: timezone)
-      } else if  from == "z" {
-        return ArrowType(ArrowType.ArrowBinary)
-      } else if  from == "u" {
-        return ArrowType(ArrowType.ArrowString)
+
+  public static func fromCDataFormatId(  // swiftlint:disable:this cyclomatic_complexity
+    _ from: String
+  ) throws -> ArrowType {
+    if from == "c" {
+      return ArrowType(ArrowType.ArrowInt8)
+    } else if from == "s" {
+      return ArrowType(ArrowType.ArrowInt16)
+    } else if from == "i" {
+      return ArrowType(ArrowType.ArrowInt32)
+    } else if from == "l" {
+      return ArrowType(ArrowType.ArrowInt64)
+    } else if from == "C" {
+      return ArrowType(ArrowType.ArrowUInt8)
+    } else if from == "S" {
+      return ArrowType(ArrowType.ArrowUInt16)
+    } else if from == "I" {
+      return ArrowType(ArrowType.ArrowUInt32)
+    } else if from == "L" {
+      return ArrowType(ArrowType.ArrowUInt64)
+    } else if from == "f" {
+      return ArrowType(ArrowType.ArrowFloat)
+    } else if from == "g" {
+      return ArrowType(ArrowType.ArrowDouble)
+    } else if from == "b" {
+      return ArrowType(ArrowType.ArrowBool)
+    } else if from == "tdD" {
+      return ArrowType(ArrowType.ArrowDate32)
+    } else if from == "tdm" {
+      return ArrowType(ArrowType.ArrowDate64)
+    } else if from == "tts" {
+      return ArrowTypeTime32(.seconds)
+    } else if from == "ttm" {
+      return ArrowTypeTime32(.milliseconds)
+    } else if from == "ttu" {
+      return ArrowTypeTime64(.microseconds)
+    } else if from == "ttn" {
+      return ArrowTypeTime64(.nanoseconds)
+    } else if from.starts(with: "ts") {
+      let components = from.split(separator: ":", maxSplits: 1)
+      guard let unitPart = components.first, unitPart.count == 3 else {
+        throw ArrowError.invalid(
+          "Invalid timestamp format '\(from)'. Expected format 'ts[s|m|u|n][:timezone]'")
       }
-      
-      throw ArrowError.notImplemented
+
+      let unitChar = unitPart.suffix(1)
+      let unit: ArrowTimestampUnit
+      switch unitChar {
+      case "s": unit = .seconds
+      case "m": unit = .milliseconds
+      case "u": unit = .microseconds
+      case "n": unit = .nanoseconds
+      default:
+        throw ArrowError.invalid(
+          "Unrecognized timestamp unit '\(unitChar)'. Expected 's', 'm', 'u', or 'n'.")
+      }
+
+      let timezone = components.count > 1 ? String(components[1]) : nil
+      return ArrowTypeTimestamp(unit, timezone: timezone)
+    } else if from == "z" {
+      return ArrowType(ArrowType.ArrowBinary)
+    } else if from == "u" {
+      return ArrowType(ArrowType.ArrowString)
     }
+
+    throw ArrowError.notImplemented
+  }
 }
 
 extension ArrowType.Info: Equatable {
   public static func == (lhs: ArrowType.Info, rhs: ArrowType.Info) -> Bool {
-    switch(lhs, rhs) {
+    switch (lhs, rhs) {
     case (.primitiveInfo(let lhsId), .primitiveInfo(let rhsId)):
       return lhsId == rhsId
     case (.variableInfo(let lhsId), .variableInfo(let rhsId)):
