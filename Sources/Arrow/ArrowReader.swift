@@ -342,9 +342,10 @@ public class ArrowReader {
     return .success(result)
   }
 
-  /// This is for reading the Arrow file format. The Arrow file format supports
-  /// random access.  The Arrow file format contains a header and footer around
-  /// the Arrow streaming format.
+  /// This is for reading the Arrow file format.
+  ///
+  /// The Arrow file format supports  random access. The Arrow file format contains a header and footer
+  /// around the Arrow streaming format.
   /// - Parameters:
   ///   - fileData: the file content
   ///   - useUnalignedBuffers: to be removed.
