@@ -38,14 +38,30 @@ public class ArrowCExporter {
     private let arrowType: ArrowType
     private let name: String
     private let arrowTypeName: String
+    private let nameBuffer: [CChar]
+    private let arrowTypeNameBuffer: [CChar]
+    
     @MainActor
     init(_ arrowType: ArrowType, name: String = "") throws {
       self.arrowType = arrowType
-      // keeping the name str to ensure the cstring buffer remains valid
       self.name = name
       self.arrowTypeName = try arrowType.cDataFormatId
-      self.nameCstr = (self.name as NSString).utf8String!
-      self.arrowTypeNameCstr = (self.arrowTypeName as NSString).utf8String!
+      // Create owned buffers for the C strings
+      self.nameBuffer = Array(self.name.utf8CString)
+      self.arrowTypeNameBuffer = Array(self.arrowTypeName.utf8CString)
+      // Get stable pointers to the buffers
+      guard let nameCstr = self.nameBuffer.withUnsafeBufferPointer({
+        $0.baseAddress
+      }) else {
+        throw ArrowError.runtimeError("Failed to create field name C string.")
+      }
+      self.nameCstr = nameCstr
+      guard let arrowTypeNameCstr = self.arrowTypeNameBuffer.withUnsafeBufferPointer({
+        $0.baseAddress
+      }) else {
+        throw ArrowError.runtimeError("Failed to create type name C string.")
+      }
+      self.arrowTypeNameCstr = arrowTypeNameCstr
       super.init()
     }
   }
