@@ -163,7 +163,7 @@ func makeNestedHolder(
 }
 
 func makeArrayHolder(
-  _ field: org_apache_arrow_flatbuf_Field,
+  _ field: FlatField,
   buffers: [ArrowBuffer],
   nullCount: UInt,
   children: [ArrowData]?,
@@ -174,7 +174,7 @@ func makeArrayHolder(
     arrowField, buffers: buffers, nullCount: nullCount, children: children, rbLength: rbLength)
 }
 
-func makeArrayHolder(  // swiftlint:disable:this cyclomatic_complexity
+func makeArrayHolder(
   _ field: ArrowField,
   buffers: [ArrowBuffer],
   nullCount: UInt,

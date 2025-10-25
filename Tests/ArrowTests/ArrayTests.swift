@@ -16,7 +16,7 @@ import XCTest
 
 @testable import Arrow
 
-final class ArrayTests: XCTestCase {  // swiftlint:disable:this type_body_length
+final class ArrayTests: XCTestCase {
   func testPrimitiveArray() throws {
     // This is an example of a functional test case.
     // Use XCTAssert and related functions to verify your tests produce the correct
@@ -35,7 +35,7 @@ final class ArrayTests: XCTestCase {  // swiftlint:disable:this type_body_length
     XCTAssertEqual(array.length, 101)
     XCTAssertEqual(array[1]!, 1)
     XCTAssertEqual(array[10]!, 10)
-    XCTAssertEqual(try array.isNull(100), true)
+    XCTAssertEqual(try array.isNull(at: 100), true)
 
     let doubleBuilder: NumberArrayBuilder<Double> = try ArrowArrayBuilders.loadNumberArrayBuilder()
     doubleBuilder.append(14)
@@ -66,7 +66,7 @@ final class ArrayTests: XCTestCase {  // swiftlint:disable:this type_body_length
     XCTAssertEqual(stringArray.length, 100)
     for index in 0..<stringArray.length {
       if index % 10 == 9 {
-        XCTAssertEqual(try stringArray.isNull(index), true)
+        XCTAssertEqual(try stringArray.isNull(at: index), true)
       } else {
         XCTAssertEqual(stringArray[index]!, "test" + String(index))
       }
@@ -142,7 +142,7 @@ final class ArrayTests: XCTestCase {  // swiftlint:disable:this type_body_length
     XCTAssertEqual(binaryArray.length, 100)
     for index in 0..<binaryArray.length {
       if index % 10 == 9 {
-        XCTAssertEqual(try binaryArray.isNull(index), true)
+        XCTAssertEqual(try binaryArray.isNull(at: index), true)
       } else {
         let stringData = String(bytes: binaryArray[index]!, encoding: .utf8)
         XCTAssertEqual(stringData, "test" + String(index))
@@ -266,8 +266,10 @@ final class ArrayTests: XCTestCase {  // swiftlint:disable:this type_body_length
     // Test timestamp with nanoseconds unit
     let nsBuilder = try ArrowArrayBuilders.loadTimestampArrayBuilder(.nanoseconds, timezone: nil)
     nsBuilder.append(nil)
-    nsBuilder.append(1_609_459_200_000_000_000)  // 2021-01-01 00:00:00.000000000
-    nsBuilder.append(1_609_545_600_000_000_000)  // 2021-01-02 00:00:00.000000000
+    // 2021-01-01 00:00:00.000000000
+    nsBuilder.append(1_609_459_200_000_000_000)
+    // 2021-01-02 00:00:00.000000000
+    nsBuilder.append(1_609_545_600_000_000_000)
     XCTAssertEqual(nsBuilder.nullCount, 1)
     XCTAssertEqual(nsBuilder.length, 3)
     XCTAssertEqual(nsBuilder.capacity, 264)

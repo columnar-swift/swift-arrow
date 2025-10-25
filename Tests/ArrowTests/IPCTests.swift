@@ -65,7 +65,7 @@ func checkBoolRecordBatch(
     XCTAssertEqual(recordBatch.schema.fields[1].type.info, ArrowType.ArrowString)
     for index in 0..<recordBatch.length {
       let column = recordBatch.columns[0]
-      let str = column.array as! AsString  // swiftlint:disable:this force_cast
+      let str = column.array as! AsString
       let val = "\(str.asString(index))"
       if index == 0 || index == 4 {
         XCTAssertEqual(val, "true")
@@ -251,19 +251,19 @@ final class IPCStreamReaderTests: XCTestCase {
           let columns = recordBatch.columns
           XCTAssertEqual(columns[0].nullCount, 2)
           let dateVal =
-            "\((columns[2].array as! AsString).asString(0))"  // swiftlint:disable:this force_cast
+            "\((columns[2].array as! AsString).asString(0))"
           XCTAssertEqual(dateVal, "2014-09-10 00:00:00 +0000")
           let stringVal =
-            "\((columns[1].array as! AsString).asString(1))"  // swiftlint:disable:this force_cast
+            "\((columns[1].array as! AsString).asString(1))"
           XCTAssertEqual(stringVal, "test22")
           let uintVal =
-            "\((columns[0].array as! AsString).asString(0))"  // swiftlint:disable:this force_cast
+            "\((columns[0].array as! AsString).asString(0))"
           XCTAssertEqual(uintVal, "10")
           let stringVal2 =
-            "\((columns[1].array as! AsString).asString(3))"  // swiftlint:disable:this force_cast
+            "\((columns[1].array as! AsString).asString(3))"
           XCTAssertEqual(stringVal2, "test44")
           let uintVal2 =
-            "\((columns[0].array as! AsString).asString(3))"  // swiftlint:disable:this force_cast
+            "\((columns[0].array as! AsString).asString(3))"
           XCTAssertEqual(uintVal2, "44")
         }
       case .failure(let error):
@@ -275,7 +275,7 @@ final class IPCStreamReaderTests: XCTestCase {
   }
 }
 
-final class IPCFileReaderTests: XCTestCase {  // swiftlint:disable:this type_body_length
+final class IPCFileReaderTests: XCTestCase {
   func testFileReader_double() throws {
     let fileURL = loadArrowResource(name: "testdata_double")
     let arrowReader = ArrowReader()
@@ -299,7 +299,7 @@ final class IPCFileReaderTests: XCTestCase {  // swiftlint:disable:this type_bod
       XCTAssertEqual(recordBatch.schema.fields[1].type.info, ArrowType.ArrowString)
       for index in 0..<recordBatch.length {
         let column = recordBatch.columns[1]
-        let str = column.array as! AsString  // swiftlint:disable:this force_cast
+        let str = column.array as! AsString
         let val = "\(str.asString(index))"
         if index != 1 {
           XCTAssertNotEqual(val, "")
@@ -404,19 +404,19 @@ final class IPCFileReaderTests: XCTestCase {  // swiftlint:disable:this type_bod
           let columns = recordBatch.columns
           XCTAssertEqual(columns[0].nullCount, 2)
           let dateVal =
-            "\((columns[2].array as! AsString).asString(0))"  // swiftlint:disable:this force_cast
+            "\((columns[2].array as! AsString).asString(0))"
           XCTAssertEqual(dateVal, "2014-09-10 00:00:00 +0000")
           let stringVal =
-            "\((columns[1].array as! AsString).asString(1))"  // swiftlint:disable:this force_cast
+            "\((columns[1].array as! AsString).asString(1))"
           XCTAssertEqual(stringVal, "test22")
           let uintVal =
-            "\((columns[0].array as! AsString).asString(0))"  // swiftlint:disable:this force_cast
+            "\((columns[0].array as! AsString).asString(0))"
           XCTAssertEqual(uintVal, "10")
           let stringVal2 =
-            "\((columns[1].array as! AsString).asString(3))"  // swiftlint:disable:this force_cast
+            "\((columns[1].array as! AsString).asString(3))"
           XCTAssertEqual(stringVal2, "test44")
           let uintVal2 =
-            "\((columns[0].array as! AsString).asString(3))"  // swiftlint:disable:this force_cast
+            "\((columns[0].array as! AsString).asString(3))"
           XCTAssertEqual(uintVal2, "44")
         }
       case .failure(let error):
@@ -620,10 +620,10 @@ final class IPCFileReaderTests: XCTestCase {  // swiftlint:disable:this type_bod
         XCTAssertEqual(recordBatch.length, 4)
         let columns = recordBatch.columns
         let stringVal =
-          "\((columns[0].array as! AsString).asString(0))"  // swiftlint:disable:this force_cast
+          "\((columns[0].array as! AsString).asString(0))"
         XCTAssertEqual(stringVal, "12345678")
         let stringVal2 =
-          "\((columns[1].array as! AsString).asString(3))"  // swiftlint:disable:this force_cast
+          "\((columns[1].array as! AsString).asString(3))"
         XCTAssertEqual(stringVal2, "3")
       case .failure(let error):
         throw error
