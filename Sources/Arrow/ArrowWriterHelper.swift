@@ -55,69 +55,56 @@ func toFBType(
   switch arrowType.id {
   case .int8, .uint8:
     return .success(
-      org_apache_arrow_flatbuf_Int.createInt(
+      FlatInt.createInt(
         &fbb, bitWidth: 8, isSigned: infoType == ArrowType.arrowInt8))
   case .int16, .uint16:
     return .success(
-      org_apache_arrow_flatbuf_Int.createInt(
+      FlatInt.createInt(
         &fbb, bitWidth: 16, isSigned: infoType == ArrowType.arrowInt16))
   case .int32, .uint32:
     return .success(
-      org_apache_arrow_flatbuf_Int.createInt(
+      FlatInt.createInt(
         &fbb, bitWidth: 32, isSigned: infoType == ArrowType.arrowInt32))
   case .int64, .uint64:
     return .success(
-      org_apache_arrow_flatbuf_Int.createInt(
+      FlatInt.createInt(
         &fbb, bitWidth: 64, isSigned: infoType == ArrowType.arrowInt64))
   case .float:
-    return .success(
-      org_apache_arrow_flatbuf_FloatingPoint.createFloatingPoint(&fbb, precision: .single))
+    return .success(FloatingPoint.createFloatingPoint(&fbb, precision: .single))
   case .double:
-    return .success(
-      org_apache_arrow_flatbuf_FloatingPoint.createFloatingPoint(&fbb, precision: .double))
+    return .success(FloatingPoint.createFloatingPoint(&fbb, precision: .double))
   case .string:
-    return .success(
-      org_apache_arrow_flatbuf_Utf8.endUtf8(
-        &fbb, start: org_apache_arrow_flatbuf_Utf8.startUtf8(&fbb)))
+    return .success(Utf8.endUtf8(&fbb, start: Utf8.startUtf8(&fbb)))
   case .binary:
-    return .success(
-      org_apache_arrow_flatbuf_Binary.endBinary(
-        &fbb, start: org_apache_arrow_flatbuf_Binary.startBinary(&fbb)))
+    return .success(Binary.endBinary(&fbb, start: Binary.startBinary(&fbb)))
   case .boolean:
-    return .success(
-      org_apache_arrow_flatbuf_Bool.endBool(
-        &fbb, start: org_apache_arrow_flatbuf_Bool.startBool(&fbb)))
+    return .success(FlatBool.endBool(&fbb, start: FlatBool.startBool(&fbb)))
   case .date32:
-    let startOffset = org_apache_arrow_flatbuf_Date.startDate(&fbb)
-    org_apache_arrow_flatbuf_Date.add(unit: .day, &fbb)
-    return .success(org_apache_arrow_flatbuf_Date.endDate(&fbb, start: startOffset))
+    let startOffset = FlatDate.startDate(&fbb)
+    FlatDate.add(unit: .day, &fbb)
+    return .success(FlatDate.endDate(&fbb, start: startOffset))
   case .date64:
-    let startOffset = org_apache_arrow_flatbuf_Date.startDate(&fbb)
-    org_apache_arrow_flatbuf_Date.add(unit: .millisecond, &fbb)
-    return .success(org_apache_arrow_flatbuf_Date.endDate(&fbb, start: startOffset))
+    let startOffset = FlatDate.startDate(&fbb)
+    FlatDate.add(unit: .millisecond, &fbb)
+    return .success(FlatDate.endDate(&fbb, start: startOffset))
   case .time32:
-    let startOffset = org_apache_arrow_flatbuf_Time.startTime(&fbb)
+    let startOffset = FlatTime.startTime(&fbb)
     if let timeType = arrowType as? ArrowTypeTime32 {
-      org_apache_arrow_flatbuf_Time.add(
-        unit: timeType.unit == .seconds ? .second : .millisecond, &fbb)
-      return .success(org_apache_arrow_flatbuf_Time.endTime(&fbb, start: startOffset))
+      FlatTime.add(unit: timeType.unit == .seconds ? .second : .millisecond, &fbb)
+      return .success(FlatTime.endTime(&fbb, start: startOffset))
     }
-
     return .failure(.invalid("Unable to case to Time32"))
   case .time64:
-    let startOffset = org_apache_arrow_flatbuf_Time.startTime(&fbb)
+    let startOffset = FlatTime.startTime(&fbb)
     if let timeType = arrowType as? ArrowTypeTime64 {
-      org_apache_arrow_flatbuf_Time.add(
-        unit: timeType.unit == .microseconds ? .microsecond : .nanosecond, &fbb)
-      return .success(org_apache_arrow_flatbuf_Time.endTime(&fbb, start: startOffset))
+      FlatTime.add(unit: timeType.unit == .microseconds ? .microsecond : .nanosecond, &fbb)
+      return .success(FlatTime.endTime(&fbb, start: startOffset))
     }
-
     return .failure(.invalid("Unable to case to Time64"))
   case .timestamp:
     if let timestampType = arrowType as? ArrowTypeTimestamp {
-      let startOffset = org_apache_arrow_flatbuf_Timestamp.startTimestamp(&fbb)
-
-      let fbUnit: org_apache_arrow_flatbuf_TimeUnit
+      let startOffset = FlatTimestamp.startTimestamp(&fbb)
+      let fbUnit: FlatTimeUnit
       switch timestampType.unit {
       case .seconds:
         fbUnit = .second
@@ -128,20 +115,17 @@ func toFBType(
       case .nanoseconds:
         fbUnit = .nanosecond
       }
-      org_apache_arrow_flatbuf_Timestamp.add(unit: fbUnit, &fbb)
-
+      FlatTimestamp.add(unit: fbUnit, &fbb)
       if let timezone = timestampType.timezone {
         let timezoneOffset = fbb.create(string: timezone)
         org_apache_arrow_flatbuf_Timestamp.add(timezone: timezoneOffset, &fbb)
       }
-
-      return .success(org_apache_arrow_flatbuf_Timestamp.endTimestamp(&fbb, start: startOffset))
+      return .success(FlatTimestamp.endTimestamp(&fbb, start: startOffset))
     }
-
     return .failure(.invalid("Unable to cast to Timestamp"))
   case .strct:
-    let startOffset = org_apache_arrow_flatbuf_Struct_.startStruct_(&fbb)
-    return .success(org_apache_arrow_flatbuf_Struct_.endStruct_(&fbb, start: startOffset))
+    let startOffset = FlatStruct.startStruct_(&fbb)
+    return .success(FlatStruct.endStruct_(&fbb, start: startOffset))
   default:
     return .failure(.unknownType("Unable to add flatbuf type for Arrow type: \(infoType)"))
   }
@@ -166,6 +150,5 @@ func getPadForAlignment(_ count: Int, alignment: Int = 8) -> Int {
   if padding > 0 {
     return count + (alignment - padding)
   }
-
   return count
 }

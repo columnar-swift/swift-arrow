@@ -23,4 +23,13 @@ typealias FlatRecordBatch = org_apache_arrow_flatbuf_RecordBatch
 typealias FlatType = org_apache_arrow_flatbuf_Type_
 typealias FloatingPoint = org_apache_arrow_flatbuf_FloatingPoint
 typealias FlatInt = org_apache_arrow_flatbuf_Int
+typealias FlatBool = org_apache_arrow_flatbuf_Bool
+typealias FlatDate = org_apache_arrow_flatbuf_Date
+typealias FlatTime = org_apache_arrow_flatbuf_Time
+typealias FlatTimestamp = org_apache_arrow_flatbuf_Timestamp
+typealias FlatTimeUnit = org_apache_arrow_flatbuf_TimeUnit
+typealias FlatStruct = org_apache_arrow_flatbuf_Struct_
+
+typealias Utf8 = org_apache_arrow_flatbuf_Utf8
+typealias Binary = org_apache_arrow_flatbuf_Binary
 public typealias MessageHeader = org_apache_arrow_flatbuf_MessageHeader

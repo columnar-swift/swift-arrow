@@ -224,7 +224,7 @@ public class ArrowType {
     case complexInfo(ArrowTypeId)
   }
 
-  public static func infoForType(  // swiftlint:disable:this cyclomatic_complexity
+  public static func infoForType(
     _ type: Any.Type
   ) -> ArrowType.Info {
     if type == String.self {
@@ -286,9 +286,7 @@ public class ArrowType {
     }
   }
 
-  public func getStride(
-    ) -> Int
-  {
+  public func getStride() -> Int {
     switch self.id {
     case .int8:
       return MemoryLayout<Int8>.stride
@@ -401,7 +399,7 @@ public class ArrowType {
     }
   }
 
-  public static func fromCDataFormatId(  // swiftlint:disable:this cyclomatic_complexity
+  public static func fromCDataFormatId(
     _ from: String
   ) throws -> ArrowType {
     if from == "c" {
@@ -495,4 +493,3 @@ func getBytesFor<T>(_ data: T) -> Data? {
     return nil
   }
 }
-// swiftlint:disable:this file_length
