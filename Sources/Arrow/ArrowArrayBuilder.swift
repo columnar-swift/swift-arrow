@@ -70,7 +70,7 @@ public class ArrowArrayBuilder<T: ArrowBufferBuilder, U: ArrowArray<T.ItemType>>
   }
 }
 
-public class NumberArrayBuilder<T>: ArrowArrayBuilder<FixedBufferBuilder<T>, FixedArray<T>> {
+public class NumberArrayBuilder<T>: ArrowArrayBuilder<FixedBufferBuilder<T>, FixedArray<T>> where T: Numeric {
   fileprivate convenience init() throws {
     try self.init(ArrowType(ArrowType.infoForNumericType(T.self)))
   }

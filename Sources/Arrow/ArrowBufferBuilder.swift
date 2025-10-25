@@ -65,11 +65,12 @@ public class ValuesBufferBuilder<T>: BaseBufferBuilder {
   }
 }
 
-public class FixedBufferBuilder<T>: ValuesBufferBuilder<T>, ArrowBufferBuilder {
+/// A builder for fixed-width buffers.
+public class FixedBufferBuilder<T>: ValuesBufferBuilder<T>, ArrowBufferBuilder where T: Numeric {
   public typealias ItemType = T
-  private let defaultVal: ItemType
+  private let defaultVal: ItemType = 0
+  
   public required init() throws {
-    self.defaultVal = try FixedBufferBuilder<T>.defaultValueForType()
     let values = ArrowBuffer.createBuffer(0, size: UInt(MemoryLayout<T>.stride))
     let nulls = ArrowBuffer.createBuffer(0, size: UInt(MemoryLayout<UInt8>.stride))
     super.init(values: values, nulls: nulls)
@@ -113,33 +114,6 @@ public class FixedBufferBuilder<T>: ValuesBufferBuilder<T>, ArrowBufferBuilder {
     ArrowBuffer.copyCurrent(self.values, to: &values, len: values.capacity)
     ArrowBuffer.copyCurrent(self.nulls, to: &nulls, len: nulls.capacity)
     return [nulls, values]
-  }
-
-  fileprivate static func defaultValueForType() throws -> T {
-    let type = T.self
-    if type == Int8.self {
-      return Int8(0) as! T  // swiftlint:disable:this force_cast
-    } else if type == Int16.self {
-      return Int16(0) as! T  // swiftlint:disable:this force_cast
-    } else if type == Int32.self {
-      return Int32(0) as! T  // swiftlint:disable:this force_cast
-    } else if type == Int64.self {
-      return Int64(0) as! T  // swiftlint:disable:this force_cast
-    } else if type == UInt8.self {
-      return UInt8(0) as! T  // swiftlint:disable:this force_cast
-    } else if type == UInt16.self {
-      return UInt16(0) as! T  // swiftlint:disable:this force_cast
-    } else if type == UInt32.self {
-      return UInt32(0) as! T  // swiftlint:disable:this force_cast
-    } else if type == UInt64.self {
-      return UInt64(0) as! T  // swiftlint:disable:this force_cast
-    } else if type == Float.self {
-      return Float(0) as! T  // swiftlint:disable:this force_cast
-    } else if type == Double.self {
-      return Double(0) as! T  // swiftlint:disable:this force_cast
-    }
-
-    throw ArrowError.unknownType("Unable to determine default value")
   }
 }
 
@@ -280,7 +254,7 @@ public class VariableBufferBuilder<T>: ValuesBufferBuilder<T>, ArrowBufferBuilde
   }
 }
 
-public class AbstractWrapperBufferBuilder<T, U>: ArrowBufferBuilder {
+public class AbstractWrapperBufferBuilder<T, U>: ArrowBufferBuilder where U: Numeric {
   public typealias ItemType = T
   public var capacity: UInt { return self.bufferBuilder.capacity }
   public var length: UInt { return self.bufferBuilder.length }
