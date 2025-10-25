@@ -159,7 +159,7 @@ final class ArrayTests: XCTestCase {  // swiftlint:disable:this type_body_length
     XCTAssertEqual(milliBuilder.length, 3)
     XCTAssertEqual(milliBuilder.capacity, 136)
     let milliArray = try milliBuilder.finish()
-    let milliType = milliArray.arrowData.type as! ArrowTypeTime32  // swiftlint:disable:this force_cast
+    let milliType = milliArray.arrowData.type as! ArrowTypeTime32
     XCTAssertEqual(milliType.unit, .milliseconds)
     XCTAssertEqual(milliArray.length, 3)
     XCTAssertEqual(milliArray[1], 1_000_000)
@@ -173,7 +173,7 @@ final class ArrayTests: XCTestCase {  // swiftlint:disable:this type_body_length
     XCTAssertEqual(secBuilder.length, 3)
     XCTAssertEqual(secBuilder.capacity, 136)
     let secArray = try secBuilder.finish()
-    let secType = secArray.arrowData.type as! ArrowTypeTime32  // swiftlint:disable:this force_cast
+    let secType = secArray.arrowData.type as! ArrowTypeTime32
     XCTAssertEqual(secType.unit, .seconds)
     XCTAssertEqual(secArray.length, 3)
     XCTAssertEqual(secArray[1], nil)
@@ -189,7 +189,7 @@ final class ArrayTests: XCTestCase {  // swiftlint:disable:this type_body_length
     XCTAssertEqual(nanoBuilder.length, 3)
     XCTAssertEqual(nanoBuilder.capacity, 264)
     let nanoArray = try nanoBuilder.finish()
-    let nanoType = nanoArray.arrowData.type as! ArrowTypeTime64  // swiftlint:disable:this force_cast
+    let nanoType = nanoArray.arrowData.type as! ArrowTypeTime64
     XCTAssertEqual(nanoType.unit, .nanoseconds)
     XCTAssertEqual(nanoArray.length, 3)
     XCTAssertEqual(nanoArray[1], nil)
@@ -203,7 +203,7 @@ final class ArrayTests: XCTestCase {  // swiftlint:disable:this type_body_length
     XCTAssertEqual(microBuilder.length, 3)
     XCTAssertEqual(microBuilder.capacity, 264)
     let microArray = try microBuilder.finish()
-    let microType = microArray.arrowData.type as! ArrowTypeTime64  // swiftlint:disable:this force_cast
+    let microType = microArray.arrowData.type as! ArrowTypeTime64
     XCTAssertEqual(microType.unit, .microseconds)
     XCTAssertEqual(microArray.length, 3)
     XCTAssertEqual(microArray[1], 20000)
@@ -220,7 +220,7 @@ final class ArrayTests: XCTestCase {  // swiftlint:disable:this type_body_length
     XCTAssertEqual(secBuilder.length, 3)
     XCTAssertEqual(secBuilder.capacity, 264)
     let secArray = try secBuilder.finish()
-    let secType = secArray.arrowData.type as! ArrowTypeTimestamp  // swiftlint:disable:this force_cast
+    let secType = secArray.arrowData.type as! ArrowTypeTimestamp
     XCTAssertEqual(secType.unit, .seconds)
     XCTAssertNil(secType.timezone)
     XCTAssertEqual(secArray.length, 3)
@@ -238,7 +238,7 @@ final class ArrayTests: XCTestCase {  // swiftlint:disable:this type_body_length
     XCTAssertEqual(msBuilder.length, 3)
     XCTAssertEqual(msBuilder.capacity, 264)
     let msArray = try msBuilder.finish()
-    let msType = msArray.arrowData.type as! ArrowTypeTimestamp  // swiftlint:disable:this force_cast
+    let msType = msArray.arrowData.type as! ArrowTypeTimestamp
     XCTAssertEqual(msType.unit, .milliseconds)
     XCTAssertEqual(msType.timezone, "America/New_York")
     XCTAssertEqual(msArray.length, 3)
@@ -255,7 +255,7 @@ final class ArrayTests: XCTestCase {  // swiftlint:disable:this type_body_length
     XCTAssertEqual(usBuilder.length, 3)
     XCTAssertEqual(usBuilder.capacity, 264)
     let usArray = try usBuilder.finish()
-    let usType = usArray.arrowData.type as! ArrowTypeTimestamp  // swiftlint:disable:this force_cast
+    let usType = usArray.arrowData.type as! ArrowTypeTimestamp
     XCTAssertEqual(usType.unit, .microseconds)
     XCTAssertEqual(usType.timezone, "UTC")
     XCTAssertEqual(usArray.length, 3)
@@ -272,7 +272,7 @@ final class ArrayTests: XCTestCase {  // swiftlint:disable:this type_body_length
     XCTAssertEqual(nsBuilder.length, 3)
     XCTAssertEqual(nsBuilder.capacity, 264)
     let nsArray = try nsBuilder.finish()
-    let nsType = nsArray.arrowData.type as! ArrowTypeTimestamp  // swiftlint:disable:this force_cast
+    let nsType = nsArray.arrowData.type as! ArrowTypeTimestamp
     XCTAssertEqual(nsType.unit, .nanoseconds)
     XCTAssertNil(nsType.timezone)
     XCTAssertEqual(nsArray.length, 3)
@@ -281,7 +281,7 @@ final class ArrayTests: XCTestCase {  // swiftlint:disable:this type_body_length
     XCTAssertEqual(nsArray[2], 1_609_545_600_000_000_000)
   }
 
-  func testStructArray() throws {  // swiftlint:disable:this function_body_length
+  func testStructArray() throws {
     class StructTest {
       var fieldBool: Bool = false
       var fieldInt8: Int8 = 0
