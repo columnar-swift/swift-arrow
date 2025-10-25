@@ -69,7 +69,7 @@ public class ArrowArrayHolderImpl: ArrowArrayHolder {
     }
   }
 
-  public static func loadArray(  // swiftlint:disable:this cyclomatic_complexity
+  public static func loadArray(
     _ arrowType: ArrowType, with: ArrowData
   ) throws -> ArrowArrayHolder {
     switch arrowType.id {
@@ -255,9 +255,10 @@ public class TimestampArray: FixedArray<Timestamp> {
   private var cachedFormatter: DateFormatter?
   private var cachedOptions: FormattingOptions?
 
-  public func formattedDate(at index: UInt, options: FormattingOptions = FormattingOptions())
-    -> String?
-  {
+  public func formattedDate(
+    at index: UInt,
+    options: FormattingOptions = FormattingOptions()
+  ) -> String? {
     guard let timestamp = self[index] else { return nil }
 
     guard let timestampType = self.arrowData.type as? ArrowTypeTimestamp else {
@@ -279,7 +280,10 @@ public class TimestampArray: FixedArray<Timestamp> {
     return cachedFormatter?.string(from: date)
   }
 
-  private func dateFromTimestamp(_ timestamp: Int64, unit: ArrowTimestampUnit) -> Date {
+  private func dateFromTimestamp(
+    _ timestamp: Int64,
+    unit: ArrowTimestampUnit
+  ) -> Date {
     let timeInterval: TimeInterval
     switch unit {
     case .seconds:
@@ -332,12 +336,15 @@ public class BinaryArray: ArrowArray<Data> {
   }
 
   public override func asString(_ index: UInt) -> String {
-    if self[index] == nil { return "" }
-    let data = self[index]!
+    guard let data = self[index] else { return "" }
     if options.printAsHex {
       return data.hexEncodedString()
     } else {
-      return String(data: data, encoding: .utf8)!
+      if let string = String(data: data, encoding: options.printEncoding) {
+        return string
+      } else {
+        return "<unprintable>"
+      }
     }
   }
 }
@@ -418,14 +425,16 @@ public class NestedArray: ArrowArray<[Any?]> {
         if i > 0 {
           output.append(",")
         }
-        if item == nil {
+        switch item {
+        case nil:
           output.append("null")
-        } else if let asStringItem = item as? AsString {
+        case let asStringItem as AsString:
           output.append(asStringItem.asString(0))
-        } else {
-          output.append("\(item!)")
+        case let someItem?:
+          output.append("\(someItem)")
         }
       }
+
       output.append("]")
       return output
     case .strct:
@@ -434,14 +443,10 @@ public class NestedArray: ArrowArray<[Any?]> {
       }
       var output = "{"
       if let children = self.children {
-        for fieldIndex in 0..<children.count {
-          let asStr = children[fieldIndex].array as? AsString
-          if fieldIndex == 0 {
-            output.append("\(asStr!.asString(index))")
-          } else {
-            output.append(",\(asStr!.asString(index))")
-          }
+        let parts = children.compactMap { child in
+          (child.array as? AsString)?.asString(index)
         }
+        output.append(parts.joined(separator: ","))
       }
       output += "}"
       return output

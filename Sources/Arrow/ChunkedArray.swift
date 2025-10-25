@@ -136,10 +136,9 @@ public class ChunkedArray<T>: AsString {
   }
 
   public func asString(_ index: UInt) -> String {
-    if self[index] == nil {
+    guard let value = self[index] else {
       return ""
     }
-
-    return "\(self[index]!)"
+    return "\(value)"
   }
 }
