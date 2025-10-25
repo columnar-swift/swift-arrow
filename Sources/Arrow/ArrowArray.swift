@@ -129,12 +129,11 @@ public class ArrowArray<T>: AsString, AnyArray {
     self.arrowData = arrowData
   }
 
-  public func isNull(_ at: UInt) throws -> Bool {
-    if at >= self.length {
-      throw ArrowError.outOfBounds(index: Int64(at))
+  public func isNull(at index: UInt) throws -> Bool {
+    if index >= self.length {
+      throw ArrowError.outOfBounds(index: Int64(index))
     }
-
-    return self.arrowData.isNull(at)
+    return self.arrowData.isNull(index)
   }
 
   public subscript(_ index: UInt) -> T? {
@@ -142,19 +141,14 @@ public class ArrowArray<T>: AsString, AnyArray {
   }
 
   public func asString(_ index: UInt) -> String {
-    if self[index] == nil {
+    guard let value = self[index] else {
       return ""
     }
-
-    return "\(self[index]!)"
+    return "\(value)"
   }
 
   public func asAny(_ index: UInt) -> Any? {
-    if self[index] == nil {
-      return nil
-    }
-
-    return self[index]!
+    return self[index]
   }
 }
 

@@ -71,9 +71,9 @@ public class ArrowReader {
 
   public init() {}
 
-  private func loadSchema(_ schema: Schema) -> Result<
-    ArrowSchema, ArrowError
-  > {
+  private func loadSchema(
+    _ schema: Schema
+  ) -> Result<ArrowSchema, ArrowError> {
     let builder = ArrowSchema.Builder()
     for index in 0..<schema.fieldsCount {
       let field = schema.fields(at: index)!
@@ -91,9 +91,7 @@ public class ArrowReader {
   private func loadStructData(
     _ loadInfo: DataLoadInfo,
     field: FlatField
-  )
-    -> Result<ArrowArrayHolder, ArrowError>
-  {
+  ) -> Result<ArrowArrayHolder, ArrowError> {
     guard let node = loadInfo.batchData.nextNode() else {
       return .failure(.invalid("Node not found"))
     }

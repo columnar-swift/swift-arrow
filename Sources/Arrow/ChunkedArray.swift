@@ -32,7 +32,7 @@ public class ChunkedArrayHolder {
 
   public let getBufferData: () -> Result<[Data], ArrowError>
   public let getBufferDataSizes: () -> Result<[Int], ArrowError>
-  public init<T>(_ chunked: ChunkedArray<T>) {  // swiftlint:disable:this cyclomatic_complexity
+  public init<T>(_ chunked: ChunkedArray<T>) {
     self.holder = chunked
     self.length = chunked.length
     self.type = chunked.type
@@ -119,7 +119,6 @@ public class ChunkedArray<T>: AsString {
     if arrays.count == 0 {
       return nil
     }
-
     var localIndex = index
     var arrayIndex = 0
     var len: UInt = arrays[arrayIndex].length

@@ -21,4 +21,6 @@ typealias Buffer = org_apache_arrow_flatbuf_Buffer
 typealias FieldNode = org_apache_arrow_flatbuf_FieldNode
 typealias FlatRecordBatch = org_apache_arrow_flatbuf_RecordBatch
 typealias FlatType = org_apache_arrow_flatbuf_Type_
+typealias FloatingPoint = org_apache_arrow_flatbuf_FloatingPoint
+typealias FlatInt = org_apache_arrow_flatbuf_Int
 public typealias MessageHeader = org_apache_arrow_flatbuf_MessageHeader

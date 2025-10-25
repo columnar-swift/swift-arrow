@@ -16,7 +16,7 @@ import XCTest
 
 @testable import Arrow
 
-final class CodableTests: XCTestCase {  // swiftlint:disable:this type_body_length
+final class CodableTests: XCTestCase {
   public class TestClass: Codable {
     public var propBool: Bool
     public var propInt8: Int8
@@ -49,7 +49,7 @@ final class CodableTests: XCTestCase {  // swiftlint:disable:this type_body_leng
     }
   }
 
-  func testArrowKeyedDecoder() throws {  // swiftlint:disable:this function_body_length
+  func testArrowKeyedDecoder() throws {
     let date1 = Date(timeIntervalSinceReferenceDate: 86400 * 5000 + 352)
     let boolBuilder = try ArrowArrayBuilders.loadBoolArrayBuilder()
     let int8Builder: NumberArrayBuilder<Int8> = try ArrowArrayBuilders.loadNumberArrayBuilder()
@@ -231,7 +231,7 @@ final class CodableTests: XCTestCase {  // swiftlint:disable:this type_body_leng
     return anyArray.asAny(UInt(rowIndex)) as? T
   }
 
-  func testArrowKeyedEncoder() throws {  // swiftlint:disable:this function_body_length
+  func testArrowKeyedEncoder() throws {
     var infos = [TestClass]()
     for index in 0..<10 {
       let tClass = TestClass()
@@ -285,7 +285,6 @@ final class CodableTests: XCTestCase {  // swiftlint:disable:this type_body_leng
       } else {
         XCTAssertEqual(getArrayValue(rb, colIndex: 10, rowIndex: UInt(index)), Double?(nil))
       }
-
       XCTAssertEqual(getArrayValue(rb, colIndex: 11, rowIndex: UInt(index)), String(offset + 11))
     }
   }

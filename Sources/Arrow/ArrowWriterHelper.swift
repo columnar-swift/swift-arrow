@@ -25,29 +25,29 @@ func toFBTypeEnum(_ arrowType: ArrowType) -> Result<org_apache_arrow_flatbuf_Typ
   let typeId = arrowType.id
   switch typeId {
   case .int8, .int16, .int32, .int64, .uint8, .uint16, .uint32, .uint64:
-    return .success(org_apache_arrow_flatbuf_Type_.int)
+    return .success(FlatType.int)
   case .float, .double:
-    return .success(org_apache_arrow_flatbuf_Type_.floatingpoint)
+    return .success(FlatType.floatingpoint)
   case .string:
-    return .success(org_apache_arrow_flatbuf_Type_.utf8)
+    return .success(FlatType.utf8)
   case .binary:
-    return .success(org_apache_arrow_flatbuf_Type_.binary)
+    return .success(FlatType.binary)
   case .boolean:
-    return .success(org_apache_arrow_flatbuf_Type_.bool)
+    return .success(FlatType.bool)
   case .date32, .date64:
-    return .success(org_apache_arrow_flatbuf_Type_.date)
+    return .success(FlatType.date)
   case .time32, .time64:
-    return .success(org_apache_arrow_flatbuf_Type_.time)
+    return .success(FlatType.time)
   case .timestamp:
-    return .success(org_apache_arrow_flatbuf_Type_.timestamp)
+    return .success(FlatType.timestamp)
   case .strct:
-    return .success(org_apache_arrow_flatbuf_Type_.struct_)
+    return .success(FlatType.struct_)
   default:
     return .failure(.unknownType("Unable to find flatbuf type for Arrow type: \(typeId)"))
   }
 }
 
-func toFBType(  // swiftlint:disable:this cyclomatic_complexity function_body_length
+func toFBType(
   _ fbb: inout FlatBufferBuilder,
   arrowType: ArrowType
 ) -> Result<Offset, ArrowError> {
