@@ -427,3 +427,13 @@ public class ListBufferBuilder: BaseBufferBuilder, ArrowBufferBuilder {
     return [nulls, offsets]
   }
 }
+
+fileprivate func getBytesFor<T>(_ data: T) -> Data? {
+  if let temp = data as? String {
+    return temp.data(using: .utf8)
+  } else if T.self == Data.self {
+    return data as? Data
+  } else {
+    return nil
+  }
+}
