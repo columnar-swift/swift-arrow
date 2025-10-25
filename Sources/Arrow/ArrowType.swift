@@ -84,7 +84,7 @@ public class ArrowTypeTime32: ArrowType {
   let unit: ArrowTime32Unit
   public init(_ unit: ArrowTime32Unit) {
     self.unit = unit
-    super.init(ArrowType.ArrowTime32)
+    super.init(ArrowType.arrowTime32)
   }
 
   public override var cDataFormatId: String {
@@ -103,7 +103,7 @@ public class ArrowTypeTime64: ArrowType {
   let unit: ArrowTime64Unit
   public init(_ unit: ArrowTime64Unit) {
     self.unit = unit
-    super.init(ArrowType.ArrowTime64)
+    super.init(ArrowType.arrowTime64)
   }
 
   public override var cDataFormatId: String {
@@ -133,7 +133,7 @@ public class ArrowTypeTimestamp: ArrowType {
     self.unit = unit
     self.timezone = timezone
 
-    super.init(ArrowType.ArrowTimestamp)
+    super.init(ArrowType.arrowTimestamp)
   }
 
   public convenience init(type: ArrowTypeId) {
@@ -172,33 +172,33 @@ public class ArrowTypeList: ArrowType {
 
   public init(_ elementType: ArrowType) {
     self.elementType = elementType
-    super.init(ArrowType.ArrowList)
+    super.init(ArrowType.arrowList)
   }
 }
 
 public class ArrowType {
   public private(set) var info: ArrowType.Info
-  public static let ArrowInt8 = Info.primitiveInfo(ArrowTypeId.int8)
-  public static let ArrowInt16 = Info.primitiveInfo(ArrowTypeId.int16)
-  public static let ArrowInt32 = Info.primitiveInfo(ArrowTypeId.int32)
-  public static let ArrowInt64 = Info.primitiveInfo(ArrowTypeId.int64)
-  public static let ArrowUInt8 = Info.primitiveInfo(ArrowTypeId.uint8)
-  public static let ArrowUInt16 = Info.primitiveInfo(ArrowTypeId.uint16)
-  public static let ArrowUInt32 = Info.primitiveInfo(ArrowTypeId.uint32)
-  public static let ArrowUInt64 = Info.primitiveInfo(ArrowTypeId.uint64)
-  public static let ArrowFloat = Info.primitiveInfo(ArrowTypeId.float)
-  public static let ArrowDouble = Info.primitiveInfo(ArrowTypeId.double)
-  public static let ArrowUnknown = Info.primitiveInfo(ArrowTypeId.unknown)
-  public static let ArrowString = Info.variableInfo(ArrowTypeId.string)
-  public static let ArrowBool = Info.primitiveInfo(ArrowTypeId.boolean)
-  public static let ArrowDate32 = Info.primitiveInfo(ArrowTypeId.date32)
-  public static let ArrowDate64 = Info.primitiveInfo(ArrowTypeId.date64)
-  public static let ArrowBinary = Info.variableInfo(ArrowTypeId.binary)
-  public static let ArrowTime32 = Info.timeInfo(ArrowTypeId.time32)
-  public static let ArrowTime64 = Info.timeInfo(ArrowTypeId.time64)
-  public static let ArrowTimestamp = Info.timeInfo(ArrowTypeId.timestamp)
-  public static let ArrowStruct = Info.complexInfo(ArrowTypeId.strct)
-  public static let ArrowList = Info.complexInfo(ArrowTypeId.list)
+  public static let arrowInt8 = Info.primitiveInfo(ArrowTypeId.int8)
+  public static let arrowInt16 = Info.primitiveInfo(ArrowTypeId.int16)
+  public static let arrowInt32 = Info.primitiveInfo(ArrowTypeId.int32)
+  public static let arrowInt64 = Info.primitiveInfo(ArrowTypeId.int64)
+  public static let arrowUInt8 = Info.primitiveInfo(ArrowTypeId.uint8)
+  public static let arrowUInt16 = Info.primitiveInfo(ArrowTypeId.uint16)
+  public static let arrowUInt32 = Info.primitiveInfo(ArrowTypeId.uint32)
+  public static let arrowUInt64 = Info.primitiveInfo(ArrowTypeId.uint64)
+  public static let arrowFloat = Info.primitiveInfo(ArrowTypeId.float)
+  public static let arrowDouble = Info.primitiveInfo(ArrowTypeId.double)
+  public static let arrowUnknown = Info.primitiveInfo(ArrowTypeId.unknown)
+  public static let arrowString = Info.variableInfo(ArrowTypeId.string)
+  public static let arrowBool = Info.primitiveInfo(ArrowTypeId.boolean)
+  public static let arrowDate32 = Info.primitiveInfo(ArrowTypeId.date32)
+  public static let arrowDate64 = Info.primitiveInfo(ArrowTypeId.date64)
+  public static let arrowBinary = Info.variableInfo(ArrowTypeId.binary)
+  public static let arrowTime32 = Info.timeInfo(ArrowTypeId.time32)
+  public static let arrowTime64 = Info.timeInfo(ArrowTypeId.time64)
+  public static let arrowTimestamp = Info.timeInfo(ArrowTypeId.timestamp)
+  public static let arrowStruct = Info.complexInfo(ArrowTypeId.strct)
+  public static let arrowList = Info.complexInfo(ArrowTypeId.list)
 
   public init(_ info: ArrowType.Info) {
     self.info = info
@@ -228,65 +228,65 @@ public class ArrowType {
     _ type: Any.Type
   ) -> ArrowType.Info {
     if type == String.self {
-      return ArrowType.ArrowString
+      return ArrowType.arrowString
     } else if type == Date.self {
-      return ArrowType.ArrowDate64
+      return ArrowType.arrowDate64
     } else if type == Bool.self {
-      return ArrowType.ArrowBool
+      return ArrowType.arrowBool
     } else if type == Data.self {
-      return ArrowType.ArrowBinary
+      return ArrowType.arrowBinary
     } else if type == Int8.self {
-      return ArrowType.ArrowInt8
+      return ArrowType.arrowInt8
     } else if type == Int16.self {
-      return ArrowType.ArrowInt16
+      return ArrowType.arrowInt16
     } else if type == Int32.self {
-      return ArrowType.ArrowInt32
+      return ArrowType.arrowInt32
     } else if type == Int64.self {
-      return ArrowType.ArrowInt64
+      return ArrowType.arrowInt64
     } else if type == UInt8.self {
-      return ArrowType.ArrowUInt8
+      return ArrowType.arrowUInt8
     } else if type == UInt16.self {
-      return ArrowType.ArrowUInt16
+      return ArrowType.arrowUInt16
     } else if type == UInt32.self {
-      return ArrowType.ArrowUInt32
+      return ArrowType.arrowUInt32
     } else if type == UInt64.self {
-      return ArrowType.ArrowUInt64
+      return ArrowType.arrowUInt64
     } else if type == Float.self {
-      return ArrowType.ArrowFloat
+      return ArrowType.arrowFloat
     } else if type == Double.self {
-      return ArrowType.ArrowDouble
+      return ArrowType.arrowDouble
     } else {
-      return ArrowType.ArrowUnknown
+      return ArrowType.arrowUnknown
     }
   }
 
   public static func infoForNumericType<T>(_ type: T.Type) -> ArrowType.Info {
     if type == Int8.self {
-      return ArrowType.ArrowInt8
+      return ArrowType.arrowInt8
     } else if type == Int16.self {
-      return ArrowType.ArrowInt16
+      return ArrowType.arrowInt16
     } else if type == Int32.self {
-      return ArrowType.ArrowInt32
+      return ArrowType.arrowInt32
     } else if type == Int64.self {
-      return ArrowType.ArrowInt64
+      return ArrowType.arrowInt64
     } else if type == UInt8.self {
-      return ArrowType.ArrowUInt8
+      return ArrowType.arrowUInt8
     } else if type == UInt16.self {
-      return ArrowType.ArrowUInt16
+      return ArrowType.arrowUInt16
     } else if type == UInt32.self {
-      return ArrowType.ArrowUInt32
+      return ArrowType.arrowUInt32
     } else if type == UInt64.self {
-      return ArrowType.ArrowUInt64
+      return ArrowType.arrowUInt64
     } else if type == Float.self {
-      return ArrowType.ArrowFloat
+      return ArrowType.arrowFloat
     } else if type == Double.self {
-      return ArrowType.ArrowDouble
+      return ArrowType.arrowDouble
     } else {
-      return ArrowType.ArrowUnknown
+      return ArrowType.arrowUnknown
     }
   }
 
-  public func getStride(  // swiftlint:disable:this cyclomatic_complexity
+  public func getStride(
     ) -> Int
   {
     switch self.id {
@@ -405,31 +405,31 @@ public class ArrowType {
     _ from: String
   ) throws -> ArrowType {
     if from == "c" {
-      return ArrowType(ArrowType.ArrowInt8)
+      return ArrowType(ArrowType.arrowInt8)
     } else if from == "s" {
-      return ArrowType(ArrowType.ArrowInt16)
+      return ArrowType(ArrowType.arrowInt16)
     } else if from == "i" {
-      return ArrowType(ArrowType.ArrowInt32)
+      return ArrowType(ArrowType.arrowInt32)
     } else if from == "l" {
-      return ArrowType(ArrowType.ArrowInt64)
+      return ArrowType(ArrowType.arrowInt64)
     } else if from == "C" {
-      return ArrowType(ArrowType.ArrowUInt8)
+      return ArrowType(ArrowType.arrowUInt8)
     } else if from == "S" {
-      return ArrowType(ArrowType.ArrowUInt16)
+      return ArrowType(ArrowType.arrowUInt16)
     } else if from == "I" {
-      return ArrowType(ArrowType.ArrowUInt32)
+      return ArrowType(ArrowType.arrowUInt32)
     } else if from == "L" {
-      return ArrowType(ArrowType.ArrowUInt64)
+      return ArrowType(ArrowType.arrowUInt64)
     } else if from == "f" {
-      return ArrowType(ArrowType.ArrowFloat)
+      return ArrowType(ArrowType.arrowFloat)
     } else if from == "g" {
-      return ArrowType(ArrowType.ArrowDouble)
+      return ArrowType(ArrowType.arrowDouble)
     } else if from == "b" {
-      return ArrowType(ArrowType.ArrowBool)
+      return ArrowType(ArrowType.arrowBool)
     } else if from == "tdD" {
-      return ArrowType(ArrowType.ArrowDate32)
+      return ArrowType(ArrowType.arrowDate32)
     } else if from == "tdm" {
-      return ArrowType(ArrowType.ArrowDate64)
+      return ArrowType(ArrowType.arrowDate64)
     } else if from == "tts" {
       return ArrowTypeTime32(.seconds)
     } else if from == "ttm" {
@@ -460,9 +460,9 @@ public class ArrowType {
       let timezone = components.count > 1 ? String(components[1]) : nil
       return ArrowTypeTimestamp(unit, timezone: timezone)
     } else if from == "z" {
-      return ArrowType(ArrowType.ArrowBinary)
+      return ArrowType(ArrowType.arrowBinary)
     } else if from == "u" {
-      return ArrowType(ArrowType.ArrowString)
+      return ArrowType(ArrowType.arrowString)
     }
 
     throw ArrowError.notImplemented

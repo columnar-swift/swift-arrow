@@ -18,39 +18,39 @@ func fromProto(  // swiftlint:disable:this cyclomatic_complexity function_body_l
   field: FlatField
 ) -> ArrowField {
   let type = field.typeType
-  var arrowType = ArrowType(ArrowType.ArrowUnknown)
+  var arrowType = ArrowType(ArrowType.arrowUnknown)
   switch type {
   case .int:
     let intType = field.type(type: org_apache_arrow_flatbuf_Int.self)!
     let bitWidth = intType.bitWidth
     if bitWidth == 8 {
-      arrowType = ArrowType(intType.isSigned ? ArrowType.ArrowInt8 : ArrowType.ArrowUInt8)
+      arrowType = ArrowType(intType.isSigned ? ArrowType.arrowInt8 : ArrowType.arrowUInt8)
     } else if bitWidth == 16 {
-      arrowType = ArrowType(intType.isSigned ? ArrowType.ArrowInt16 : ArrowType.ArrowUInt16)
+      arrowType = ArrowType(intType.isSigned ? ArrowType.arrowInt16 : ArrowType.arrowUInt16)
     } else if bitWidth == 32 {
-      arrowType = ArrowType(intType.isSigned ? ArrowType.ArrowInt32 : ArrowType.ArrowUInt32)
+      arrowType = ArrowType(intType.isSigned ? ArrowType.arrowInt32 : ArrowType.arrowUInt32)
     } else if bitWidth == 64 {
-      arrowType = ArrowType(intType.isSigned ? ArrowType.ArrowInt64 : ArrowType.ArrowUInt64)
+      arrowType = ArrowType(intType.isSigned ? ArrowType.arrowInt64 : ArrowType.arrowUInt64)
     }
   case .bool:
-    arrowType = ArrowType(ArrowType.ArrowBool)
+    arrowType = ArrowType(ArrowType.arrowBool)
   case .floatingpoint:
     let floatType = field.type(type: org_apache_arrow_flatbuf_FloatingPoint.self)!
     if floatType.precision == .single {
-      arrowType = ArrowType(ArrowType.ArrowFloat)
+      arrowType = ArrowType(ArrowType.arrowFloat)
     } else if floatType.precision == .double {
-      arrowType = ArrowType(ArrowType.ArrowDouble)
+      arrowType = ArrowType(ArrowType.arrowDouble)
     }
   case .utf8:
-    arrowType = ArrowType(ArrowType.ArrowString)
+    arrowType = ArrowType(ArrowType.arrowString)
   case .binary:
-    arrowType = ArrowType(ArrowType.ArrowBinary)
+    arrowType = ArrowType(ArrowType.arrowBinary)
   case .date:
     let dateType = field.type(type: org_apache_arrow_flatbuf_Date.self)!
     if dateType.unit == .day {
-      arrowType = ArrowType(ArrowType.ArrowDate32)
+      arrowType = ArrowType(ArrowType.arrowDate32)
     } else {
-      arrowType = ArrowType(ArrowType.ArrowDate64)
+      arrowType = ArrowType(ArrowType.arrowDate64)
     }
   case .time:
     let timeType = field.type(type: org_apache_arrow_flatbuf_Time.self)!
@@ -84,16 +84,16 @@ func fromProto(  // swiftlint:disable:this cyclomatic_complexity function_body_l
       children.append(fromProto(field: childField))
     }
 
-    arrowType = ArrowTypeStruct(ArrowType.ArrowStruct, fields: children)
+    arrowType = ArrowTypeStruct(ArrowType.arrowStruct, fields: children)
   case .list:
     guard field.childrenCount == 1, let childField = field.children(at: 0) else {
-      arrowType = ArrowType(ArrowType.ArrowUnknown)
+      arrowType = ArrowType(ArrowType.arrowUnknown)
       break
     }
     let childArrowField = fromProto(field: childField)
     arrowType = ArrowTypeList(childArrowField.type)
   default:
-    arrowType = ArrowType(ArrowType.ArrowUnknown)
+    arrowType = ArrowType(ArrowType.arrowUnknown)
   }
 
   return ArrowField(field.name ?? "", type: arrowType, isNullable: field.nullable)

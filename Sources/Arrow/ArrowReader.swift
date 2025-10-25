@@ -78,7 +78,7 @@ public class ArrowReader {
     for index in 0..<schema.fieldsCount {
       let field = schema.fields(at: index)!
       let fieldType = findArrowType(field)
-      if fieldType.info == ArrowType.ArrowUnknown {
+      if fieldType.info == ArrowType.arrowUnknown {
         return .failure(.unknownType("Unsupported field type found: \(field.typeType)"))
       }
       let arrowField = ArrowField(field.name!, type: fieldType, isNullable: field.nullable)

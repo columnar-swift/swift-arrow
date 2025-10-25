@@ -20,16 +20,16 @@ final class TableTests: XCTestCase {
   func testSchema() throws {
     let schemaBuilder = ArrowSchema.Builder()
     let schema = schemaBuilder.addField(
-      "col1", type: ArrowType(ArrowType.ArrowInt8), isNullable: true
+      "col1", type: ArrowType(ArrowType.arrowInt8), isNullable: true
     )
-    .addField("col2", type: ArrowType(ArrowType.ArrowBool), isNullable: false)
+    .addField("col2", type: ArrowType(ArrowType.arrowBool), isNullable: false)
     .finish()
     XCTAssertEqual(schema.fields.count, 2)
     XCTAssertEqual(schema.fields[0].name, "col1")
-    XCTAssertEqual(schema.fields[0].type.info, ArrowType.ArrowInt8)
+    XCTAssertEqual(schema.fields[0].type.info, ArrowType.arrowInt8)
     XCTAssertEqual(schema.fields[0].isNullable, true)
     XCTAssertEqual(schema.fields[1].name, "col2")
-    XCTAssertEqual(schema.fields[1].type.info, ArrowType.ArrowBool)
+    XCTAssertEqual(schema.fields[1].type.info, ArrowType.arrowBool)
     XCTAssertEqual(schema.fields[1].isNullable, false)
   }
 
@@ -60,7 +60,7 @@ final class TableTests: XCTestCase {
         fields.append(ArrowField(property!, type: arrowType, isNullable: true))
       }
 
-      return ArrowTypeStruct(ArrowType.ArrowStruct, fields: fields)
+      return ArrowTypeStruct(ArrowType.arrowStruct, fields: fields)
     }
 
     let structType = buildStructType()
@@ -102,13 +102,13 @@ final class TableTests: XCTestCase {
     let schema = table.schema
     XCTAssertEqual(schema.fields.count, 3)
     XCTAssertEqual(schema.fields[0].name, "col1")
-    XCTAssertEqual(schema.fields[0].type.info, ArrowType.ArrowDouble)
+    XCTAssertEqual(schema.fields[0].type.info, ArrowType.arrowDouble)
     XCTAssertEqual(schema.fields[0].isNullable, false)
     XCTAssertEqual(schema.fields[1].name, "col2")
-    XCTAssertEqual(schema.fields[1].type.info, ArrowType.ArrowString)
+    XCTAssertEqual(schema.fields[1].type.info, ArrowType.arrowString)
     XCTAssertEqual(schema.fields[1].isNullable, false)
     XCTAssertEqual(schema.fields[1].name, "col2")
-    XCTAssertEqual(schema.fields[1].type.info, ArrowType.ArrowString)
+    XCTAssertEqual(schema.fields[1].type.info, ArrowType.arrowString)
     XCTAssertEqual(schema.fields[1].isNullable, false)
     XCTAssertEqual(table.columns.count, 3)
     let col1: ChunkedArray<Double> = table.columns[0].data()
@@ -155,13 +155,13 @@ final class TableTests: XCTestCase {
     let schema = table.schema
     XCTAssertEqual(schema.fields.count, 3)
     XCTAssertEqual(schema.fields[0].name, "col1")
-    XCTAssertEqual(schema.fields[0].type.info, ArrowType.ArrowUInt8)
+    XCTAssertEqual(schema.fields[0].type.info, ArrowType.arrowUInt8)
     XCTAssertEqual(schema.fields[0].isNullable, false)
     XCTAssertEqual(schema.fields[1].name, "col2")
-    XCTAssertEqual(schema.fields[1].type.info, ArrowType.ArrowString)
+    XCTAssertEqual(schema.fields[1].type.info, ArrowType.arrowString)
     XCTAssertEqual(schema.fields[1].isNullable, false)
     XCTAssertEqual(schema.fields[1].name, "col2")
-    XCTAssertEqual(schema.fields[1].type.info, ArrowType.ArrowString)
+    XCTAssertEqual(schema.fields[1].type.info, ArrowType.arrowString)
     XCTAssertEqual(schema.fields[1].isNullable, false)
     XCTAssertEqual(table.columns.count, 3)
     let col1: ChunkedArray<UInt8> = table.columns[0].data()
@@ -196,10 +196,10 @@ final class TableTests: XCTestCase {
       let schema = table.schema
       XCTAssertEqual(schema.fields.count, 2)
       XCTAssertEqual(schema.fields[0].name, "col1")
-      XCTAssertEqual(schema.fields[0].type.info, ArrowType.ArrowUInt8)
+      XCTAssertEqual(schema.fields[0].type.info, ArrowType.arrowUInt8)
       XCTAssertEqual(schema.fields[0].isNullable, false)
       XCTAssertEqual(schema.fields[1].name, "col2")
-      XCTAssertEqual(schema.fields[1].type.info, ArrowType.ArrowString)
+      XCTAssertEqual(schema.fields[1].type.info, ArrowType.arrowString)
       XCTAssertEqual(schema.fields[1].isNullable, false)
       XCTAssertEqual(table.columns.count, 2)
       let col1: ChunkedArray<UInt8> = table.columns[0].data()

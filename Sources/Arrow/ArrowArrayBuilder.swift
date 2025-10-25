@@ -78,31 +78,31 @@ public class NumberArrayBuilder<T>: ArrowArrayBuilder<FixedBufferBuilder<T>, Fix
 
 public class StringArrayBuilder: ArrowArrayBuilder<VariableBufferBuilder<String>, StringArray> {
   fileprivate convenience init() throws {
-    try self.init(ArrowType(ArrowType.ArrowString))
+    try self.init(ArrowType(ArrowType.arrowString))
   }
 }
 
 public class BinaryArrayBuilder: ArrowArrayBuilder<VariableBufferBuilder<Data>, BinaryArray> {
   fileprivate convenience init() throws {
-    try self.init(ArrowType(ArrowType.ArrowBinary))
+    try self.init(ArrowType(ArrowType.arrowBinary))
   }
 }
 
 public class BoolArrayBuilder: ArrowArrayBuilder<BoolBufferBuilder, BoolArray> {
   fileprivate convenience init() throws {
-    try self.init(ArrowType(ArrowType.ArrowBool))
+    try self.init(ArrowType(ArrowType.arrowBool))
   }
 }
 
 public class Date32ArrayBuilder: ArrowArrayBuilder<Date32BufferBuilder, Date32Array> {
   fileprivate convenience init() throws {
-    try self.init(ArrowType(ArrowType.ArrowDate32))
+    try self.init(ArrowType(ArrowType.arrowDate32))
   }
 }
 
 public class Date64ArrayBuilder: ArrowArrayBuilder<Date64BufferBuilder, Date64Array> {
   fileprivate convenience init() throws {
-    try self.init(ArrowType(ArrowType.ArrowDate64))
+    try self.init(ArrowType(ArrowType.arrowDate64))
   }
 }
 
@@ -130,7 +130,7 @@ public class StructArrayBuilder: ArrowArrayBuilder<StructBufferBuilder, NestedAr
   public init(_ fields: [ArrowField], builders: [any ArrowArrayHolderBuilder]) throws {
     self.fields = fields
     self.builders = builders
-    try super.init(ArrowTypeStruct(ArrowType.ArrowStruct, fields: fields))
+    try super.init(ArrowTypeStruct(ArrowType.arrowStruct, fields: fields))
     self.bufferBuilder.initializeTypeInfo(fields)
   }
 
@@ -142,7 +142,7 @@ public class StructArrayBuilder: ArrowArrayBuilder<StructBufferBuilder, NestedAr
     }
 
     self.builders = builders
-    try super.init(ArrowTypeStruct(ArrowType.ArrowStruct, fields: fields))
+    try super.init(ArrowTypeStruct(ArrowType.arrowStruct, fields: fields))
   }
 
   public override func append(_ values: [Any?]?) {

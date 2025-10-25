@@ -20,7 +20,7 @@ private func makeBinaryHolder(
   nullCount: UInt
 ) -> Result<ArrowArrayHolder, ArrowError> {
   do {
-    let arrowType = ArrowType(ArrowType.ArrowBinary)
+    let arrowType = ArrowType(ArrowType.arrowBinary)
     let arrowData = try ArrowData(arrowType, buffers: buffers, nullCount: nullCount)
     return .success(ArrowArrayHolderImpl(try BinaryArray(arrowData)))
   } catch let error as ArrowError {
@@ -35,7 +35,7 @@ private func makeStringHolder(
   nullCount: UInt
 ) -> Result<ArrowArrayHolder, ArrowError> {
   do {
-    let arrowType = ArrowType(ArrowType.ArrowString)
+    let arrowType = ArrowType(ArrowType.arrowString)
     let arrowData = try ArrowData(arrowType, buffers: buffers, nullCount: nullCount)
     return .success(ArrowArrayHolderImpl(try StringArray(arrowData)))
   } catch let error as ArrowError {
@@ -115,7 +115,7 @@ private func makeBoolHolder(
   nullCount: UInt
 ) -> Result<ArrowArrayHolder, ArrowError> {
   do {
-    let arrowType = ArrowType(ArrowType.ArrowBool)
+    let arrowType = ArrowType(ArrowType.arrowBool)
     let arrowData = try ArrowData(arrowType, buffers: buffers, nullCount: nullCount)
     return .success(ArrowArrayHolderImpl(try BoolArray(arrowData)))
   } catch let error as ArrowError {
@@ -254,41 +254,41 @@ func findArrowType(  // swiftlint:disable:this cyclomatic_complexity function_bo
     let intType = field.type(type: org_apache_arrow_flatbuf_Int.self)!
     let bitWidth = intType.bitWidth
     if bitWidth == 8 {
-      return ArrowType(intType.isSigned ? ArrowType.ArrowInt8 : ArrowType.ArrowUInt8)
+      return ArrowType(intType.isSigned ? ArrowType.arrowInt8 : ArrowType.arrowUInt8)
     }
     if bitWidth == 16 {
-      return ArrowType(intType.isSigned ? ArrowType.ArrowInt16 : ArrowType.ArrowUInt16)
+      return ArrowType(intType.isSigned ? ArrowType.arrowInt16 : ArrowType.arrowUInt16)
     }
     if bitWidth == 32 {
-      return ArrowType(intType.isSigned ? ArrowType.ArrowInt32 : ArrowType.ArrowUInt32)
+      return ArrowType(intType.isSigned ? ArrowType.arrowInt32 : ArrowType.arrowUInt32)
     }
     if bitWidth == 64 {
-      return ArrowType(intType.isSigned ? ArrowType.ArrowInt64 : ArrowType.ArrowUInt64)
+      return ArrowType(intType.isSigned ? ArrowType.arrowInt64 : ArrowType.arrowUInt64)
     }
-    return ArrowType(ArrowType.ArrowUnknown)
+    return ArrowType(ArrowType.arrowUnknown)
   case .bool:
-    return ArrowType(ArrowType.ArrowBool)
+    return ArrowType(ArrowType.arrowBool)
   case .floatingpoint:
     let floatType = field.type(type: org_apache_arrow_flatbuf_FloatingPoint.self)!
     switch floatType.precision {
     case .single:
-      return ArrowType(ArrowType.ArrowFloat)
+      return ArrowType(ArrowType.arrowFloat)
     case .double:
-      return ArrowType(ArrowType.ArrowDouble)
+      return ArrowType(ArrowType.arrowDouble)
     default:
-      return ArrowType(ArrowType.ArrowUnknown)
+      return ArrowType(ArrowType.arrowUnknown)
     }
   case .utf8:
-    return ArrowType(ArrowType.ArrowString)
+    return ArrowType(ArrowType.arrowString)
   case .binary:
-    return ArrowType(ArrowType.ArrowBinary)
+    return ArrowType(ArrowType.arrowBinary)
   case .date:
     let dateType = field.type(type: org_apache_arrow_flatbuf_Date.self)!
     if dateType.unit == .day {
-      return ArrowType(ArrowType.ArrowDate32)
+      return ArrowType(ArrowType.arrowDate32)
     }
 
-    return ArrowType(ArrowType.ArrowDate64)
+    return ArrowType(ArrowType.arrowDate64)
   case .time:
     let timeType = field.type(type: org_apache_arrow_flatbuf_Time.self)!
     if timeType.unit == .second || timeType.unit == .millisecond {
@@ -322,15 +322,15 @@ func findArrowType(  // swiftlint:disable:this cyclomatic_complexity function_bo
         ArrowField(childField.name ?? "", type: childType, isNullable: childField.nullable))
     }
 
-    return ArrowTypeStruct(ArrowType.ArrowStruct, fields: fields)
+    return ArrowTypeStruct(ArrowType.arrowStruct, fields: fields)
   case .list:
     guard field.childrenCount == 1, let childField = field.children(at: 0) else {
-      return ArrowType(ArrowType.ArrowUnknown)
+      return ArrowType(ArrowType.arrowUnknown)
     }
     let childType = findArrowType(childField)
     return ArrowTypeList(childType)
   default:
-    return ArrowType(ArrowType.ArrowUnknown)
+    return ArrowType(ArrowType.arrowUnknown)
   }
 }
 

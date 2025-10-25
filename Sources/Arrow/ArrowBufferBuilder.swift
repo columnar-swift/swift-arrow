@@ -313,7 +313,7 @@ public final class StructBufferBuilder: BaseBufferBuilder, ArrowBufferBuilder {
   }
 
   public func initializeTypeInfo(_ fields: [ArrowField]) {
-    info = ArrowTypeStruct(ArrowType.ArrowStruct, fields: fields)
+    info = ArrowTypeStruct(ArrowType.arrowStruct, fields: fields)
   }
 
   public func append(_ newValue: [Any?]?) {

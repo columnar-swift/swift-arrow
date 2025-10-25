@@ -60,9 +60,9 @@ func checkBoolRecordBatch(
     XCTAssertEqual(recordBatch.columns.count, 2)
     XCTAssertEqual(recordBatch.schema.fields.count, 2)
     XCTAssertEqual(recordBatch.schema.fields[0].name, "one")
-    XCTAssertEqual(recordBatch.schema.fields[0].type.info, ArrowType.ArrowBool)
+    XCTAssertEqual(recordBatch.schema.fields[0].type.info, ArrowType.arrowBool)
     XCTAssertEqual(recordBatch.schema.fields[1].name, "two")
-    XCTAssertEqual(recordBatch.schema.fields[1].type.info, ArrowType.ArrowString)
+    XCTAssertEqual(recordBatch.schema.fields[1].type.info, ArrowType.arrowString)
     for index in 0..<recordBatch.length {
       let column = recordBatch.columns[0]
       let str = column.array as! AsString
@@ -119,11 +119,11 @@ func currentDirectory(path: String = #file) -> URL {
 
 func makeSchema() -> ArrowSchema {
   let schemaBuilder = ArrowSchema.Builder()
-  return schemaBuilder.addField("col1", type: ArrowType(ArrowType.ArrowUInt8), isNullable: true)
-    .addField("col2", type: ArrowType(ArrowType.ArrowString), isNullable: false)
-    .addField("col3", type: ArrowType(ArrowType.ArrowDate32), isNullable: false)
-    .addField("col4", type: ArrowType(ArrowType.ArrowInt32), isNullable: false)
-    .addField("col5", type: ArrowType(ArrowType.ArrowFloat), isNullable: false)
+  return schemaBuilder.addField("col1", type: ArrowType(ArrowType.arrowUInt8), isNullable: true)
+    .addField("col2", type: ArrowType(ArrowType.arrowString), isNullable: false)
+    .addField("col3", type: ArrowType(ArrowType.arrowDate32), isNullable: false)
+    .addField("col4", type: ArrowType(ArrowType.arrowInt32), isNullable: false)
+    .addField("col5", type: ArrowType(ArrowType.arrowFloat), isNullable: false)
     .finish()
 }
 
@@ -137,7 +137,7 @@ func makeStructSchema() -> ArrowSchema {
       fields.append(ArrowField(property!, type: arrowType, isNullable: true))
     }
 
-    return ArrowTypeStruct(ArrowType.ArrowStruct, fields: fields)
+    return ArrowTypeStruct(ArrowType.arrowStruct, fields: fields)
   }
 
   return ArrowSchema.Builder()
@@ -239,15 +239,15 @@ final class IPCStreamReaderTests: XCTestCase {
           XCTAssertEqual(recordBatch.columns.count, 5)
           XCTAssertEqual(recordBatch.schema.fields.count, 5)
           XCTAssertEqual(recordBatch.schema.fields[0].name, "col1")
-          XCTAssertEqual(recordBatch.schema.fields[0].type.info, ArrowType.ArrowUInt8)
+          XCTAssertEqual(recordBatch.schema.fields[0].type.info, ArrowType.arrowUInt8)
           XCTAssertEqual(recordBatch.schema.fields[1].name, "col2")
-          XCTAssertEqual(recordBatch.schema.fields[1].type.info, ArrowType.ArrowString)
+          XCTAssertEqual(recordBatch.schema.fields[1].type.info, ArrowType.arrowString)
           XCTAssertEqual(recordBatch.schema.fields[2].name, "col3")
-          XCTAssertEqual(recordBatch.schema.fields[2].type.info, ArrowType.ArrowDate32)
+          XCTAssertEqual(recordBatch.schema.fields[2].type.info, ArrowType.arrowDate32)
           XCTAssertEqual(recordBatch.schema.fields[3].name, "col4")
-          XCTAssertEqual(recordBatch.schema.fields[3].type.info, ArrowType.ArrowInt32)
+          XCTAssertEqual(recordBatch.schema.fields[3].type.info, ArrowType.arrowInt32)
           XCTAssertEqual(recordBatch.schema.fields[4].name, "col5")
-          XCTAssertEqual(recordBatch.schema.fields[4].type.info, ArrowType.ArrowFloat)
+          XCTAssertEqual(recordBatch.schema.fields[4].type.info, ArrowType.arrowFloat)
           let columns = recordBatch.columns
           XCTAssertEqual(columns[0].nullCount, 2)
           let dateVal =
@@ -294,9 +294,9 @@ final class IPCFileReaderTests: XCTestCase {
       XCTAssertEqual(recordBatch.columns.count, 2)
       XCTAssertEqual(recordBatch.schema.fields.count, 2)
       XCTAssertEqual(recordBatch.schema.fields[0].name, "one")
-      XCTAssertEqual(recordBatch.schema.fields[0].type.info, ArrowType.ArrowDouble)
+      XCTAssertEqual(recordBatch.schema.fields[0].type.info, ArrowType.arrowDouble)
       XCTAssertEqual(recordBatch.schema.fields[1].name, "two")
-      XCTAssertEqual(recordBatch.schema.fields[1].type.info, ArrowType.ArrowString)
+      XCTAssertEqual(recordBatch.schema.fields[1].type.info, ArrowType.arrowString)
       for index in 0..<recordBatch.length {
         let column = recordBatch.columns[1]
         let str = column.array as! AsString
@@ -392,15 +392,15 @@ final class IPCFileReaderTests: XCTestCase {
           XCTAssertEqual(recordBatch.columns.count, 5)
           XCTAssertEqual(recordBatch.schema.fields.count, 5)
           XCTAssertEqual(recordBatch.schema.fields[0].name, "col1")
-          XCTAssertEqual(recordBatch.schema.fields[0].type.info, ArrowType.ArrowUInt8)
+          XCTAssertEqual(recordBatch.schema.fields[0].type.info, ArrowType.arrowUInt8)
           XCTAssertEqual(recordBatch.schema.fields[1].name, "col2")
-          XCTAssertEqual(recordBatch.schema.fields[1].type.info, ArrowType.ArrowString)
+          XCTAssertEqual(recordBatch.schema.fields[1].type.info, ArrowType.arrowString)
           XCTAssertEqual(recordBatch.schema.fields[2].name, "col3")
-          XCTAssertEqual(recordBatch.schema.fields[2].type.info, ArrowType.ArrowDate32)
+          XCTAssertEqual(recordBatch.schema.fields[2].type.info, ArrowType.arrowDate32)
           XCTAssertEqual(recordBatch.schema.fields[3].name, "col4")
-          XCTAssertEqual(recordBatch.schema.fields[3].type.info, ArrowType.ArrowInt32)
+          XCTAssertEqual(recordBatch.schema.fields[3].type.info, ArrowType.arrowInt32)
           XCTAssertEqual(recordBatch.schema.fields[4].name, "col5")
-          XCTAssertEqual(recordBatch.schema.fields[4].type.info, ArrowType.ArrowFloat)
+          XCTAssertEqual(recordBatch.schema.fields[4].type.info, ArrowType.arrowFloat)
           let columns = recordBatch.columns
           XCTAssertEqual(columns[0].nullCount, 2)
           let dateVal =
@@ -441,15 +441,15 @@ final class IPCFileReaderTests: XCTestCase {
         let schema = result.schema!
         XCTAssertEqual(schema.fields.count, 5)
         XCTAssertEqual(schema.fields[0].name, "col1")
-        XCTAssertEqual(schema.fields[0].type.info, ArrowType.ArrowUInt8)
+        XCTAssertEqual(schema.fields[0].type.info, ArrowType.arrowUInt8)
         XCTAssertEqual(schema.fields[1].name, "col2")
-        XCTAssertEqual(schema.fields[1].type.info, ArrowType.ArrowString)
+        XCTAssertEqual(schema.fields[1].type.info, ArrowType.arrowString)
         XCTAssertEqual(schema.fields[2].name, "col3")
-        XCTAssertEqual(schema.fields[2].type.info, ArrowType.ArrowDate32)
+        XCTAssertEqual(schema.fields[2].type.info, ArrowType.arrowDate32)
         XCTAssertEqual(schema.fields[3].name, "col4")
-        XCTAssertEqual(schema.fields[3].type.info, ArrowType.ArrowInt32)
+        XCTAssertEqual(schema.fields[3].type.info, ArrowType.arrowInt32)
         XCTAssertEqual(schema.fields[4].name, "col5")
-        XCTAssertEqual(schema.fields[4].type.info, ArrowType.ArrowFloat)
+        XCTAssertEqual(schema.fields[4].type.info, ArrowType.arrowFloat)
       case .failure(let error):
         throw error
       }
@@ -461,7 +461,7 @@ final class IPCFileReaderTests: XCTestCase {
   func makeBinaryDataset() throws -> (ArrowSchema, RecordBatch) {
     let schemaBuilder = ArrowSchema.Builder()
     let schema = schemaBuilder.addField(
-      "binary", type: ArrowType(ArrowType.ArrowBinary), isNullable: false
+      "binary", type: ArrowType(ArrowType.arrowBinary), isNullable: false
     )
     .finish()
 
@@ -583,7 +583,7 @@ final class IPCFileReaderTests: XCTestCase {
         let schema = result.schema!
         XCTAssertEqual(schema.fields.count, 1)
         XCTAssertEqual(schema.fields[0].name, "binary")
-        XCTAssertEqual(schema.fields[0].type.info, ArrowType.ArrowBinary)
+        XCTAssertEqual(schema.fields[0].type.info, ArrowType.arrowBinary)
         XCTAssertEqual(result.batches.count, 1)
         let recordBatch = result.batches[0]
         XCTAssertEqual(recordBatch.length, 4)
@@ -612,9 +612,9 @@ final class IPCFileReaderTests: XCTestCase {
         let schema = result.schema!
         XCTAssertEqual(schema.fields.count, 2)
         XCTAssertEqual(schema.fields[0].name, "time64")
-        XCTAssertEqual(schema.fields[0].type.info, ArrowType.ArrowTime64)
+        XCTAssertEqual(schema.fields[0].type.info, ArrowType.arrowTime64)
         XCTAssertEqual(schema.fields[1].name, "time32")
-        XCTAssertEqual(schema.fields[1].type.info, ArrowType.ArrowTime32)
+        XCTAssertEqual(schema.fields[1].type.info, ArrowType.arrowTime32)
         XCTAssertEqual(result.batches.count, 1)
         let recordBatch = result.batches[0]
         XCTAssertEqual(recordBatch.length, 4)

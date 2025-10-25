@@ -22,7 +22,11 @@ public class ArrowData {
   public let length: UInt
   public let stride: Int
 
-  convenience init(_ arrowType: ArrowType, buffers: [ArrowBuffer], nullCount: UInt) throws {
+  convenience init(
+    _ arrowType: ArrowType,
+    buffers: [ArrowBuffer],
+    nullCount: UInt
+  ) throws {
     try self.init(
       arrowType, buffers: buffers,
       children: [ArrowData](), nullCount: nullCount,
@@ -30,7 +34,10 @@ public class ArrowData {
   }
 
   init(
-    _ arrowType: ArrowType, buffers: [ArrowBuffer], children: [ArrowData], nullCount: UInt,
+    _ arrowType: ArrowType,
+    buffers: [ArrowBuffer],
+    children: [ArrowData],
+    nullCount: UInt,
     length: UInt
   ) throws {
     let infoType = arrowType.info

@@ -56,19 +56,19 @@ func toFBType(
   case .int8, .uint8:
     return .success(
       org_apache_arrow_flatbuf_Int.createInt(
-        &fbb, bitWidth: 8, isSigned: infoType == ArrowType.ArrowInt8))
+        &fbb, bitWidth: 8, isSigned: infoType == ArrowType.arrowInt8))
   case .int16, .uint16:
     return .success(
       org_apache_arrow_flatbuf_Int.createInt(
-        &fbb, bitWidth: 16, isSigned: infoType == ArrowType.ArrowInt16))
+        &fbb, bitWidth: 16, isSigned: infoType == ArrowType.arrowInt16))
   case .int32, .uint32:
     return .success(
       org_apache_arrow_flatbuf_Int.createInt(
-        &fbb, bitWidth: 32, isSigned: infoType == ArrowType.ArrowInt32))
+        &fbb, bitWidth: 32, isSigned: infoType == ArrowType.arrowInt32))
   case .int64, .uint64:
     return .success(
       org_apache_arrow_flatbuf_Int.createInt(
-        &fbb, bitWidth: 64, isSigned: infoType == ArrowType.ArrowInt64))
+        &fbb, bitWidth: 64, isSigned: infoType == ArrowType.arrowInt64))
   case .float:
     return .success(
       org_apache_arrow_flatbuf_FloatingPoint.createFloatingPoint(&fbb, precision: .single))

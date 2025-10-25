@@ -367,23 +367,23 @@ final class ArrayTests: XCTestCase {
   }
 
   func testArrayHolders() throws {
-    try checkHolderForType(ArrowType(ArrowType.ArrowInt8))
-    try checkHolderForType(ArrowType(ArrowType.ArrowUInt8))
-    try checkHolderForType(ArrowType(ArrowType.ArrowInt16))
-    try checkHolderForType(ArrowType(ArrowType.ArrowUInt16))
-    try checkHolderForType(ArrowType(ArrowType.ArrowInt32))
-    try checkHolderForType(ArrowType(ArrowType.ArrowUInt32))
-    try checkHolderForType(ArrowType(ArrowType.ArrowInt64))
-    try checkHolderForType(ArrowType(ArrowType.ArrowUInt64))
+    try checkHolderForType(ArrowType(ArrowType.arrowInt8))
+    try checkHolderForType(ArrowType(ArrowType.arrowUInt8))
+    try checkHolderForType(ArrowType(ArrowType.arrowInt16))
+    try checkHolderForType(ArrowType(ArrowType.arrowUInt16))
+    try checkHolderForType(ArrowType(ArrowType.arrowInt32))
+    try checkHolderForType(ArrowType(ArrowType.arrowUInt32))
+    try checkHolderForType(ArrowType(ArrowType.arrowInt64))
+    try checkHolderForType(ArrowType(ArrowType.arrowUInt64))
     try checkHolderForType(ArrowTypeTime32(.seconds))
     try checkHolderForType(ArrowTypeTime32(.milliseconds))
     try checkHolderForType(ArrowTypeTime64(.microseconds))
     try checkHolderForType(ArrowTypeTime64(.nanoseconds))
-    try checkHolderForType(ArrowType(ArrowType.ArrowBinary))
-    try checkHolderForType(ArrowType(ArrowType.ArrowFloat))
-    try checkHolderForType(ArrowType(ArrowType.ArrowDouble))
-    try checkHolderForType(ArrowType(ArrowType.ArrowBool))
-    try checkHolderForType(ArrowType(ArrowType.ArrowString))
+    try checkHolderForType(ArrowType(ArrowType.arrowBinary))
+    try checkHolderForType(ArrowType(ArrowType.arrowFloat))
+    try checkHolderForType(ArrowType(ArrowType.arrowDouble))
+    try checkHolderForType(ArrowType(ArrowType.arrowBool))
+    try checkHolderForType(ArrowType(ArrowType.arrowString))
   }
 
   func testArrowArrayHolderBuilder() throws {
@@ -449,7 +449,7 @@ final class ArrayTests: XCTestCase {
   }
 
   func testListArrayPrimitive() throws {
-    let listBuilder = try ListArrayBuilder(ArrowType(ArrowType.ArrowInt32))
+    let listBuilder = try ListArrayBuilder(ArrowType(ArrowType.arrowInt32))
 
     listBuilder.append([Int32(1), Int32(2), Int32(3)])
     listBuilder.append([Int32(4), Int32(5)])
@@ -483,7 +483,7 @@ final class ArrayTests: XCTestCase {
   }
 
   func testListArrayNested() throws {
-    let innerListType = ArrowTypeList(ArrowType(ArrowType.ArrowInt32))
+    let innerListType = ArrowTypeList(ArrowType(ArrowType.arrowInt32))
     let outerListBuilder = try ListArrayBuilder(innerListType)
 
     guard let innerListBuilder = outerListBuilder.valueBuilder as? ListArrayBuilder else {
