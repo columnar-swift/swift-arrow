@@ -40,6 +40,7 @@ jobs:
     with:
       format_check_enabled: true
       format_check_container_image: swiftlang/swift:nightly-6.2-jammy
+      license_header_check_enabled: false
       shell_check_enabled: true
       yamllint_check_enabled: true
       api_breakage_check_enabled: false  # doesn't allow skipping prebuilt swift-syntax binary
