@@ -49,7 +49,6 @@ public class BaseBufferBuilder {
       }
       return UInt(data.length * 2)
     }
-
     return UInt(len * 2)
   }
 }
@@ -223,35 +222,31 @@ public class VariableBufferBuilder<T>: ValuesBufferBuilder<T>, ArrowBufferBuilde
       isNull = true
       binData = Data(bytes: &nullVal, count: MemoryLayout<UInt32>.size)
     }
-
     var currentIndex: Int32 = 0
     var currentOffset: Int32 = Int32(binData.count)
     if index > 0 {
       currentIndex = self.offsets.rawPointer.advanced(by: offsetIndex).load(as: Int32.self)
       currentOffset += currentIndex
       if currentOffset > self.values.length {
-        self.value_resize(UInt(currentOffset))
+        self.valueResize(UInt(currentOffset))
       }
     }
-
     if isNull {
       self.nullCount += 1
       BitUtility.clearBit(index + self.offset, buffer: self.nulls)
     } else {
       BitUtility.setBit(index + self.offset, buffer: self.nulls)
     }
-
     binData.withUnsafeBytes { bufferPointer in
       let rawPointer = bufferPointer.baseAddress!
       self.values.rawPointer.advanced(by: Int(currentIndex))
         .copyMemory(from: rawPointer, byteCount: binData.count)
     }
-
     self.offsets.rawPointer.advanced(by: (offsetIndex + MemoryLayout<Int32>.stride))
       .storeBytes(of: currentOffset, as: Int32.self)
   }
 
-  public func value_resize(_ length: UInt) {
+  public func valueResize(_ length: UInt) {
     if length > self.values.length {
       let resizeLength = resizeLength(self.values, len: length)
       var values = ArrowBuffer.createBuffer(resizeLength, size: UInt(MemoryLayout<UInt8>.size))

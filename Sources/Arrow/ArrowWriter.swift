@@ -152,7 +152,7 @@ public class ArrowWriter {
       let startIndex = writer.count
       switch writeRecordBatch(batch: batch) {
       case .success(let rbResult):
-        withUnsafeBytes(of: CONTINUATIONMARKER.littleEndian) {
+        withUnsafeBytes(of: continuationMarker.littleEndian) {
           writer.append(Data($0))
         }
         withUnsafeBytes(of: rbResult.1.o.littleEndian) {
@@ -397,7 +397,7 @@ public class ArrowWriter {
     let writer: any DataWriter = InMemDataWriter()
     switch toMessage(info.schema) {
     case .success(let schemaData):
-      withUnsafeBytes(of: CONTINUATIONMARKER.littleEndian) { writer.append(Data($0)) }
+      withUnsafeBytes(of: continuationMarker.littleEndian) { writer.append(Data($0)) }
       withUnsafeBytes(of: UInt32(schemaData.count).littleEndian) { writer.append(Data($0)) }
       writer.append(schemaData)
     case .failure(let error):
@@ -407,7 +407,7 @@ public class ArrowWriter {
     for batch in info.batches {
       switch toMessage(batch) {
       case .success(let batchData):
-        withUnsafeBytes(of: CONTINUATIONMARKER.littleEndian) { writer.append(Data($0)) }
+        withUnsafeBytes(of: continuationMarker.littleEndian) { writer.append(Data($0)) }
         withUnsafeBytes(of: UInt32(batchData[0].count).littleEndian) { writer.append(Data($0)) }
         writer.append(batchData[0])
         writer.append(batchData[1])
@@ -416,7 +416,7 @@ public class ArrowWriter {
       }
     }
 
-    withUnsafeBytes(of: CONTINUATIONMARKER.littleEndian) { writer.append(Data($0)) }
+    withUnsafeBytes(of: continuationMarker.littleEndian) { writer.append(Data($0)) }
     withUnsafeBytes(of: UInt32(0).littleEndian) { writer.append(Data($0)) }
     if let memWriter = writer as? InMemDataWriter {
       return .success(memWriter.data)
@@ -449,14 +449,14 @@ public class ArrowWriter {
     let fileHandle = FileHandle(forUpdatingAtPath: fileName.path)!
     defer { fileHandle.closeFile() }
 
-    var markerData = FILEMARKER.data(using: .utf8)!
+    var markerData = fileMarker.data(using: .utf8)!
     addPadForAlignment(&markerData)
 
     var writer: any DataWriter = FileDataWriter(fileHandle)
     writer.append(markerData)
     switch writeFile(&writer, info: info) {
     case .success:
-      writer.append(FILEMARKER.data(using: .utf8)!)
+      writer.append(fileMarker.data(using: .utf8)!)
     case .failure(let error):
       return .failure(error)
     }

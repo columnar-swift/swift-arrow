@@ -1,4 +1,5 @@
 // Copyright 2025 The Apache Software Foundation
+// Copyright 2025 The Columnar-Swift Contributors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,10 +16,10 @@
 import FlatBuffers
 import Foundation
 
-let FILEMARKER = "ARROW1"
-let CONTINUATIONMARKER = UInt32(0xFFFF_FFFF)
+let fileMarker = "ARROW1"
+let continuationMarker = UInt32(0xFFFF_FFFF)
 
-public class ArrowReader {  // swiftlint:disable:this type_body_length
+public class ArrowReader {
   private class RecordBatchData {
     let schema: Schema
     let recordBatch: FlatRecordBatch
@@ -294,7 +295,7 @@ public class ArrowReader {  // swiftlint:disable:this type_body_length
     var streamData = input
     var schemaMessage: Schema?
     while length != 0 {
-      if length == CONTINUATIONMARKER {
+      if length == continuationMarker {
         offset += Int(MemoryLayout<UInt32>.size)
         length = getUInt32(input, offset: offset)
         if length == 0 {
@@ -343,11 +344,13 @@ public class ArrowReader {  // swiftlint:disable:this type_body_length
     return .success(result)
   }
 
-  /*
-   This is for reading the Arrow file format. The Arrow file format supports
-   random accessing the data.  The Arrow file format contains a header and
-   footer around the Arrow streaming format.
-   */
+  /// This is for reading the Arrow file format. The Arrow file format supports
+  /// random access.  The Arrow file format contains a header and footer around
+  /// the Arrow streaming format.
+  /// - Parameters:
+  ///   - fileData: the file content
+  ///   - useUnalignedBuffers: to be removed.
+  /// - Returns: An `ArrowReaderResult` on success, or an `ArrowError` on failure.
   public func readFile(
     _ fileData: Data,
     useUnalignedBuffers: Bool = false
@@ -378,7 +381,7 @@ public class ArrowReader {  // swiftlint:disable:this type_body_length
       }
 
       var messageOffset: Int64 = 1
-      if messageLength == CONTINUATIONMARKER {
+      if messageLength == continuationMarker {
         messageOffset += 1
         messageLength = fileData.withUnsafeBytes { rawBuffer in
           rawBuffer.loadUnaligned(
@@ -424,8 +427,7 @@ public class ArrowReader {  // swiftlint:disable:this type_body_length
       if !validateFileData(fileData) {
         return .failure(.ioError("Not a valid arrow file."))
       }
-
-      let markerLength = FILEMARKER.utf8.count
+      let markerLength = fileMarker.utf8.count
       let footerLengthEnd = Int(fileData.count - markerLength)
       let data = fileData[..<(footerLengthEnd)]
       return readFile(data)
@@ -475,6 +477,4 @@ public class ArrowReader {  // swiftlint:disable:this type_body_length
       return .failure(.unknownError("Unhandled header type: \(message.headerType)"))
     }
   }
-
 }
-// swiftlint:disable:this file_length
