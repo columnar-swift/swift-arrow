@@ -16,6 +16,13 @@ import XCTest
 
 @testable import Arrow
 
+extension ArrowColumn {
+  public func data<T>() -> ChunkedArray<T> {
+    return (self.dataHolder.holder as! ChunkedArray<T>)
+  }
+}
+
+
 final class TableTests: XCTestCase {
   func testSchema() throws {
     let schemaBuilder = ArrowSchema.Builder()
