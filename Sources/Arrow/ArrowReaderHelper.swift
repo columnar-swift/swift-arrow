@@ -266,7 +266,9 @@ func findArrowType(_ field: FlatField) throws(ArrowError) -> ArrowType {
   let type = field.typeType
   switch type {
   case .int:
-    let intType = field.type(type: FlatInt.self)!
+    guard let intType = field.type(type: FlatInt.self) else {
+      throw .invalid("Could not get integer type from \(field)")
+    }
     let bitWidth = intType.bitWidth
     if bitWidth == 8 {
       return ArrowType(intType.isSigned ? ArrowType.arrowInt8 : ArrowType.arrowUInt8)
@@ -338,7 +340,9 @@ func findArrowType(_ field: FlatField) throws(ArrowError) -> ArrowType {
     }
     var fields = [ArrowField]()
     for index in 0..<field.childrenCount {
-      let childField = field.children(at: index)!
+      guard let childField = field.children(at: index) else {
+        throw .invalid("Could not get child at index: \(index) ofrom struct")
+      }
       let childType = try findArrowType(childField)
       fields.append(
         ArrowField(childField.name ?? "", type: childType, isNullable: childField.nullable))

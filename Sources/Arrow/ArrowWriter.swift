@@ -464,8 +464,9 @@ public class ArrowWriter {
     } catch {
       return .failure(.ioError("\(error)"))
     }
-
-    let fileHandle = FileHandle(forUpdatingAtPath: fileName.path)!
+    guard let fileHandle = FileHandle(forUpdatingAtPath: fileName.path) else {
+      return .failure(.ioError("Unable to open \(fileName.path) for writing"))
+    }
     defer { fileHandle.closeFile() }
 
     var markerData = fileMarker
