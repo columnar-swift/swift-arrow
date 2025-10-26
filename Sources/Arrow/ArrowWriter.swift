@@ -358,9 +358,10 @@ public class ArrowWriter {
     }
   }
 
-  private func writeFile(_ writer: inout DataWriter, info: ArrowWriter.Info) -> Result<
-    Bool, ArrowError
-  > {
+  private func writeFile(
+    _ writer: inout DataWriter,
+    info: ArrowWriter.Info
+  ) -> Result<Bool, ArrowError> {
     var fbb: FlatBufferBuilder = FlatBufferBuilder()
     switch writeSchema(&fbb, schema: info.schema) {
     case .success(let schemaOffset):
@@ -370,7 +371,6 @@ public class ArrowWriter {
     case .failure(let error):
       return .failure(error)
     }
-
     switch writeRecordBatches(&writer, batches: info.batches) {
     case .success(let rbBlocks):
       switch writeFooter(schema: info.schema, rbBlocks: rbBlocks) {
@@ -379,10 +379,13 @@ public class ArrowWriter {
         let footerOffset = writer.count
         writer.append(footerData)
         addPadForAlignment(&writer)
-
-        withUnsafeBytes(of: Int32(0).littleEndian) { writer.append(Data($0)) }
+        withUnsafeBytes(of: Int32(0).littleEndian) {
+          writer.append(Data($0))
+        }
         let footerDiff = (UInt32(writer.count) - UInt32(footerOffset))
-        withUnsafeBytes(of: footerDiff.littleEndian) { writer.append(Data($0)) }
+        withUnsafeBytes(of: footerDiff.littleEndian) {
+          writer.append(Data($0))
+        }
       case .failure(let error):
         return .failure(error)
       }
@@ -393,12 +396,18 @@ public class ArrowWriter {
     return .success(true)
   }
 
-  public func writeStreaming(_ info: ArrowWriter.Info) -> Result<Data, ArrowError> {
+  public func writeStreaming(
+    _ info: ArrowWriter.Info
+  ) -> Result<Data, ArrowError> {
     let writer: any DataWriter = InMemDataWriter()
     switch toMessage(info.schema) {
     case .success(let schemaData):
-      withUnsafeBytes(of: continuationMarker.littleEndian) { writer.append(Data($0)) }
-      withUnsafeBytes(of: UInt32(schemaData.count).littleEndian) { writer.append(Data($0)) }
+      withUnsafeBytes(of: continuationMarker.littleEndian) {
+        writer.append(Data($0))
+      }
+      withUnsafeBytes(of: UInt32(schemaData.count).littleEndian) {
+        writer.append(Data($0))
+      }
       writer.append(schemaData)
     case .failure(let error):
       return .failure(error)
@@ -407,17 +416,24 @@ public class ArrowWriter {
     for batch in info.batches {
       switch toMessage(batch) {
       case .success(let batchData):
-        withUnsafeBytes(of: continuationMarker.littleEndian) { writer.append(Data($0)) }
-        withUnsafeBytes(of: UInt32(batchData[0].count).littleEndian) { writer.append(Data($0)) }
+        withUnsafeBytes(of: continuationMarker.littleEndian) {
+          writer.append(Data($0))
+        }
+        withUnsafeBytes(of: UInt32(batchData[0].count).littleEndian) {
+          writer.append(Data($0))
+        }
         writer.append(batchData[0])
         writer.append(batchData[1])
       case .failure(let error):
         return .failure(error)
       }
     }
-
-    withUnsafeBytes(of: continuationMarker.littleEndian) { writer.append(Data($0)) }
-    withUnsafeBytes(of: UInt32(0).littleEndian) { writer.append(Data($0)) }
+    withUnsafeBytes(of: continuationMarker.littleEndian) {
+      writer.append(Data($0))
+    }
+    withUnsafeBytes(of: UInt32(0).littleEndian) {
+      writer.append(Data($0))
+    }
     if let memWriter = writer as? InMemDataWriter {
       return .success(memWriter.data)
     } else {
@@ -439,7 +455,10 @@ public class ArrowWriter {
     }
   }
 
-  public func toFile(_ fileName: URL, info: ArrowWriter.Info) -> Result<Bool, ArrowError> {
+  public func toFile(
+    _ fileName: URL,
+    info: ArrowWriter.Info
+  ) -> Result<Bool, ArrowError> {
     do {
       try Data().write(to: fileName)
     } catch {
@@ -460,7 +479,6 @@ public class ArrowWriter {
     case .failure(let error):
       return .failure(error)
     }
-
     return .success(true)
   }
 
@@ -474,9 +492,13 @@ public class ArrowWriter {
       switch writeRecordBatchData(&dataWriter, fields: batch.schema.fields, columns: batch.columns)
       {
       case .success:
+        guard let inMemWriter = writer as? InMemDataWriter,
+              let inMemDataWriter = dataWriter as? InMemDataWriter else {
+          return .failure(.invalid("Unable to cast writer"))
+        }
         return .success([
-          (writer as! InMemDataWriter).data,  // swiftlint:disable:this force_cast
-          (dataWriter as! InMemDataWriter).data,  // swiftlint:disable:this force_cast
+          inMemWriter.data,
+          inMemDataWriter.data,
         ])
       case .failure(let error):
         return .failure(error)

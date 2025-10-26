@@ -97,7 +97,7 @@ public class ArrowCImporter {
     return importArray(cArray, arrowField: arrowField)
   }
 
-  public func importArray(  // swiftlint:disable:this cyclomatic_complexity function_body_length
+  public func importArray(
     _ cArrayPtr: UnsafePointer<ArrowC.ArrowArray>,
     arrowField: ArrowField
   ) -> Result<ArrowArrayHolder, ArrowError> {

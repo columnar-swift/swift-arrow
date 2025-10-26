@@ -113,7 +113,10 @@ public class ArrowEncoder: Encoder {
   // to limitations in the Swifts Mirror API (ex: it is unable to correctly
   // find the type for String? in [Int: String?])
   @discardableResult
-  func ensureColumnExists<T>(_ value: T, key: String) throws -> ArrowArrayHolderBuilder {
+  func ensureColumnExists<T>(
+    _ value: T,
+    key: String
+  ) throws(ArrowError) -> ArrowArrayHolderBuilder {
     try throwIfInvalid()
     var builder = builders[key]
     if builder == nil {
@@ -159,7 +162,7 @@ public class ArrowEncoder: Encoder {
     builders[byIndex[index]]!.appendAny(value)
   }
 
-  func throwIfInvalid() throws {
+  func throwIfInvalid() throws(ArrowError) {
     if let errorMsg = self.errorMsg {
       throw ArrowError.invalid(errorMsg)
     }

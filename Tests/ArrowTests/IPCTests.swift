@@ -589,7 +589,7 @@ final class IPCFileReaderTests: XCTestCase {
         XCTAssertEqual(recordBatch.length, 4)
         let columns = recordBatch.columns
         let stringVal =
-          "\((columns[0].array as! AsString).asString(1))"  // swiftlint:disable:this force_cast
+          "\((columns[0].array as! AsString).asString(1))"
         XCTAssertEqual(stringVal, "test22")
       case .failure(let error):
         throw error
