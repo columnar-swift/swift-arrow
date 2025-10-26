@@ -20,8 +20,8 @@ public class ArrowEncoder: Encoder {
   public var codingPath: [CodingKey] = []
   public var userInfo: [CodingUserInfoKey: Any] = [:]
   var errorMsg: String?
-  // this is used for Dictionary types.  A dictionary type
-  // will give each key and value there own index so instead
+  // This is used for Dictionary types. A dictionary type
+  // will give each key and value their own index so instead
   // of having a 2 column RecordBatch you would have
   // 2 * length(dictionary) column RecordBatch. Which would not
   // be the expected output.
@@ -69,19 +69,16 @@ public class ArrowEncoder: Encoder {
     }
   }
 
-  public func finish() throws -> RecordBatch {
+  public func finish() throws(ArrowError) -> RecordBatch {
     try throwIfInvalid()
     let batchBuilder = RecordBatch.Builder()
     for key in byIndex {
-      batchBuilder.addColumn(key, arrowArray: try builders[key]!.toHolder())
+      guard let builder = builders[key] else {
+        throw .invalid("Missing builder for \(key)")
+      }
+      batchBuilder.addColumn(key, arrowArray: try builder.toHolder())
     }
-
-    switch batchBuilder.finish() {
-    case .success(let rb):
-      return rb
-    case .failure(let error):
-      throw error
-    }
+    return try batchBuilder.finish().get()
   }
 
   public func container<Key>(keyedBy type: Key.Type) -> KeyedEncodingContainer<Key>
@@ -118,48 +115,52 @@ public class ArrowEncoder: Encoder {
     key: String
   ) throws(ArrowError) -> ArrowArrayHolderBuilder {
     try throwIfInvalid()
-    var builder = builders[key]
-    if builder == nil {
-      builder = try ArrowArrayBuilders.loadBuilder(T.self)
-      builders[key] = builder
-      byIndex.append(key)
+    if let builder = builders[key] {
+      return builder
     }
-
-    return builder!
+    let builder = try ArrowArrayBuilders.loadBuilder(T.self)
+    builders[key] = builder
+    byIndex.append(key)
+    return builder
   }
 
   func getIndex(_ index: Int) -> Int {
     return self.modForIndex == nil ? index : index % self.modForIndex!
   }
 
-  func doEncodeNil(_ keyIndex: Int) throws {
+  func doEncodeNil(_ keyIndex: Int) throws(ArrowError) {
     try throwIfInvalid()
     let index = self.getIndex(keyIndex)
-    if index >= builders.count {
+    guard index < builders.count else {
       throw ArrowError.outOfBounds(index: Int64(index))
     }
-
-    builders[byIndex[index]]!.appendAny(nil)
+    let key = byIndex[index]
+    guard let builder = builders[key] else {
+      throw .invalid("Missing builder for key: \(key)")
+    }
+    builder.appendAny(nil)
   }
 
-  func doEncode<T>(_ value: T, key: CodingKey) throws {
+  func doEncode<T>(_ value: T, key: CodingKey) throws(ArrowError) {
     try throwIfInvalid()
     let builder = try ensureColumnExists(value, key: key.stringValue)
     builder.appendAny(value)
   }
 
-  func doEncode<T>(_ value: T, keyIndex: Int) throws {
+  func doEncode<T>(_ value: T, keyIndex: Int) throws(ArrowError) {
     try throwIfInvalid()
     let index = self.getIndex(keyIndex)
-    if index >= builders.count {
-      if index == builders.count {
-        try ensureColumnExists(value, key: "col\(index)")
-      } else {
-        throw ArrowError.outOfBounds(index: Int64(index))
-      }
+    if index > builders.count {
+      throw .outOfBounds(index: Int64(index))
     }
-
-    builders[byIndex[index]]!.appendAny(value)
+    if index == builders.count {
+      try ensureColumnExists(value, key: "col\(index)")
+    }
+    let key = byIndex[index]
+    guard let builder = builders[key] else {
+      throw .invalid("Missing builder for key: \(key)")
+    }
+    builder.appendAny(value)
   }
 
   func throwIfInvalid() throws(ArrowError) {
