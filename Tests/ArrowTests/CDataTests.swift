@@ -116,7 +116,7 @@ final class CDataTests: XCTestCase {
       case .success(let rb):
         XCTAssertEqual(rb.columnCount, 1)
         XCTAssertEqual(rb.length, 100)
-        let col1: Arrow.ArrowArray<String> = rb.data(for: 0)
+        let col1: Arrow.ArrowArray<String> = try rb.data(for: 0)
         for index in 0..<col1.length {
           if index % 10 == 9 {
             XCTAssertEqual(col1[index], nil)

@@ -79,7 +79,12 @@ public class ArrowReader {
       guard let field = schema.fields(at: index) else {
         return .failure(.invalid("Field not found at index: \(index)"))
       }
-      let fieldType = findArrowType(field)
+      let fieldType: ArrowType
+      do {
+        fieldType = try findArrowType(field)
+      } catch {
+        return .failure(error)
+      }
       if fieldType.info == ArrowType.arrowUnknown {
         return .failure(.unknownType("Unsupported field type found: \(field.typeType)"))
       }

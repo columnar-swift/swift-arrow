@@ -298,7 +298,10 @@ private struct ArrowKeyedDecoding<Key: CodingKey>: KeyedDecodingContainerProtoco
 
   func decode<T>(_ type: T.Type, forKey key: Key) throws -> T where T: Decodable {
     if ArrowArrayBuilders.isValidBuilderType(type) || type == Date.self {
-      return try self.decoder.doDecode(key)!
+      guard let value: T = try self.decoder.doDecode(key) else {
+        throw ArrowError.invalid("Failed to decode \(type) for key \(key)")
+      }
+      return value
     } else {
       throw ArrowError.invalid("Type \(type) is currently not supported")
     }

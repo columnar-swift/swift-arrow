@@ -204,9 +204,17 @@ public class RecordBatch {
     }
   }
 
-  public func data<T>(for columnIndex: Int) -> ArrowArray<T> {
+  public func data<T>(
+    for columnIndex: Int
+  ) throws(ArrowError) -> ArrowArray<T> {
     let arrayHolder = column(columnIndex)
-    return (arrayHolder.array as! ArrowArray<T>)
+    if let array = arrayHolder.array as? ArrowArray<T> {
+      return array
+    } else {
+      throw .invalid(
+        "Could not convert \(arrayHolder.array) for \(columnIndex)"
+      )
+    }
   }
 
   public func anyData(for columnIndex: Int) -> AnyArray {

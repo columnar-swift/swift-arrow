@@ -262,7 +262,7 @@ func isFixedPrimitive(_ type: org_apache_arrow_flatbuf_Type_) -> Bool {
   }
 }
 
-func findArrowType(_ field: FlatField) -> ArrowType {
+func findArrowType(_ field: FlatField) throws(ArrowError) -> ArrowType {
   let type = field.typeType
   switch type {
   case .int:
@@ -284,7 +284,9 @@ func findArrowType(_ field: FlatField) -> ArrowType {
   case .bool:
     return ArrowType(ArrowType.arrowBool)
   case .floatingpoint:
-    let floatType = field.type(type: FloatingPoint.self)!
+    guard let floatType = field.type(type: FloatingPoint.self) else {
+      throw .invalid("Could not get floating point type from field")
+    }
     switch floatType.precision {
     case .single:
       return ArrowType(ArrowType.arrowFloat)
@@ -298,19 +300,25 @@ func findArrowType(_ field: FlatField) -> ArrowType {
   case .binary:
     return ArrowType(ArrowType.arrowBinary)
   case .date:
-    let dateType = field.type(type: org_apache_arrow_flatbuf_Date.self)!
+    guard let dateType = field.type(type: FlatDate.self) else {
+      throw .invalid("Could not get date type from field")
+    }
     if dateType.unit == .day {
       return ArrowType(ArrowType.arrowDate32)
     }
     return ArrowType(ArrowType.arrowDate64)
   case .time:
-    let timeType = field.type(type: FlatTime.self)!
+    guard let timeType = field.type(type: FlatTime.self) else {
+      throw .invalid("Could not get time type from field")
+    }
     if timeType.unit == .second || timeType.unit == .millisecond {
       return ArrowTypeTime32(timeType.unit == .second ? .seconds : .milliseconds)
     }
     return ArrowTypeTime64(timeType.unit == .microsecond ? .microseconds : .nanoseconds)
   case .timestamp:
-    let timestampType = field.type(type: org_apache_arrow_flatbuf_Timestamp.self)!
+    guard let timestampType = field.type(type: FlatTimestamp.self) else {
+      throw .invalid("Could not get timestamp type from field")
+    }
     let arrowUnit: ArrowTimestampUnit
     switch timestampType.unit {
     case .second:
@@ -325,11 +333,13 @@ func findArrowType(_ field: FlatField) -> ArrowType {
     let timezone = timestampType.timezone
     return ArrowTypeTimestamp(arrowUnit, timezone: timezone)
   case .struct_:
-    _ = field.type(type: FlatStruct.self)!
+    guard field.type(type: FlatStruct.self) != nil else {
+      throw .invalid("Could not get struct type from field")
+    }
     var fields = [ArrowField]()
     for index in 0..<field.childrenCount {
       let childField = field.children(at: index)!
-      let childType = findArrowType(childField)
+      let childType = try findArrowType(childField)
       fields.append(
         ArrowField(childField.name ?? "", type: childType, isNullable: childField.nullable))
     }
@@ -338,7 +348,7 @@ func findArrowType(_ field: FlatField) -> ArrowType {
     guard field.childrenCount == 1, let childField = field.children(at: 0) else {
       return ArrowType(ArrowType.arrowUnknown)
     }
-    let childType = findArrowType(childField)
+    let childType = try findArrowType(childField)
     return ArrowTypeList(childType)
   default:
     return ArrowType(ArrowType.arrowUnknown)
