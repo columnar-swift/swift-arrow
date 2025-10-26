@@ -22,7 +22,9 @@ public protocol ArrowArrayHolder {
   var data: ArrowData { get }
   var getBufferData: () -> [Data] { get }
   var getBufferDataSizes: () -> [Int] { get }
-  var getArrowColumn: (ArrowField, [ArrowArrayHolder]) throws -> ArrowColumn { get }
+  var getArrowColumn: (ArrowField, [ArrowArrayHolder]) throws -> ArrowColumn {
+    get
+  }
 }
 
 public class ArrowArrayHolderImpl: ArrowArrayHolder {
@@ -33,7 +35,8 @@ public class ArrowArrayHolderImpl: ArrowArrayHolder {
   public let array: AnyArray
   public let getBufferData: () -> [Data]
   public let getBufferDataSizes: () -> [Int]
-  public let getArrowColumn: (ArrowField, [ArrowArrayHolder]) throws -> ArrowColumn
+  public let getArrowColumn:
+    (ArrowField, [ArrowArrayHolder]) throws -> ArrowColumn
   public init<T>(_ arrowArray: ArrowArray<T>) {
     self.array = arrowArray
     self.data = arrowArray.arrowData
@@ -41,7 +44,7 @@ public class ArrowArrayHolderImpl: ArrowArrayHolder {
     self.type = arrowArray.arrowData.type
     self.nullCount = arrowArray.nullCount
     self.getBufferData = { () -> [Data] in
-      var bufferData = [Data]()
+      var bufferData: [Data] = []
       for buffer in arrowArray.arrowData.buffers {
         bufferData.append(Data())
         buffer.append(to: &bufferData[bufferData.count - 1])
@@ -50,7 +53,7 @@ public class ArrowArrayHolderImpl: ArrowArrayHolder {
     }
 
     self.getBufferDataSizes = { () -> [Int] in
-      var bufferDataSizes = [Int]()
+      var bufferDataSizes: [Int] = []
       for buffer in arrowArray.arrowData.buffers {
         bufferDataSizes.append(Int(buffer.capacity))
       }
@@ -58,61 +61,64 @@ public class ArrowArrayHolderImpl: ArrowArrayHolder {
     }
 
     self.getArrowColumn = {
-      (field: ArrowField, arrayHolders: [ArrowArrayHolder]) throws -> ArrowColumn in
-      var arrays = [ArrowArray<T>]()
+      (field: ArrowField, arrayHolders: [ArrowArrayHolder]) throws
+        -> ArrowColumn in
+      var arrays: [ArrowArray<T>] = []
       for arrayHolder in arrayHolders {
         if let array = arrayHolder.array as? ArrowArray<T> {
           arrays.append(array)
         }
       }
-      return ArrowColumn(field, chunked: ChunkedArrayHolder(try ChunkedArray<T>(arrays)))
+      return ArrowColumn(
+        field, chunked: ChunkedArrayHolder(try ChunkedArray<T>(arrays)))
     }
   }
 
-  public static func loadArray(  // swiftlint:disable:this cyclomatic_complexity
-    _ arrowType: ArrowType, with: ArrowData
-  ) throws -> ArrowArrayHolder {
+  public static func loadArray(
+    _ arrowType: ArrowType,
+    with arrowData: ArrowData
+  ) throws(ArrowError) -> ArrowArrayHolder {
     switch arrowType.id {
     case .int8:
-      return try ArrowArrayHolderImpl(FixedArray<Int8>(with))
+      return try ArrowArrayHolderImpl(FixedArray<Int8>(arrowData))
     case .int16:
-      return try ArrowArrayHolderImpl(FixedArray<Int16>(with))
+      return try ArrowArrayHolderImpl(FixedArray<Int16>(arrowData))
     case .int32:
-      return try ArrowArrayHolderImpl(FixedArray<Int32>(with))
+      return try ArrowArrayHolderImpl(FixedArray<Int32>(arrowData))
     case .int64:
-      return try ArrowArrayHolderImpl(FixedArray<Int64>(with))
+      return try ArrowArrayHolderImpl(FixedArray<Int64>(arrowData))
     case .uint8:
-      return try ArrowArrayHolderImpl(FixedArray<UInt8>(with))
+      return try ArrowArrayHolderImpl(FixedArray<UInt8>(arrowData))
     case .uint16:
-      return try ArrowArrayHolderImpl(FixedArray<UInt16>(with))
+      return try ArrowArrayHolderImpl(FixedArray<UInt16>(arrowData))
     case .uint32:
-      return try ArrowArrayHolderImpl(FixedArray<UInt32>(with))
+      return try ArrowArrayHolderImpl(FixedArray<UInt32>(arrowData))
     case .uint64:
-      return try ArrowArrayHolderImpl(FixedArray<UInt64>(with))
+      return try ArrowArrayHolderImpl(FixedArray<UInt64>(arrowData))
     case .double:
-      return try ArrowArrayHolderImpl(FixedArray<Double>(with))
+      return try ArrowArrayHolderImpl(FixedArray<Double>(arrowData))
     case .float:
-      return try ArrowArrayHolderImpl(FixedArray<Float>(with))
+      return try ArrowArrayHolderImpl(FixedArray<Float>(arrowData))
     case .date32:
-      return try ArrowArrayHolderImpl(Date32Array(with))
+      return try ArrowArrayHolderImpl(Date32Array(arrowData))
     case .date64:
-      return try ArrowArrayHolderImpl(Date64Array(with))
+      return try ArrowArrayHolderImpl(Date64Array(arrowData))
     case .time32:
-      return try ArrowArrayHolderImpl(Time32Array(with))
+      return try ArrowArrayHolderImpl(Time32Array(arrowData))
     case .time64:
-      return try ArrowArrayHolderImpl(Time64Array(with))
+      return try ArrowArrayHolderImpl(Time64Array(arrowData))
     case .timestamp:
-      return try ArrowArrayHolderImpl(TimestampArray(with))
+      return try ArrowArrayHolderImpl(TimestampArray(arrowData))
     case .string:
-      return try ArrowArrayHolderImpl(StringArray(with))
+      return try ArrowArrayHolderImpl(StringArray(arrowData))
     case .boolean:
-      return try ArrowArrayHolderImpl(BoolArray(with))
+      return try ArrowArrayHolderImpl(BoolArray(arrowData))
     case .binary:
-      return try ArrowArrayHolderImpl(BinaryArray(with))
+      return try ArrowArrayHolderImpl(BinaryArray(arrowData))
     case .strct:
-      return try ArrowArrayHolderImpl(NestedArray(with))
+      return try ArrowArrayHolderImpl(NestedArray(arrowData))
     case .list:
-      return try ArrowArrayHolderImpl(NestedArray(with))
+      return try ArrowArrayHolderImpl(NestedArray(arrowData))
     default:
       throw ArrowError.invalid("Array not found for type: \(arrowType)")
     }
@@ -122,10 +128,10 @@ public class ArrowArrayHolderImpl: ArrowArrayHolder {
 public class ArrowArray<T>: AsString, AnyArray {
   public typealias ItemType = T
   public let arrowData: ArrowData
-  public var nullCount: UInt { return self.arrowData.nullCount }
-  public var length: UInt { return self.arrowData.length }
+  public var nullCount: UInt { self.arrowData.nullCount }
+  public var length: UInt { self.arrowData.length }
 
-  public required init(_ arrowData: ArrowData) throws {
+  public required init(_ arrowData: ArrowData) throws(ArrowError) {
     self.arrowData = arrowData
   }
 
@@ -148,7 +154,7 @@ public class ArrowArray<T>: AsString, AnyArray {
   }
 
   public func asAny(_ index: UInt) -> Any? {
-    return self[index]
+    self[index]
   }
 }
 
@@ -159,7 +165,8 @@ public class FixedArray<T>: ArrowArray<T> {
     }
 
     let byteOffset = self.arrowData.stride * Int(index)
-    return self.arrowData.buffers[1].rawPointer.advanced(by: byteOffset).load(as: T.self)
+    return self.arrowData.buffers[1].rawPointer.advanced(by: byteOffset).load(
+      as: T.self)
   }
 }
 
@@ -175,15 +182,19 @@ public class StringArray: ArrowArray<String> {
 
     var startIndex: Int32 = 0
     if index > 0 {
-      startIndex = offsets.rawPointer.advanced(by: offsetIndex).load(as: Int32.self)
+      startIndex = offsets.rawPointer.advanced(by: offsetIndex).load(
+        as: Int32.self)
     }
 
-    let endIndex = offsets.rawPointer.advanced(by: offsetIndex + MemoryLayout<Int32>.stride)
-      .load(as: Int32.self)
+    let endIndex = offsets.rawPointer.advanced(
+      by: offsetIndex + MemoryLayout<Int32>.stride
+    )
+    .load(as: Int32.self)
     let arrayLength = Int(endIndex - startIndex)
     let rawPointer = values.rawPointer.advanced(by: Int(startIndex))
       .bindMemory(to: UInt8.self, capacity: arrayLength)
-    let buffer = UnsafeBufferPointer<UInt8>(start: rawPointer, count: arrayLength)
+    let buffer = UnsafeBufferPointer<UInt8>(
+      start: rawPointer, count: arrayLength)
     let byteArray = Array(buffer)
     return String(data: Data(byteArray), encoding: .utf8)
   }
@@ -205,7 +216,9 @@ public class Date32Array: ArrowArray<Date> {
       return nil
     }
     let byteOffset = self.arrowData.stride * Int(index)
-    let milliseconds = self.arrowData.buffers[1].rawPointer.advanced(by: byteOffset).load(
+    let milliseconds = self.arrowData.buffers[1].rawPointer.advanced(
+      by: byteOffset
+    ).load(
       as: UInt32.self)
     return Date(timeIntervalSince1970: TimeInterval(milliseconds * 86400))
   }
@@ -217,7 +230,9 @@ public class Date64Array: ArrowArray<Date> {
       return nil
     }
     let byteOffset = self.arrowData.stride * Int(index)
-    let milliseconds = self.arrowData.buffers[1].rawPointer.advanced(by: byteOffset).load(
+    let milliseconds = self.arrowData.buffers[1].rawPointer.advanced(
+      by: byteOffset
+    ).load(
       as: UInt64.self)
     return Date(timeIntervalSince1970: TimeInterval(milliseconds / 1000))
   }
@@ -246,18 +261,23 @@ public class TimestampArray: FixedArray<Timestamp> {
       self.fallbackToRaw = fallbackToRaw
     }
 
-    public static func == (lhs: FormattingOptions, rhs: FormattingOptions) -> Bool {
-      return lhs.dateFormat == rhs.dateFormat && lhs.locale.identifier == rhs.locale.identifier
-        && lhs.includeTimezone == rhs.includeTimezone && lhs.fallbackToRaw == rhs.fallbackToRaw
+    public static func == (lhs: FormattingOptions, rhs: FormattingOptions)
+      -> Bool
+    {
+      lhs.dateFormat == rhs.dateFormat
+        && lhs.locale.identifier == rhs.locale.identifier
+        && lhs.includeTimezone == rhs.includeTimezone
+        && lhs.fallbackToRaw == rhs.fallbackToRaw
     }
   }
 
   private var cachedFormatter: DateFormatter?
   private var cachedOptions: FormattingOptions?
 
-  public func formattedDate(at index: UInt, options: FormattingOptions = FormattingOptions())
-    -> String?
-  {
+  public func formattedDate(
+    at index: UInt,
+    options: FormattingOptions = FormattingOptions()
+  ) -> String? {
     guard let timestamp = self[index] else { return nil }
 
     guard let timestampType = self.arrowData.type as? ArrowTypeTimestamp else {
@@ -279,7 +299,10 @@ public class TimestampArray: FixedArray<Timestamp> {
     return cachedFormatter?.string(from: date)
   }
 
-  private func dateFromTimestamp(_ timestamp: Int64, unit: ArrowTimestampUnit) -> Date {
+  private func dateFromTimestamp(
+    _ timestamp: Int64,
+    unit: ArrowTimestampUnit
+  ) -> Date {
     let timeInterval: TimeInterval
     switch unit {
     case .seconds:
@@ -303,6 +326,7 @@ public class TimestampArray: FixedArray<Timestamp> {
 }
 
 public class BinaryArray: ArrowArray<Data> {
+
   public struct Options {
     public var printAsHex = false
     public var printEncoding: String.Encoding = .utf8
@@ -319,25 +343,32 @@ public class BinaryArray: ArrowArray<Data> {
     let values = self.arrowData.buffers[2]
     var startIndex: Int32 = 0
     if index > 0 {
-      startIndex = offsets.rawPointer.advanced(by: offsetIndex).load(as: Int32.self)
+      startIndex = offsets.rawPointer.advanced(by: offsetIndex)
+        .load(as: Int32.self)
     }
-    let endIndex = offsets.rawPointer.advanced(by: offsetIndex + MemoryLayout<Int32>.stride)
-      .load(as: Int32.self)
+    let endIndex = offsets.rawPointer.advanced(
+      by: offsetIndex + MemoryLayout<Int32>.stride
+    )
+    .load(as: Int32.self)
     let arrayLength = Int(endIndex - startIndex)
     let rawPointer = values.rawPointer.advanced(by: Int(startIndex))
       .bindMemory(to: UInt8.self, capacity: arrayLength)
-    let buffer = UnsafeBufferPointer<UInt8>(start: rawPointer, count: arrayLength)
+    let buffer = UnsafeBufferPointer<UInt8>(
+      start: rawPointer, count: arrayLength)
     let byteArray = Array(buffer)
     return Data(byteArray)
   }
 
   public override func asString(_ index: UInt) -> String {
-    if self[index] == nil { return "" }
-    let data = self[index]!
+    guard let data = self[index] else { return "" }
     if options.printAsHex {
       return data.hexEncodedString()
     } else {
-      return String(data: data, encoding: .utf8)!
+      if let string = String(data: data, encoding: options.printEncoding) {
+        return string
+      } else {
+        return "<unprintable>"
+      }
     }
   }
 }
@@ -345,7 +376,7 @@ public class BinaryArray: ArrowArray<Data> {
 public class NestedArray: ArrowArray<[Any?]> {
   private var children: [ArrowArrayHolder]?
 
-  public required init(_ arrowData: ArrowData) throws {
+  public required init(_ arrowData: ArrowData) throws(ArrowError) {
     try super.init(arrowData)
     switch arrowData.type.id {
     case .list:
@@ -362,14 +393,17 @@ public class NestedArray: ArrowArray<[Any?]> {
         )
       ]
     case .strct:
-      var fields = [ArrowArrayHolder]()
+      var fields: [ArrowArrayHolder] = []
       for child in arrowData.children {
-        fields.append(try ArrowArrayHolderImpl.loadArray(child.type, with: child))
+        fields.append(
+          try ArrowArrayHolderImpl.loadArray(child.type, with: child)
+        )
       }
       self.children = fields
     default:
-      throw ArrowError.invalid(
-        "NestedArray only supports list and struct types, got: \(arrowData.type.id)")
+      throw .invalid(
+        "NestedArray only supports list and struct types, got: \(arrowData.type.id)"
+      )
     }
   }
 
@@ -385,16 +419,19 @@ public class NestedArray: ArrowArray<[Any?]> {
       guard let values = children.first else { return nil }
       let offsets = self.arrowData.buffers[1]
       let offsetIndex = Int(index) * MemoryLayout<Int32>.stride
-      let startOffset = offsets.rawPointer.advanced(by: offsetIndex).load(as: Int32.self)
-      let endOffset = offsets.rawPointer.advanced(by: offsetIndex + MemoryLayout<Int32>.stride)
+      let startOffset = offsets.rawPointer.advanced(by: offsetIndex)
         .load(as: Int32.self)
-      var items = [Any?]()
+      let endOffset = offsets.rawPointer.advanced(
+        by: offsetIndex + MemoryLayout<Int32>.stride
+      )
+      .load(as: Int32.self)
+      var items: [Any?] = []
       for i in startOffset..<endOffset {
         items.append(values.array.asAny(UInt(i)))
       }
       return items
     case .strct:
-      var result = [Any?]()
+      var result: [Any?] = []
       for field in children {
         result.append(field.array.asAny(index))
       }
@@ -418,12 +455,13 @@ public class NestedArray: ArrowArray<[Any?]> {
         if i > 0 {
           output.append(",")
         }
-        if item == nil {
+        switch item {
+        case nil:
           output.append("null")
-        } else if let asStringItem = item as? AsString {
+        case let asStringItem as AsString:
           output.append(asStringItem.asString(0))
-        } else {
-          output.append("\(item!)")
+        case let someItem?:
+          output.append("\(someItem)")
         }
       }
       output.append("]")
@@ -434,14 +472,10 @@ public class NestedArray: ArrowArray<[Any?]> {
       }
       var output = "{"
       if let children = self.children {
-        for fieldIndex in 0..<children.count {
-          let asStr = children[fieldIndex].array as? AsString
-          if fieldIndex == 0 {
-            output.append("\(asStr!.asString(index))")
-          } else {
-            output.append(",\(asStr!.asString(index))")
-          }
+        let parts = children.compactMap { child in
+          (child.array as? AsString)?.asString(index)
         }
+        output.append(parts.joined(separator: ","))
       }
       output += "}"
       return output
@@ -451,18 +485,18 @@ public class NestedArray: ArrowArray<[Any?]> {
   }
 
   public var isListArray: Bool {
-    return arrowData.type.id == .list
+    arrowData.type.id == .list
   }
 
   public var isStructArray: Bool {
-    return arrowData.type.id == .strct
+    arrowData.type.id == .strct
   }
 
   public var fields: [ArrowArrayHolder]? {
-    return arrowData.type.id == .strct ? children : nil
+    arrowData.type.id == .strct ? children : nil
   }
 
   public var values: ArrowArrayHolder? {
-    return arrowData.type.id == .list ? children?.first : nil
+    arrowData.type.id == .list ? children?.first : nil
   }
 }

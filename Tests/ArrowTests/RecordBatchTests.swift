@@ -18,7 +18,8 @@ import XCTest
 
 final class RecordBatchTests: XCTestCase {
   func testRecordBatch() throws {
-    let uint8Builder: NumberArrayBuilder<UInt8> = try ArrowArrayBuilders.loadNumberArrayBuilder()
+    let uint8Builder: NumberArrayBuilder<UInt8> =
+      try ArrowArrayBuilders.loadNumberArrayBuilder()
     uint8Builder.append(10)
     uint8Builder.append(22)
     uint8Builder.append(nil)
@@ -44,8 +45,8 @@ final class RecordBatchTests: XCTestCase {
       XCTAssertEqual(schema.fields[1].type.info, ArrowType.arrowString)
       XCTAssertEqual(schema.fields[1].isNullable, false)
       XCTAssertEqual(recordBatch.columns.count, 2)
-      let col1: ArrowArray<UInt8> = recordBatch.data(for: 0)
-      let col2: ArrowArray<String> = recordBatch.data(for: 1)
+      let col1: ArrowArray<UInt8> = try recordBatch.data(for: 0)
+      let col2: ArrowArray<String> = try recordBatch.data(for: 1)
       XCTAssertEqual(col1.length, 3)
       XCTAssertEqual(col2.length, 3)
       XCTAssertEqual(col1.nullCount, 1)

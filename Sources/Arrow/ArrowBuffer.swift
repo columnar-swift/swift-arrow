@@ -23,7 +23,8 @@ public class ArrowBuffer {
   let isMemoryOwner: Bool
 
   init(
-    length: UInt, capacity: UInt, rawPointer: UnsafeMutableRawPointer, isMemoryOwner: Bool = true
+    length: UInt, capacity: UInt, rawPointer: UnsafeMutableRawPointer,
+    isMemoryOwner: Bool = true
   ) {
     self.length = length
     self.capacity = capacity
@@ -43,10 +44,11 @@ public class ArrowBuffer {
   }
 
   static func createEmptyBuffer() -> ArrowBuffer {
-    return ArrowBuffer(
+    ArrowBuffer(
       length: 0,
       capacity: 0,
-      rawPointer: UnsafeMutableRawPointer.allocate(byteCount: 0, alignment: .zero))
+      rawPointer: UnsafeMutableRawPointer.allocate(
+        byteCount: 0, alignment: .zero))
   }
 
   static func createBuffer(_ data: [UInt8], length: UInt) -> ArrowBuffer {
@@ -55,10 +57,13 @@ public class ArrowBuffer {
     let memory = MemoryAllocator(64)
     let rawPointer = memory.allocateArray(Int(capacity))
     rawPointer.copyMemory(from: data, byteCount: data.count)
-    return ArrowBuffer(length: length, capacity: capacity, rawPointer: rawPointer)
+    return ArrowBuffer(
+      length: length, capacity: capacity, rawPointer: rawPointer)
   }
 
-  static func createBuffer(_ length: UInt, size: UInt, doAlign: Bool = true) -> ArrowBuffer {
+  static func createBuffer(_ length: UInt, size: UInt, doAlign: Bool = true)
+    -> ArrowBuffer
+  {
     let actualLen = max(length, ArrowBuffer.minLength)
     let byteCount = size * actualLen
     var capacity = byteCount
@@ -68,11 +73,14 @@ public class ArrowBuffer {
 
     let memory = MemoryAllocator(64)
     let rawPointer = memory.allocateArray(Int(capacity))
-    rawPointer.initializeMemory(as: UInt8.self, repeating: 0, count: Int(capacity))
-    return ArrowBuffer(length: length, capacity: capacity, rawPointer: rawPointer)
+    rawPointer.initializeMemory(
+      as: UInt8.self, repeating: 0, count: Int(capacity))
+    return ArrowBuffer(
+      length: length, capacity: capacity, rawPointer: rawPointer)
   }
 
-  static func copyCurrent(_ from: ArrowBuffer, to: inout ArrowBuffer, len: UInt) {
+  static func copyCurrent(_ from: ArrowBuffer, to: inout ArrowBuffer, len: UInt)
+  {
     to.rawPointer.copyMemory(from: from.rawPointer, byteCount: Int(len))
   }
 

@@ -17,11 +17,11 @@ import Foundation
 
 extension Data {
   func hexEncodedString() -> String {
-    return map { String(format: "%02hhx", $0) }.joined()
+    map { String(format: "%02hhx", $0) }.joined()
   }
 }
 
-func toFBTypeEnum(_ arrowType: ArrowType) -> Result<org_apache_arrow_flatbuf_Type_, ArrowError> {
+func toFBTypeEnum(_ arrowType: ArrowType) -> Result<FlatType, ArrowError> {
   let typeId = arrowType.id
   switch typeId {
   case .int8, .int16, .int32, .int64, .uint8, .uint16, .uint32, .uint64:
@@ -43,7 +43,9 @@ func toFBTypeEnum(_ arrowType: ArrowType) -> Result<org_apache_arrow_flatbuf_Typ
   case .strct:
     return .success(FlatType.struct_)
   default:
-    return .failure(.unknownType("Unable to find flatbuf type for Arrow type: \(typeId)"))
+    return .failure(
+      .unknownType("Unable to find flatbuf type for Arrow type: \(typeId)")
+    )
   }
 }
 
@@ -90,14 +92,17 @@ func toFBType(
   case .time32:
     let startOffset = FlatTime.startTime(&fbb)
     if let timeType = arrowType as? ArrowTypeTime32 {
-      FlatTime.add(unit: timeType.unit == .seconds ? .second : .millisecond, &fbb)
+      FlatTime.add(
+        unit: timeType.unit == .seconds ? .second : .millisecond, &fbb
+      )
       return .success(FlatTime.endTime(&fbb, start: startOffset))
     }
     return .failure(.invalid("Unable to case to Time32"))
   case .time64:
     let startOffset = FlatTime.startTime(&fbb)
     if let timeType = arrowType as? ArrowTypeTime64 {
-      FlatTime.add(unit: timeType.unit == .microseconds ? .microsecond : .nanosecond, &fbb)
+      FlatTime.add(
+        unit: timeType.unit == .microseconds ? .microsecond : .nanosecond, &fbb)
       return .success(FlatTime.endTime(&fbb, start: startOffset))
     }
     return .failure(.invalid("Unable to case to Time64"))
@@ -127,7 +132,9 @@ func toFBType(
     let startOffset = FlatStruct.startStruct_(&fbb)
     return .success(FlatStruct.endStruct_(&fbb, start: startOffset))
   default:
-    return .failure(.unknownType("Unable to add flatbuf type for Arrow type: \(infoType)"))
+    return .failure(
+      .unknownType("Unable to add flatbuf type for Arrow type: \(infoType)")
+    )
   }
 }
 

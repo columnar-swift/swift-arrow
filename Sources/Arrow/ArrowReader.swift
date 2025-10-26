@@ -16,7 +16,7 @@
 import FlatBuffers
 import Foundation
 
-let fileMarker = "ARROW1"
+let fileMarker = Data("ARROW1".utf8)
 let continuationMarker = UInt32(0xFFFF_FFFF)
 
 public class ArrowReader {
@@ -53,7 +53,7 @@ public class ArrowReader {
     }
 
     func isDone() -> Bool {
-      return nodeIndex >= self.recordBatch.nodesCount
+      nodeIndex >= self.recordBatch.nodesCount
     }
   }
 
@@ -66,7 +66,7 @@ public class ArrowReader {
   public class ArrowReaderResult {
     fileprivate var messageSchema: Schema?
     public var schema: ArrowSchema?
-    public var batches = [RecordBatch]()
+    public var batches: [RecordBatch] = []
   }
 
   public init() {}
@@ -76,15 +76,30 @@ public class ArrowReader {
   ) -> Result<ArrowSchema, ArrowError> {
     let builder = ArrowSchema.Builder()
     for index in 0..<schema.fieldsCount {
-      let field = schema.fields(at: index)!
-      let fieldType = findArrowType(field)
-      if fieldType.info == ArrowType.arrowUnknown {
-        return .failure(.unknownType("Unsupported field type found: \(field.typeType)"))
+      guard let field = schema.fields(at: index) else {
+        return .failure(.invalid("Field not found at index: \(index)"))
       }
-      let arrowField = ArrowField(field.name!, type: fieldType, isNullable: field.nullable)
+      let fieldType: ArrowType
+      do {
+        fieldType = try findArrowType(field)
+      } catch {
+        return .failure(error)
+      }
+      if fieldType.info == ArrowType.arrowUnknown {
+        return .failure(
+          .unknownType("Unsupported field type found: \(field.typeType)")
+        )
+      }
+      guard let fieldName = field.name else {
+        return .failure(.invalid("Field name not found"))
+      }
+      let arrowField = ArrowField(
+        fieldName,
+        type: fieldType,
+        isNullable: field.nullable
+      )
       builder.addField(arrowField)
     }
-
     return .success(builder.finish())
   }
 
@@ -104,9 +119,11 @@ public class ArrowReader {
     let arrowNullBuffer = makeBuffer(
       nullBuffer, fileData: loadInfo.fileData,
       length: nullLength, messageOffset: loadInfo.messageOffset)
-    var children = [ArrowData]()
+    var children: [ArrowData] = []
     for index in 0..<field.childrenCount {
-      let childField = field.children(at: index)!
+      guard let childField = field.children(at: index) else {
+        return .failure(.invalid("Child field not found at index: \(index)"))
+      }
       switch loadField(loadInfo, field: childField) {
       case .success(let holder):
         children.append(holder.array.arrowData)
@@ -114,11 +131,13 @@ public class ArrowReader {
         return .failure(error)
       }
     }
-
     return makeArrayHolder(
-      field, buffers: [arrowNullBuffer],
-      nullCount: UInt(node.nullCount), children: children,
-      rbLength: UInt(loadInfo.batchData.recordBatch.length))
+      field,
+      buffers: [arrowNullBuffer],
+      nullCount: UInt(node.nullCount),
+      children: children,
+      rbLength: UInt(loadInfo.batchData.recordBatch.length)
+    )
   }
 
   private func loadListData(_ loadInfo: DataLoadInfo, field: FlatField)
@@ -144,14 +163,16 @@ public class ArrowReader {
       offsetBuffer, fileData: loadInfo.fileData, length: UInt(node.length + 1),
       messageOffset: loadInfo.messageOffset)
 
-    guard field.childrenCount == 1, let childField = field.children(at: 0) else {
+    guard field.childrenCount == 1, let childField = field.children(at: 0)
+    else {
       return .failure(.invalid("List must have exactly one child"))
     }
 
     switch loadField(loadInfo, field: childField) {
     case .success(let childHolder):
       return makeArrayHolder(
-        field, buffers: [arrowNullBuffer, arrowOffsetBuffer], nullCount: UInt(node.nullCount),
+        field, buffers: [arrowNullBuffer, arrowOffsetBuffer],
+        nullCount: UInt(node.nullCount),
         children: [childHolder.array.arrowData],
         rbLength: UInt(loadInfo.batchData.recordBatch.length))
     case .failure(let error):
@@ -277,11 +298,13 @@ public class ArrowReader {
     return .success(RecordBatch(arrowSchema, columns: columns))
   }
 
-  /// This is for reading the Arrow streaming format. The Arrow streaming format
-  /// is slightly different from the Arrow File format as it doesn't contain a header
-  /// and footer.
+  /// This is for reading the Arrow streaming format.
+  ///
+  /// The Arrow streaming format is slightly different from the Arrow File format as it doesn't contain a
+  /// header and footer.
   /// - Parameters:
   ///   - input: The buffer to read from
+  ///   - useUnalignedBuffers: to be removed.
   /// - Returns: An `ArrowReaderResult` If successful, otherwise an `ArrowError`.
   public func readStreaming(
     _ input: Data,
@@ -291,6 +314,7 @@ public class ArrowReader {
     var offset: Int = 0
     var length = getUInt32(input, offset: offset)
     var streamData = input
+    // TODO: The following assumes message order will populate schemaMessage first
     var schemaMessage: Schema?
     while length != 0 {
       if length == continuationMarker {
@@ -309,13 +333,22 @@ public class ArrowReader {
       let message: Message = getRoot(byteBuffer: &dataBuffer)
       switch message.headerType {
       case .recordbatch:
-        let rbMessage = message.header(type: FlatRecordBatch.self)!
+        guard let rbMessage = message.header(type: FlatRecordBatch.self) else {
+          return .failure(.invalid("Failed to parse RecordBatch message"))
+        }
+        guard let schemaMessage else {
+          return .failure(.invalid("Schema message not found"))
+        }
+        guard let resultSchema = result.schema else {
+          return .failure(.invalid("Result schema not loaded"))
+        }
         let recordBatchResult = loadRecordBatch(
           rbMessage,
-          schema: schemaMessage!,
-          arrowSchema: result.schema!,
+          schema: schemaMessage,
+          arrowSchema: resultSchema,
           data: input,
-          messageEndOffset: (Int64(offset) + Int64(length)))
+          messageEndOffset: Int64(offset) + Int64(length)
+        )
         switch recordBatchResult {
         case .success(let recordBatch):
           result.batches.append(recordBatch)
@@ -325,8 +358,11 @@ public class ArrowReader {
         offset += Int(message.bodyLength + Int64(length))
         length = getUInt32(input, offset: offset)
       case .schema:
-        schemaMessage = message.header(type: Schema.self)!
-        let schemaResult = loadSchema(schemaMessage!)
+        schemaMessage = message.header(type: Schema.self)
+        guard let schemaMessage else {
+          return .failure(.invalid("Schema message not found"))
+        }
+        let schemaResult = loadSchema(schemaMessage)
         switch schemaResult {
         case .success(let schema):
           result.schema = schema
@@ -336,15 +372,17 @@ public class ArrowReader {
         offset += Int(message.bodyLength + Int64(length))
         length = getUInt32(input, offset: offset)
       default:
-        return .failure(.unknownError("Unhandled header type: \(message.headerType)"))
+        return .failure(
+          .unknownError("Unhandled header type: \(message.headerType)"))
       }
     }
     return .success(result)
   }
 
-  /// This is for reading the Arrow file format. The Arrow file format supports
-  /// random access.  The Arrow file format contains a header and footer around
-  /// the Arrow streaming format.
+  /// This is for reading the Arrow file format.
+  ///
+  /// The Arrow file format supports  random access. The Arrow file format contains a header and footer
+  /// around the Arrow streaming format.
   /// - Parameters:
   ///   - fileData: the file content
   ///   - useUnalignedBuffers: to be removed.
@@ -354,7 +392,8 @@ public class ArrowReader {
     useUnalignedBuffers: Bool = false
   ) -> Result<ArrowReaderResult, ArrowError> {
     let footerLength = fileData.withUnsafeBytes { rawBuffer in
-      rawBuffer.loadUnaligned(fromByteOffset: fileData.count - 4, as: Int32.self)
+      rawBuffer.loadUnaligned(
+        fromByteOffset: fileData.count - 4, as: Int32.self)
     }
 
     let result = ArrowReaderResult()
@@ -364,7 +403,10 @@ public class ArrowReader {
       data: footerData,
       allowReadingUnalignedBuffers: useUnalignedBuffers)
     let footer: Footer = getRoot(byteBuffer: &footerBuffer)
-    let schemaResult = loadSchema(footer.schema!)
+    guard let footerSchema = footer.schema else {
+      return .failure(.invalid("Missing schema in footer"))
+    }
+    let schemaResult = loadSchema(footerSchema)
     switch schemaResult {
     case .success(let schema):
       result.schema = schema
@@ -373,9 +415,12 @@ public class ArrowReader {
     }
 
     for index in 0..<footer.recordBatchesCount {
-      let recordBatch = footer.recordBatches(at: index)!
+      guard let recordBatch: Block = footer.recordBatches(at: index) else {
+        return .failure(.invalid("Missing record batch at index \(index)"))
+      }
       var messageLength = fileData.withUnsafeBytes { rawBuffer in
-        rawBuffer.loadUnaligned(fromByteOffset: Int(recordBatch.offset), as: UInt32.self)
+        rawBuffer.loadUnaligned(
+          fromByteOffset: Int(recordBatch.offset), as: UInt32.self)
       }
 
       var messageOffset: Int64 = 1
@@ -383,7 +428,8 @@ public class ArrowReader {
         messageOffset += 1
         messageLength = fileData.withUnsafeBytes { rawBuffer in
           rawBuffer.loadUnaligned(
-            fromByteOffset: Int(recordBatch.offset + Int64(MemoryLayout<Int32>.size)),
+            fromByteOffset: Int(
+              recordBatch.offset + Int64(MemoryLayout<Int32>.size)),
             as: UInt32.self)
         }
       }
@@ -398,13 +444,23 @@ public class ArrowReader {
       let message: Message = getRoot(byteBuffer: &mbb)
       switch message.headerType {
       case .recordbatch:
-        let rbMessage = message.header(type: FlatRecordBatch.self)!
+        guard let rbMessage = message.header(type: FlatRecordBatch.self) else {
+          return .failure(.invalid("Expected RecordBatch as message header"))
+        }
+        guard let footerSchema = footer.schema else {
+          return .failure(.invalid("Expected schema in footer"))
+        }
+        // TODO: the result used here is also the return type. Ideally is would be constructed once as a struct.
+        guard let resultSchema = result.schema else {
+          return .failure(.invalid("Expected schema in reader result"))
+        }
         let recordBatchResult = loadRecordBatch(
           rbMessage,
-          schema: footer.schema!,
-          arrowSchema: result.schema!,
+          schema: footerSchema,
+          arrowSchema: resultSchema,
           data: fileData,
-          messageEndOffset: messageEndOffset)
+          messageEndOffset: messageEndOffset
+        )
         switch recordBatchResult {
         case .success(let recordBatch):
           result.batches.append(recordBatch)
@@ -412,22 +468,23 @@ public class ArrowReader {
           return .failure(error)
         }
       default:
-        return .failure(.unknownError("Unhandled header type: \(message.headerType)"))
+        return .failure(
+          .unknownError("Unhandled header type: \(message.headerType)"))
       }
     }
 
     return .success(result)
   }
 
-  public func fromFile(_ fileURL: URL) -> Result<ArrowReaderResult, ArrowError> {
+  public func fromFile(
+    _ fileURL: URL
+  ) -> Result<ArrowReaderResult, ArrowError> {
     do {
       let fileData = try Data(contentsOf: fileURL)
       if !validateFileData(fileData) {
         return .failure(.ioError("Not a valid arrow file."))
       }
-      let markerLength = fileMarker.utf8.count
-      let footerLengthEnd = Int(fileData.count - markerLength)
-      let data = fileData[..<(footerLengthEnd)]
+      let data = fileData[..<Int(fileData.count - 6)]
       return readFile(data)
     } catch {
       return .failure(.unknownError("Error loading file: \(error)"))
@@ -435,7 +492,7 @@ public class ArrowReader {
   }
 
   static public func makeArrowReaderResult() -> ArrowReaderResult {
-    return ArrowReaderResult()
+    ArrowReaderResult()
   }
 
   public func fromMessage(
@@ -450,7 +507,9 @@ public class ArrowReader {
     let message: Message = getRoot(byteBuffer: &mbb)
     switch message.headerType {
     case .schema:
-      let sMessage = message.header(type: Schema.self)!
+      guard let sMessage = message.header(type: Schema.self) else {
+        return .failure(.unknownError("Expected a schema but found none"))
+      }
       switch loadSchema(sMessage) {
       case .success(let schema):
         result.schema = schema
@@ -460,10 +519,24 @@ public class ArrowReader {
         return .failure(error)
       }
     case .recordbatch:
-      let rbMessage = message.header(type: FlatRecordBatch.self)!
+      guard let rbMessage = message.header(type: FlatRecordBatch.self) else {
+        return .failure(.invalid("Expected a RecordBatch but found none"))
+      }
+      // TODO: the result used here is also the return type. Ideally is would be constructed once as a struct (same issue as above)
+      guard let messageSchema = result.messageSchema else {
+        return .failure(
+          .invalid("Expected the result to have the messageSchema already"))
+      }
+      guard let resultSchema = result.schema else {
+        return .failure(.invalid("Expected result to have a schema"))
+      }
       let recordBatchResult = loadRecordBatch(
-        rbMessage, schema: result.messageSchema!, arrowSchema: result.schema!,
-        data: dataBody, messageEndOffset: 0)
+        rbMessage,
+        schema: messageSchema,
+        arrowSchema: resultSchema,
+        data: dataBody,
+        messageEndOffset: 0
+      )
       switch recordBatchResult {
       case .success(let recordBatch):
         result.batches.append(recordBatch)
@@ -472,7 +545,8 @@ public class ArrowReader {
         return .failure(error)
       }
     default:
-      return .failure(.unknownError("Unhandled header type: \(message.headerType)"))
+      return .failure(
+        .unknownError("Unhandled header type: \(message.headerType)"))
     }
   }
 }

@@ -52,16 +52,26 @@ final class CodableTests: XCTestCase {
   func testArrowKeyedDecoder() throws {
     let date1 = Date(timeIntervalSinceReferenceDate: 86400 * 5000 + 352)
     let boolBuilder = try ArrowArrayBuilders.loadBoolArrayBuilder()
-    let int8Builder: NumberArrayBuilder<Int8> = try ArrowArrayBuilders.loadNumberArrayBuilder()
-    let int16Builder: NumberArrayBuilder<Int16> = try ArrowArrayBuilders.loadNumberArrayBuilder()
-    let int32Builder: NumberArrayBuilder<Int32> = try ArrowArrayBuilders.loadNumberArrayBuilder()
-    let int64Builder: NumberArrayBuilder<Int64> = try ArrowArrayBuilders.loadNumberArrayBuilder()
-    let uint8Builder: NumberArrayBuilder<UInt8> = try ArrowArrayBuilders.loadNumberArrayBuilder()
-    let uint16Builder: NumberArrayBuilder<UInt16> = try ArrowArrayBuilders.loadNumberArrayBuilder()
-    let uint32Builder: NumberArrayBuilder<UInt32> = try ArrowArrayBuilders.loadNumberArrayBuilder()
-    let uint64Builder: NumberArrayBuilder<UInt64> = try ArrowArrayBuilders.loadNumberArrayBuilder()
-    let floatBuilder: NumberArrayBuilder<Float> = try ArrowArrayBuilders.loadNumberArrayBuilder()
-    let doubleBuilder: NumberArrayBuilder<Double> = try ArrowArrayBuilders.loadNumberArrayBuilder()
+    let int8Builder: NumberArrayBuilder<Int8> =
+      try ArrowArrayBuilders.loadNumberArrayBuilder()
+    let int16Builder: NumberArrayBuilder<Int16> =
+      try ArrowArrayBuilders.loadNumberArrayBuilder()
+    let int32Builder: NumberArrayBuilder<Int32> =
+      try ArrowArrayBuilders.loadNumberArrayBuilder()
+    let int64Builder: NumberArrayBuilder<Int64> =
+      try ArrowArrayBuilders.loadNumberArrayBuilder()
+    let uint8Builder: NumberArrayBuilder<UInt8> =
+      try ArrowArrayBuilders.loadNumberArrayBuilder()
+    let uint16Builder: NumberArrayBuilder<UInt16> =
+      try ArrowArrayBuilders.loadNumberArrayBuilder()
+    let uint32Builder: NumberArrayBuilder<UInt32> =
+      try ArrowArrayBuilders.loadNumberArrayBuilder()
+    let uint64Builder: NumberArrayBuilder<UInt64> =
+      try ArrowArrayBuilders.loadNumberArrayBuilder()
+    let floatBuilder: NumberArrayBuilder<Float> =
+      try ArrowArrayBuilders.loadNumberArrayBuilder()
+    let doubleBuilder: NumberArrayBuilder<Double> =
+      try ArrowArrayBuilders.loadNumberArrayBuilder()
     let stringBuilder = try ArrowArrayBuilders.loadStringArrayBuilder()
     let dateBuilder = try ArrowArrayBuilders.loadDate64ArrayBuilder()
 
@@ -123,7 +133,8 @@ final class CodableTests: XCTestCase {
   }
 
   func testArrowSingleDecoderWithoutNull() throws {
-    let int8Builder: NumberArrayBuilder<Int8> = try ArrowArrayBuilders.loadNumberArrayBuilder()
+    let int8Builder: NumberArrayBuilder<Int8> =
+      try ArrowArrayBuilders.loadNumberArrayBuilder()
     int8Builder.append(10, 11, 12)
     let result = RecordBatch.Builder()
       .addColumn("propInt8", arrowArray: try int8Builder.toHolder())
@@ -142,7 +153,8 @@ final class CodableTests: XCTestCase {
   }
 
   func testArrowSingleDecoderWithNull() throws {
-    let int8WNilBuilder: NumberArrayBuilder<Int8> = try ArrowArrayBuilders.loadNumberArrayBuilder()
+    let int8WNilBuilder: NumberArrayBuilder<Int8> =
+      try ArrowArrayBuilders.loadNumberArrayBuilder()
     int8WNilBuilder.append(10, nil, 12, nil)
     let resultWNil = RecordBatch.Builder()
       .addColumn("propInt8", arrowArray: try int8WNilBuilder.toHolder())
@@ -165,7 +177,8 @@ final class CodableTests: XCTestCase {
   }
 
   func testArrowMapDecoderWithoutNull() throws {
-    let int8Builder: NumberArrayBuilder<Int8> = try ArrowArrayBuilders.loadNumberArrayBuilder()
+    let int8Builder: NumberArrayBuilder<Int8> =
+      try ArrowArrayBuilders.loadNumberArrayBuilder()
     let stringBuilder = try ArrowArrayBuilders.loadStringArrayBuilder()
     int8Builder.append(10, 11, 12, 13)
     stringBuilder.append("test10", "test11", "test12", "test13")
@@ -201,7 +214,8 @@ final class CodableTests: XCTestCase {
   }
 
   func testArrowMapDecoderWithNull() throws {
-    let int8Builder: NumberArrayBuilder<Int8> = try ArrowArrayBuilders.loadNumberArrayBuilder()
+    let int8Builder: NumberArrayBuilder<Int8> =
+      try ArrowArrayBuilders.loadNumberArrayBuilder()
     let stringWNilBuilder = try ArrowArrayBuilders.loadStringArrayBuilder()
     int8Builder.append(10, 11, 12, 13)
     stringWNilBuilder.append(nil, "test11", nil, "test13")
@@ -226,13 +240,14 @@ final class CodableTests: XCTestCase {
     }
   }
 
-  func getArrayValue<T>(_ rb: RecordBatch, colIndex: Int, rowIndex: UInt) -> T? {
+  func getArrayValue<T>(_ rb: RecordBatch, colIndex: Int, rowIndex: UInt) -> T?
+  {
     let anyArray = rb.columns[colIndex].array
     return anyArray.asAny(UInt(rowIndex)) as? T
   }
 
   func testArrowKeyedEncoder() throws {
-    var infos = [TestClass]()
+    var infos: [TestClass] = []
     for index in 0..<10 {
       let tClass = TestClass()
       let offset = index * 12
@@ -270,27 +285,50 @@ final class CodableTests: XCTestCase {
     XCTAssertEqual(rb.columns[12].type.id, ArrowTypeId.date64)
     for index in 0..<10 {
       let offset = index * 12
-      XCTAssertEqual(getArrayValue(rb, colIndex: 0, rowIndex: UInt(index)), index % 2 == 0)
-      XCTAssertEqual(getArrayValue(rb, colIndex: 1, rowIndex: UInt(index)), Int8(offset + 1))
-      XCTAssertEqual(getArrayValue(rb, colIndex: 2, rowIndex: UInt(index)), Int16(offset + 2))
-      XCTAssertEqual(getArrayValue(rb, colIndex: 3, rowIndex: UInt(index)), Int32(offset + 3))
-      XCTAssertEqual(getArrayValue(rb, colIndex: 4, rowIndex: UInt(index)), Int64(offset + 4))
-      XCTAssertEqual(getArrayValue(rb, colIndex: 5, rowIndex: UInt(index)), UInt8(offset + 5))
-      XCTAssertEqual(getArrayValue(rb, colIndex: 6, rowIndex: UInt(index)), UInt16(offset + 6))
-      XCTAssertEqual(getArrayValue(rb, colIndex: 7, rowIndex: UInt(index)), UInt32(offset + 7))
-      XCTAssertEqual(getArrayValue(rb, colIndex: 8, rowIndex: UInt(index)), UInt64(offset + 8))
-      XCTAssertEqual(getArrayValue(rb, colIndex: 9, rowIndex: UInt(index)), Float(offset + 9))
+      XCTAssertEqual(
+        getArrayValue(rb, colIndex: 0, rowIndex: UInt(index)), index % 2 == 0)
+      XCTAssertEqual(
+        getArrayValue(rb, colIndex: 1, rowIndex: UInt(index)), Int8(offset + 1))
+      XCTAssertEqual(
+        getArrayValue(rb, colIndex: 2, rowIndex: UInt(index)), Int16(offset + 2)
+      )
+      XCTAssertEqual(
+        getArrayValue(rb, colIndex: 3, rowIndex: UInt(index)), Int32(offset + 3)
+      )
+      XCTAssertEqual(
+        getArrayValue(rb, colIndex: 4, rowIndex: UInt(index)), Int64(offset + 4)
+      )
+      XCTAssertEqual(
+        getArrayValue(rb, colIndex: 5, rowIndex: UInt(index)), UInt8(offset + 5)
+      )
+      XCTAssertEqual(
+        getArrayValue(rb, colIndex: 6, rowIndex: UInt(index)),
+        UInt16(offset + 6))
+      XCTAssertEqual(
+        getArrayValue(rb, colIndex: 7, rowIndex: UInt(index)),
+        UInt32(offset + 7))
+      XCTAssertEqual(
+        getArrayValue(rb, colIndex: 8, rowIndex: UInt(index)),
+        UInt64(offset + 8))
+      XCTAssertEqual(
+        getArrayValue(rb, colIndex: 9, rowIndex: UInt(index)), Float(offset + 9)
+      )
       if index % 2 == 0 {
-        XCTAssertEqual(getArrayValue(rb, colIndex: 10, rowIndex: UInt(index)), Double(offset + 10))
+        XCTAssertEqual(
+          getArrayValue(rb, colIndex: 10, rowIndex: UInt(index)),
+          Double(offset + 10))
       } else {
-        XCTAssertEqual(getArrayValue(rb, colIndex: 10, rowIndex: UInt(index)), Double?(nil))
+        XCTAssertEqual(
+          getArrayValue(rb, colIndex: 10, rowIndex: UInt(index)), Double?(nil))
       }
-      XCTAssertEqual(getArrayValue(rb, colIndex: 11, rowIndex: UInt(index)), String(offset + 11))
+      XCTAssertEqual(
+        getArrayValue(rb, colIndex: 11, rowIndex: UInt(index)),
+        String(offset + 11))
     }
   }
 
   func testArrowUnkeyedEncoder() throws {
-    var testMap = [Int8: String?]()
+    var testMap: [Int8: String?] = [:]
     for index in 0..<10 {
       testMap[Int8(index)] = "test\(index)"
     }
@@ -308,7 +346,7 @@ final class CodableTests: XCTestCase {
   }
 
   func testArrowSingleEncoder() throws {
-    var intArray = [Int32?]()
+    var intArray: [Int32?] = []
     for index in 0..<100 {
       if index == 10 {
         intArray.append(nil)
@@ -326,7 +364,8 @@ final class CodableTests: XCTestCase {
         let anyArray = rb.columns[0].array
         XCTAssertNil(anyArray.asAny(UInt(index)))
       } else {
-        XCTAssertEqual(getArrayValue(rb, colIndex: 0, rowIndex: UInt(index)), Int32(index))
+        XCTAssertEqual(
+          getArrayValue(rb, colIndex: 0, rowIndex: UInt(index)), Int32(index))
       }
     }
   }

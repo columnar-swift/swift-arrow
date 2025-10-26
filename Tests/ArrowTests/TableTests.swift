@@ -16,6 +16,12 @@ import XCTest
 
 @testable import Arrow
 
+extension ArrowColumn {
+  public func data<T>() -> ChunkedArray<T> {
+    (self.dataHolder.holder as! ChunkedArray<T>)
+  }
+}
+
 final class TableTests: XCTestCase {
   func testSchema() throws {
     let schemaBuilder = ArrowSchema.Builder()
@@ -52,7 +58,7 @@ final class TableTests: XCTestCase {
     }
 
     let testObj = StructTest()
-    var fields = [ArrowField]()
+    var fields: [ArrowField] = []
     let buildStructType = { () -> ArrowTypeStruct in
       let mirror = Mirror(reflecting: testObj)
       for (property, value) in mirror.children {
@@ -83,13 +89,15 @@ final class TableTests: XCTestCase {
   }
 
   func testTable() throws {
-    let doubleBuilder: NumberArrayBuilder<Double> = try ArrowArrayBuilders.loadNumberArrayBuilder()
+    let doubleBuilder: NumberArrayBuilder<Double> =
+      try ArrowArrayBuilders.loadNumberArrayBuilder()
     doubleBuilder.append(11.11)
     doubleBuilder.append(22.22)
     let stringBuilder = try ArrowArrayBuilders.loadStringArrayBuilder()
     stringBuilder.append("test10")
     stringBuilder.append("test22")
-    let date32Builder: Date32ArrayBuilder = try ArrowArrayBuilders.loadDate32ArrayBuilder()
+    let date32Builder: Date32ArrayBuilder =
+      try ArrowArrayBuilders.loadDate32ArrayBuilder()
     let date2 = Date(timeIntervalSinceReferenceDate: 86400 * 1)
     let date1 = Date(timeIntervalSinceReferenceDate: 86400 * 5000 + 352)
     date32Builder.append(date1)
@@ -122,12 +130,15 @@ final class TableTests: XCTestCase {
   }
 
   func testTableWithChunkedData() throws {
-    let uint8Builder: NumberArrayBuilder<UInt8> = try ArrowArrayBuilders.loadNumberArrayBuilder()
+    let uint8Builder: NumberArrayBuilder<UInt8> =
+      try ArrowArrayBuilders.loadNumberArrayBuilder()
     uint8Builder.append(10)
     uint8Builder.append(22)
-    let uint8Builder2: NumberArrayBuilder<UInt8> = try ArrowArrayBuilders.loadNumberArrayBuilder()
+    let uint8Builder2: NumberArrayBuilder<UInt8> =
+      try ArrowArrayBuilders.loadNumberArrayBuilder()
     uint8Builder2.append(33)
-    let uint8Builder3: NumberArrayBuilder<UInt8> = try ArrowArrayBuilders.loadNumberArrayBuilder()
+    let uint8Builder3: NumberArrayBuilder<UInt8> =
+      try ArrowArrayBuilders.loadNumberArrayBuilder()
     uint8Builder3.append(44)
     let stringBuilder = try ArrowArrayBuilders.loadStringArrayBuilder()
     stringBuilder.append("test10")
@@ -135,7 +146,8 @@ final class TableTests: XCTestCase {
     let stringBuilder2 = try ArrowArrayBuilders.loadStringArrayBuilder()
     stringBuilder.append("test33")
     stringBuilder.append("test44")
-    let date32Builder: Date32ArrayBuilder = try ArrowArrayBuilders.loadDate32ArrayBuilder()
+    let date32Builder: Date32ArrayBuilder =
+      try ArrowArrayBuilders.loadDate32ArrayBuilder()
     let date2 = Date(timeIntervalSinceReferenceDate: 86400 * 1)
     let date1 = Date(timeIntervalSinceReferenceDate: 86400 * 5000 + 352)
     date32Builder.append(date1)
@@ -145,7 +157,9 @@ final class TableTests: XCTestCase {
     let intArray = try ChunkedArray([
       uint8Builder.finish(), uint8Builder2.finish(), uint8Builder3.finish(),
     ])
-    let stringArray = try ChunkedArray([stringBuilder.finish(), stringBuilder2.finish()])
+    let stringArray = try ChunkedArray([
+      stringBuilder.finish(), stringBuilder2.finish(),
+    ])
     let dateArray = try ChunkedArray([date32Builder.finish()])
     let table = ArrowTable.Builder()
       .addColumn("col1", chunked: intArray)
@@ -177,7 +191,8 @@ final class TableTests: XCTestCase {
   }
 
   func testTableToRecordBatch() throws {
-    let uint8Builder: NumberArrayBuilder<UInt8> = try ArrowArrayBuilders.loadNumberArrayBuilder()
+    let uint8Builder: NumberArrayBuilder<UInt8> =
+      try ArrowArrayBuilders.loadNumberArrayBuilder()
     uint8Builder.append(10)
     uint8Builder.append(22)
     let stringBuilder = try ArrowArrayBuilders.loadStringArrayBuilder()
@@ -189,7 +204,7 @@ final class TableTests: XCTestCase {
       .addColumn("col1", arrowArray: intHolder)
       .addColumn("col2", arrowArray: stringHolder)
       .finish().flatMap({ rb in
-        return ArrowTable.from(recordBatches: [rb])
+        ArrowTable.from(recordBatches: [rb])
       })
     switch result {
     case .success(let table):

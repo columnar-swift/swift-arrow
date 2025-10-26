@@ -40,7 +40,7 @@ public class ArrowCExporter {
     private let arrowTypeName: String
     private let nameBuffer: [CChar]
     private let arrowTypeNameBuffer: [CChar]
-    
+
     @MainActor
     init(_ arrowType: ArrowType, name: String = "") throws {
       self.arrowType = arrowType
@@ -50,15 +50,20 @@ public class ArrowCExporter {
       self.nameBuffer = Array(self.name.utf8CString)
       self.arrowTypeNameBuffer = Array(self.arrowTypeName.utf8CString)
       // Get stable pointers to the buffers
-      guard let nameCstr = self.nameBuffer.withUnsafeBufferPointer({
-        $0.baseAddress
-      }) else {
+      guard
+        let nameCstr = self.nameBuffer.withUnsafeBufferPointer({
+          $0.baseAddress
+        })
+      else {
         throw ArrowError.runtimeError("Failed to create field name C string.")
       }
       self.nameCstr = nameCstr
-      guard let arrowTypeNameCstr = self.arrowTypeNameBuffer.withUnsafeBufferPointer({
-        $0.baseAddress
-      }) else {
+      guard
+        let arrowTypeNameCstr = self.arrowTypeNameBuffer
+          .withUnsafeBufferPointer({
+            $0.baseAddress
+          })
+      else {
         throw ArrowError.runtimeError("Failed to create type name C string.")
       }
       self.arrowTypeNameCstr = arrowTypeNameCstr
@@ -68,7 +73,7 @@ public class ArrowCExporter {
 
   private class ExportArray: ExportData {
     private let arrowData: ArrowData
-    private(set) var data = [UnsafeRawPointer?]()
+    private(set) var data: [UnsafeRawPointer?] = []
     private(set) var buffers: UnsafeMutablePointer<UnsafeRawPointer?>
     @MainActor
     init(_ arrowData: ArrowData) {
@@ -80,7 +85,8 @@ public class ArrowCExporter {
         self.data.append(arrowBuffer.rawPointer)
       }
 
-      self.buffers = UnsafeMutablePointer<UnsafeRawPointer?>.allocate(capacity: self.data.count)
+      self.buffers = UnsafeMutablePointer<UnsafeRawPointer?>.allocate(
+        capacity: self.data.count)
       self.buffers.initialize(from: &self.data, count: self.data.count)
       super.init()
     }
@@ -91,7 +97,7 @@ public class ArrowCExporter {
     }
   }
 
-  @MainActor private static var exportedData = [Int: ExportData]()
+  @MainActor private static var exportedData: [Int: ExportData] = [:]
   public init() {}
 
   @MainActor
@@ -103,9 +109,13 @@ public class ArrowCExporter {
       cSchema.format = exportSchema.arrowTypeNameCstr
       cSchema.name = exportSchema.nameCstr
       cSchema.private_data =
-        UnsafeMutableRawPointer(mutating: UnsafeRawPointer(bitPattern: exportSchema.id))
+        UnsafeMutableRawPointer(
+          mutating: UnsafeRawPointer(bitPattern: exportSchema.id))
       cSchema.release = { (data: UnsafeMutablePointer<ArrowC.ArrowSchema>?) in
-        let arraySchema = data!.pointee
+        guard let data else {
+          fatalError("Nil data passed to ArrowSwiftClearReleaseSchema")
+        }
+        let arraySchema = data.pointee
         let exportId = Int(bitPattern: arraySchema.private_data)
         guard ArrowCExporter.exportedData[exportId] != nil else {
           fatalError("Export schema not found with id \(exportId)")
@@ -124,14 +134,18 @@ public class ArrowCExporter {
   }
 
   @MainActor
-  public func exportField(_ schema: inout ArrowC.ArrowSchema, field: ArrowField) -> Result<
-    Bool, ArrowError
-  > {
-    return exportType(&schema, arrowType: field.type, name: field.name)
+  public func exportField(_ schema: inout ArrowC.ArrowSchema, field: ArrowField)
+    -> Result<
+      Bool, ArrowError
+    >
+  {
+    exportType(&schema, arrowType: field.type, name: field.name)
   }
 
   @MainActor
-  public func exportArray(_ cArray: inout ArrowC.ArrowArray, arrowData: ArrowData) {
+  public func exportArray(
+    _ cArray: inout ArrowC.ArrowArray, arrowData: ArrowData
+  ) {
     let exportArray = ExportArray(arrowData)
     cArray.buffers = exportArray.buffers
     cArray.length = Int64(arrowData.length)
@@ -143,9 +157,13 @@ public class ArrowCExporter {
     cArray.children = nil
     cArray.dictionary = nil
     cArray.private_data =
-      UnsafeMutableRawPointer(mutating: UnsafeRawPointer(bitPattern: exportArray.id))
+      UnsafeMutableRawPointer(
+        mutating: UnsafeRawPointer(bitPattern: exportArray.id))
     cArray.release = { (data: UnsafeMutablePointer<ArrowC.ArrowArray>?) in
-      let arrayData = data!.pointee
+      guard let data else {
+        fatalError("Nil data passed to ExportArray")
+      }
+      let arrayData = data.pointee
       let exportId = Int(bitPattern: arrayData.private_data)
       guard ArrowCExporter.exportedData[exportId] != nil else {
         fatalError("Export data not found with id \(exportId)")

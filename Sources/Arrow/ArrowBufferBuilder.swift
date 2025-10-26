@@ -14,13 +14,29 @@
 
 import Foundation
 
+public protocol ByteConvertible {
+  func toData() -> Data
+}
+
+extension String: ByteConvertible {
+  public func toData() -> Data {
+    Data(self.utf8)
+  }
+}
+
+extension Data: ByteConvertible {
+  public func toData() -> Data {
+    self
+  }
+}
+
 public protocol ArrowBufferBuilder {
   associatedtype ItemType
   var capacity: UInt { get }
   var length: UInt { get }
   var nullCount: UInt { get }
   var offset: UInt { get }
-  init() throws
+  init() throws(ArrowError)
   func append(_ newValue: ItemType?)
   func isNull(_ index: UInt) -> Bool
   func resize(_ length: UInt)
@@ -30,7 +46,7 @@ public protocol ArrowBufferBuilder {
 public class BaseBufferBuilder {
   var nulls: ArrowBuffer
   public var offset: UInt = 0
-  public var capacity: UInt { return self.nulls.capacity }
+  public var capacity: UInt { self.nulls.capacity }
   public var length: UInt = 0
   public var nullCount: UInt = 0
 
@@ -39,7 +55,8 @@ public class BaseBufferBuilder {
   }
 
   public func isNull(_ index: UInt) -> Bool {
-    return self.nulls.length == 0 || BitUtility.isSet(index + self.offset, buffer: self.nulls)
+    self.nulls.length == 0
+      || BitUtility.isSet(index + self.offset, buffer: self.nulls)
   }
 
   func resizeLength(_ data: ArrowBuffer, len: UInt = 0) -> UInt {
@@ -56,9 +73,12 @@ public class BaseBufferBuilder {
 public class ValuesBufferBuilder<T>: BaseBufferBuilder {
   var values: ArrowBuffer
   var stride: Int
-  public override var capacity: UInt { return self.values.capacity }
+  public override var capacity: UInt { self.values.capacity }
 
-  init(values: ArrowBuffer, nulls: ArrowBuffer, stride: Int = MemoryLayout<T>.stride) {
+  init(
+    values: ArrowBuffer, nulls: ArrowBuffer,
+    stride: Int = MemoryLayout<T>.stride
+  ) {
     self.stride = stride
     self.values = values
     super.init(nulls)
@@ -66,13 +86,15 @@ public class ValuesBufferBuilder<T>: BaseBufferBuilder {
 }
 
 /// A builder for fixed-width buffers.
-public class FixedBufferBuilder<T>: ValuesBufferBuilder<T>, ArrowBufferBuilder where T: Numeric {
+public class FixedBufferBuilder<T>: ValuesBufferBuilder<T>, ArrowBufferBuilder
+where T: Numeric {
   public typealias ItemType = T
   private let defaultVal: ItemType = 0
-  
-  public required init() throws {
+
+  public required init() throws(ArrowError) {
     let values = ArrowBuffer.createBuffer(0, size: UInt(MemoryLayout<T>.stride))
-    let nulls = ArrowBuffer.createBuffer(0, size: UInt(MemoryLayout<UInt8>.stride))
+    let nulls = ArrowBuffer.createBuffer(
+      0, size: UInt(MemoryLayout<UInt8>.stride))
     super.init(values: values, nulls: nulls)
   }
 
@@ -86,21 +108,25 @@ public class FixedBufferBuilder<T>: ValuesBufferBuilder<T>, ArrowBufferBuilder w
 
     if let val = newValue {
       BitUtility.setBit(index + self.offset, buffer: self.nulls)
-      self.values.rawPointer.advanced(by: byteIndex).storeBytes(of: val, as: T.self)
+      self.values.rawPointer.advanced(by: byteIndex).storeBytes(
+        of: val, as: T.self)
     } else {
       self.nullCount += 1
       BitUtility.clearBit(index + self.offset, buffer: self.nulls)
-      self.values.rawPointer.advanced(by: byteIndex).storeBytes(of: defaultVal, as: T.self)
+      self.values.rawPointer.advanced(by: byteIndex).storeBytes(
+        of: defaultVal, as: T.self)
     }
   }
 
   public func resize(_ length: UInt) {
     if length > self.values.length {
       let resizeLength = resizeLength(self.values)
-      var values = ArrowBuffer.createBuffer(resizeLength, size: UInt(MemoryLayout<T>.size))
+      var values = ArrowBuffer.createBuffer(
+        resizeLength, size: UInt(MemoryLayout<T>.size))
       var nulls = ArrowBuffer.createBuffer(
         resizeLength / 8 + 1, size: UInt(MemoryLayout<UInt8>.size))
-      ArrowBuffer.copyCurrent(self.values, to: &values, len: self.values.capacity)
+      ArrowBuffer.copyCurrent(
+        self.values, to: &values, len: self.values.capacity)
       ArrowBuffer.copyCurrent(self.nulls, to: &nulls, len: self.nulls.capacity)
       self.values = values
       self.nulls = nulls
@@ -109,8 +135,10 @@ public class FixedBufferBuilder<T>: ValuesBufferBuilder<T>, ArrowBufferBuilder w
 
   public func finish() -> [ArrowBuffer] {
     let length = self.length
-    var values = ArrowBuffer.createBuffer(length, size: UInt(MemoryLayout<T>.size))
-    var nulls = ArrowBuffer.createBuffer(length / 8 + 1, size: UInt(MemoryLayout<UInt8>.size))
+    var values = ArrowBuffer.createBuffer(
+      length, size: UInt(MemoryLayout<T>.size))
+    var nulls = ArrowBuffer.createBuffer(
+      length / 8 + 1, size: UInt(MemoryLayout<UInt8>.size))
     ArrowBuffer.copyCurrent(self.values, to: &values, len: values.capacity)
     ArrowBuffer.copyCurrent(self.nulls, to: &nulls, len: nulls.capacity)
     return [nulls, values]
@@ -119,9 +147,11 @@ public class FixedBufferBuilder<T>: ValuesBufferBuilder<T>, ArrowBufferBuilder w
 
 public class BoolBufferBuilder: ValuesBufferBuilder<Bool>, ArrowBufferBuilder {
   public typealias ItemType = Bool
-  public required init() throws {
-    let values = ArrowBuffer.createBuffer(0, size: UInt(MemoryLayout<UInt8>.stride))
-    let nulls = ArrowBuffer.createBuffer(0, size: UInt(MemoryLayout<UInt8>.stride))
+  public required init() throws(ArrowError) {
+    let values = ArrowBuffer.createBuffer(
+      0, size: UInt(MemoryLayout<UInt8>.stride))
+    let nulls = ArrowBuffer.createBuffer(
+      0, size: UInt(MemoryLayout<UInt8>.stride))
     super.init(values: values, nulls: nulls)
   }
 
@@ -150,9 +180,12 @@ public class BoolBufferBuilder: ValuesBufferBuilder<Bool>, ArrowBufferBuilder {
   public func resize(_ length: UInt) {
     if (length / 8) > self.values.length {
       let resizeLength = resizeLength(self.values)
-      var values = ArrowBuffer.createBuffer(resizeLength, size: UInt(MemoryLayout<UInt8>.size))
-      var nulls = ArrowBuffer.createBuffer(resizeLength, size: UInt(MemoryLayout<UInt8>.size))
-      ArrowBuffer.copyCurrent(self.values, to: &values, len: self.values.capacity)
+      var values = ArrowBuffer.createBuffer(
+        resizeLength, size: UInt(MemoryLayout<UInt8>.size))
+      var nulls = ArrowBuffer.createBuffer(
+        resizeLength, size: UInt(MemoryLayout<UInt8>.size))
+      ArrowBuffer.copyCurrent(
+        self.values, to: &values, len: self.values.capacity)
       ArrowBuffer.copyCurrent(self.nulls, to: &nulls, len: self.nulls.capacity)
       self.values = values
       self.nulls = nulls
@@ -161,22 +194,28 @@ public class BoolBufferBuilder: ValuesBufferBuilder<Bool>, ArrowBufferBuilder {
 
   public func finish() -> [ArrowBuffer] {
     let length = self.length
-    var values = ArrowBuffer.createBuffer(length, size: UInt(MemoryLayout<UInt8>.size))
-    var nulls = ArrowBuffer.createBuffer(length, size: UInt(MemoryLayout<UInt8>.size))
+    var values = ArrowBuffer.createBuffer(
+      length, size: UInt(MemoryLayout<UInt8>.size))
+    var nulls = ArrowBuffer.createBuffer(
+      length, size: UInt(MemoryLayout<UInt8>.size))
     ArrowBuffer.copyCurrent(self.values, to: &values, len: values.capacity)
     ArrowBuffer.copyCurrent(self.nulls, to: &nulls, len: nulls.capacity)
     return [nulls, values]
   }
 }
 
-public class VariableBufferBuilder<T>: ValuesBufferBuilder<T>, ArrowBufferBuilder {
+public class VariableBufferBuilder<T>: ValuesBufferBuilder<T>,
+  ArrowBufferBuilder
+where T: ByteConvertible {
   public typealias ItemType = T
   var offsets: ArrowBuffer
   let binaryStride = MemoryLayout<UInt8>.stride
-  public required init() throws {
+
+  public required init() throws(ArrowError) {
     let values = ArrowBuffer.createBuffer(0, size: UInt(binaryStride))
     let nulls = ArrowBuffer.createBuffer(0, size: UInt(binaryStride))
-    self.offsets = ArrowBuffer.createBuffer(0, size: UInt(MemoryLayout<Int32>.stride))
+    self.offsets = ArrowBuffer.createBuffer(
+      0, size: UInt(MemoryLayout<Int32>.stride))
     super.init(values: values, nulls: nulls, stride: binaryStride)
   }
 
@@ -187,19 +226,20 @@ public class VariableBufferBuilder<T>: ValuesBufferBuilder<T>, ArrowBufferBuilde
     if self.length >= self.offsets.length {
       self.resize(UInt(self.offsets.length + 1))
     }
-    var binData: Data
+    var data: Data
     var isNull = false
-    if let val = newValue {
-      binData = getBytesFor(val)!
+    if let newValue {
+      data = newValue.toData()
     } else {
       var nullVal = 0
       isNull = true
-      binData = Data(bytes: &nullVal, count: MemoryLayout<UInt32>.size)
+      data = Data(bytes: &nullVal, count: MemoryLayout<UInt32>.size)
     }
     var currentIndex: Int32 = 0
-    var currentOffset: Int32 = Int32(binData.count)
+    var currentOffset: Int32 = Int32(data.count)
     if index > 0 {
-      currentIndex = self.offsets.rawPointer.advanced(by: offsetIndex).load(as: Int32.self)
+      currentIndex = self.offsets.rawPointer.advanced(by: offsetIndex).load(
+        as: Int32.self)
       currentOffset += currentIndex
       if currentOffset > self.values.length {
         self.valueResize(UInt(currentOffset))
@@ -211,20 +251,25 @@ public class VariableBufferBuilder<T>: ValuesBufferBuilder<T>, ArrowBufferBuilde
     } else {
       BitUtility.setBit(index + self.offset, buffer: self.nulls)
     }
-    binData.withUnsafeBytes { bufferPointer in
-      let rawPointer = bufferPointer.baseAddress!
-      self.values.rawPointer.advanced(by: Int(currentIndex))
-        .copyMemory(from: rawPointer, byteCount: binData.count)
+    data.withUnsafeBytes { buffer in
+      UnsafeMutableRawBufferPointer(
+        start: self.values.rawPointer.advanced(by: Int(currentIndex)),
+        count: data.count
+      ).copyBytes(from: buffer)
     }
-    self.offsets.rawPointer.advanced(by: (offsetIndex + MemoryLayout<Int32>.stride))
-      .storeBytes(of: currentOffset, as: Int32.self)
+    self.offsets.rawPointer.advanced(
+      by: offsetIndex + MemoryLayout<Int32>.stride
+    )
+    .storeBytes(of: currentOffset, as: Int32.self)
   }
 
   public func valueResize(_ length: UInt) {
     if length > self.values.length {
       let resizeLength = resizeLength(self.values, len: length)
-      var values = ArrowBuffer.createBuffer(resizeLength, size: UInt(MemoryLayout<UInt8>.size))
-      ArrowBuffer.copyCurrent(self.values, to: &values, len: self.values.capacity)
+      var values = ArrowBuffer.createBuffer(
+        resizeLength, size: UInt(MemoryLayout<UInt8>.size))
+      ArrowBuffer.copyCurrent(
+        self.values, to: &values, len: self.values.capacity)
       self.values = values
     }
   }
@@ -234,9 +279,11 @@ public class VariableBufferBuilder<T>: ValuesBufferBuilder<T>, ArrowBufferBuilde
       let resizeLength = resizeLength(self.offsets, len: length)
       var nulls = ArrowBuffer.createBuffer(
         resizeLength / 8 + 1, size: UInt(MemoryLayout<UInt8>.size))
-      var offsets = ArrowBuffer.createBuffer(resizeLength, size: UInt(MemoryLayout<Int32>.size))
+      var offsets = ArrowBuffer.createBuffer(
+        resizeLength, size: UInt(MemoryLayout<Int32>.size))
       ArrowBuffer.copyCurrent(self.nulls, to: &nulls, len: self.nulls.capacity)
-      ArrowBuffer.copyCurrent(self.offsets, to: &offsets, len: self.offsets.capacity)
+      ArrowBuffer.copyCurrent(
+        self.offsets, to: &offsets, len: self.offsets.capacity)
       self.nulls = nulls
       self.offsets = offsets
     }
@@ -244,9 +291,12 @@ public class VariableBufferBuilder<T>: ValuesBufferBuilder<T>, ArrowBufferBuilde
 
   public func finish() -> [ArrowBuffer] {
     let length = self.length
-    var values = ArrowBuffer.createBuffer(self.values.length, size: UInt(MemoryLayout<UInt8>.size))
-    var nulls = ArrowBuffer.createBuffer(length / 8 + 1, size: UInt(MemoryLayout<UInt8>.size))
-    var offsets = ArrowBuffer.createBuffer(length, size: UInt(MemoryLayout<Int32>.size))
+    var values = ArrowBuffer.createBuffer(
+      self.values.length, size: UInt(MemoryLayout<UInt8>.size))
+    var nulls = ArrowBuffer.createBuffer(
+      length / 8 + 1, size: UInt(MemoryLayout<UInt8>.size))
+    var offsets = ArrowBuffer.createBuffer(
+      length, size: UInt(MemoryLayout<Int32>.size))
     ArrowBuffer.copyCurrent(self.values, to: &values, len: values.capacity)
     ArrowBuffer.copyCurrent(self.nulls, to: &nulls, len: nulls.capacity)
     ArrowBuffer.copyCurrent(self.offsets, to: &offsets, len: offsets.capacity)
@@ -254,14 +304,15 @@ public class VariableBufferBuilder<T>: ValuesBufferBuilder<T>, ArrowBufferBuilde
   }
 }
 
-public class AbstractWrapperBufferBuilder<T, U>: ArrowBufferBuilder where U: Numeric {
+public class AbstractWrapperBufferBuilder<T, U>: ArrowBufferBuilder
+where U: Numeric {
   public typealias ItemType = T
-  public var capacity: UInt { return self.bufferBuilder.capacity }
-  public var length: UInt { return self.bufferBuilder.length }
-  public var nullCount: UInt { return self.bufferBuilder.nullCount }
-  public var offset: UInt { return self.bufferBuilder.offset }
+  public var capacity: UInt { self.bufferBuilder.capacity }
+  public var length: UInt { self.bufferBuilder.length }
+  public var nullCount: UInt { self.bufferBuilder.nullCount }
+  public var offset: UInt { self.bufferBuilder.offset }
   let bufferBuilder: FixedBufferBuilder<U>
-  public required init() throws {
+  public required init() throws(ArrowError) {
     self.bufferBuilder = try FixedBufferBuilder()
   }
 
@@ -270,7 +321,7 @@ public class AbstractWrapperBufferBuilder<T, U>: ArrowBufferBuilder where U: Num
   }
 
   public func isNull(_ index: UInt) -> Bool {
-    return self.bufferBuilder.isNull(index)
+    self.bufferBuilder.isNull(index)
   }
 
   public func resize(_ length: UInt) {
@@ -278,7 +329,7 @@ public class AbstractWrapperBufferBuilder<T, U>: ArrowBufferBuilder where U: Num
   }
 
   public func finish() -> [ArrowBuffer] {
-    return self.bufferBuilder.finish()
+    self.bufferBuilder.finish()
   }
 }
 
@@ -307,8 +358,9 @@ public class Date64BufferBuilder: AbstractWrapperBufferBuilder<Date, Int64> {
 public final class StructBufferBuilder: BaseBufferBuilder, ArrowBufferBuilder {
   public typealias ItemType = [Any?]
   var info: ArrowTypeStruct?
-  public init() throws {
-    let nulls = ArrowBuffer.createBuffer(0, size: UInt(MemoryLayout<UInt8>.stride))
+  public init() throws(ArrowError) {
+    let nulls = ArrowBuffer.createBuffer(
+      0, size: UInt(MemoryLayout<UInt8>.stride))
     super.init(nulls)
   }
 
@@ -343,7 +395,10 @@ public final class StructBufferBuilder: BaseBufferBuilder, ArrowBufferBuilder {
 
   public func finish() -> [ArrowBuffer] {
     let length = self.length
-    var nulls = ArrowBuffer.createBuffer(length / 8 + 1, size: UInt(MemoryLayout<UInt8>.size))
+    var nulls = ArrowBuffer.createBuffer(
+      length / 8 + 1,
+      size: UInt(MemoryLayout<UInt8>.size)
+    )
     ArrowBuffer.copyCurrent(self.nulls, to: &nulls, len: nulls.capacity)
     return [nulls]
   }
@@ -353,9 +408,15 @@ public class ListBufferBuilder: BaseBufferBuilder, ArrowBufferBuilder {
   public typealias ItemType = [Any?]
   var offsets: ArrowBuffer
 
-  public required init() throws {
-    self.offsets = ArrowBuffer.createBuffer(1, size: UInt(MemoryLayout<Int32>.stride))
-    let nulls = ArrowBuffer.createBuffer(0, size: UInt(MemoryLayout<UInt8>.stride))
+  public required init() throws(ArrowError) {
+    self.offsets = ArrowBuffer.createBuffer(
+      1,
+      size: UInt(MemoryLayout<Int32>.stride)
+    )
+    let nulls = ArrowBuffer.createBuffer(
+      0,
+      size: UInt(MemoryLayout<UInt8>.stride)
+    )
     super.init(nulls)
     self.offsets.rawPointer.storeBytes(of: Int32(0), as: Int32.self)
   }
@@ -369,11 +430,14 @@ public class ListBufferBuilder: BaseBufferBuilder, ArrowBufferBuilder {
     }
 
     let offsetIndex = Int(index) * MemoryLayout<Int32>.stride
-    let currentOffset = self.offsets.rawPointer.advanced(by: offsetIndex).load(as: Int32.self)
+    let currentOffset = self.offsets.rawPointer.advanced(by: offsetIndex).load(
+      as: Int32.self)
 
     BitUtility.setBit(index + self.offset, buffer: self.nulls)
     let newOffset = currentOffset + Int32(count)
-    self.offsets.rawPointer.advanced(by: offsetIndex + MemoryLayout<Int32>.stride).storeBytes(
+    self.offsets.rawPointer.advanced(
+      by: offsetIndex + MemoryLayout<Int32>.stride
+    ).storeBytes(
       of: newOffset, as: Int32.self)
   }
 
@@ -386,32 +450,39 @@ public class ListBufferBuilder: BaseBufferBuilder, ArrowBufferBuilder {
     }
 
     let offsetIndex = Int(index) * MemoryLayout<Int32>.stride
-    let currentOffset = self.offsets.rawPointer.advanced(by: offsetIndex).load(as: Int32.self)
+    let currentOffset = self.offsets.rawPointer.advanced(by: offsetIndex).load(
+      as: Int32.self)
 
     if let vals = newValue {
       BitUtility.setBit(index + self.offset, buffer: self.nulls)
       let newOffset = currentOffset + Int32(vals.count)
-      self.offsets.rawPointer.advanced(by: offsetIndex + MemoryLayout<Int32>.stride).storeBytes(
+      self.offsets.rawPointer.advanced(
+        by: offsetIndex + MemoryLayout<Int32>.stride
+      ).storeBytes(
         of: newOffset, as: Int32.self)
     } else {
       self.nullCount += 1
       BitUtility.clearBit(index + self.offset, buffer: self.nulls)
-      self.offsets.rawPointer.advanced(by: offsetIndex + MemoryLayout<Int32>.stride).storeBytes(
+      self.offsets.rawPointer.advanced(
+        by: offsetIndex + MemoryLayout<Int32>.stride
+      ).storeBytes(
         of: currentOffset, as: Int32.self)
     }
   }
 
   public override func isNull(_ index: UInt) -> Bool {
-    return !BitUtility.isSet(index + self.offset, buffer: self.nulls)
+    !BitUtility.isSet(index + self.offset, buffer: self.nulls)
   }
 
   public func resize(_ length: UInt) {
     if length > self.offsets.length {
       let resizeLength = resizeLength(self.offsets)
-      var offsets = ArrowBuffer.createBuffer(resizeLength, size: UInt(MemoryLayout<Int32>.size))
+      var offsets = ArrowBuffer.createBuffer(
+        resizeLength, size: UInt(MemoryLayout<Int32>.size))
       var nulls = ArrowBuffer.createBuffer(
         resizeLength / 8 + 1, size: UInt(MemoryLayout<UInt8>.size))
-      ArrowBuffer.copyCurrent(self.offsets, to: &offsets, len: self.offsets.capacity)
+      ArrowBuffer.copyCurrent(
+        self.offsets, to: &offsets, len: self.offsets.capacity)
       ArrowBuffer.copyCurrent(self.nulls, to: &nulls, len: self.nulls.capacity)
       self.offsets = offsets
       self.nulls = nulls
@@ -420,8 +491,10 @@ public class ListBufferBuilder: BaseBufferBuilder, ArrowBufferBuilder {
 
   public func finish() -> [ArrowBuffer] {
     let length = self.length
-    var nulls = ArrowBuffer.createBuffer(length / 8 + 1, size: UInt(MemoryLayout<UInt8>.size))
-    var offsets = ArrowBuffer.createBuffer(length + 1, size: UInt(MemoryLayout<Int32>.size))
+    var nulls = ArrowBuffer.createBuffer(
+      length / 8 + 1, size: UInt(MemoryLayout<UInt8>.size))
+    var offsets = ArrowBuffer.createBuffer(
+      length + 1, size: UInt(MemoryLayout<Int32>.size))
     ArrowBuffer.copyCurrent(self.nulls, to: &nulls, len: nulls.capacity)
     ArrowBuffer.copyCurrent(self.offsets, to: &offsets, len: offsets.capacity)
     return [nulls, offsets]

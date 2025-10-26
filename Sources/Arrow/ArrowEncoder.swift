@@ -15,13 +15,13 @@
 import Foundation
 
 public class ArrowEncoder: Encoder {
-  public private(set) var builders = [String: ArrowArrayHolderBuilder]()
-  private var byIndex = [String]()
+  public private(set) var builders: [String: ArrowArrayHolderBuilder] = [:]
+  private var byIndex: [String] = []
   public var codingPath: [CodingKey] = []
   public var userInfo: [CodingUserInfoKey: Any] = [:]
   var errorMsg: String?
-  // this is used for Dictionary types.  A dictionary type
-  // will give each key and value there own index so instead
+  // This is used for Dictionary types. A dictionary type
+  // will give each key and value their own index so instead
   // of having a 2 column RecordBatch you would have
   // 2 * length(dictionary) column RecordBatch. Which would not
   // be the expected output.
@@ -29,7 +29,9 @@ public class ArrowEncoder: Encoder {
 
   public init() {}
 
-  public init(_ builders: [String: ArrowArrayHolderBuilder], byIndex: [String]) {
+  public init(
+    _ builders: [String: ArrowArrayHolderBuilder], byIndex: [String]
+  ) {
     self.builders = builders
     self.byIndex = byIndex
   }
@@ -69,22 +71,21 @@ public class ArrowEncoder: Encoder {
     }
   }
 
-  public func finish() throws -> RecordBatch {
+  public func finish() throws(ArrowError) -> RecordBatch {
     try throwIfInvalid()
     let batchBuilder = RecordBatch.Builder()
     for key in byIndex {
-      batchBuilder.addColumn(key, arrowArray: try builders[key]!.toHolder())
+      guard let builder = builders[key] else {
+        throw .invalid("Missing builder for \(key)")
+      }
+      batchBuilder.addColumn(key, arrowArray: try builder.toHolder())
     }
-
-    switch batchBuilder.finish() {
-    case .success(let rb):
-      return rb
-    case .failure(let error):
-      throw error
-    }
+    return try batchBuilder.finish().get()
   }
 
-  public func container<Key>(keyedBy type: Key.Type) -> KeyedEncodingContainer<Key>
+  public func container<Key>(keyedBy type: Key.Type) -> KeyedEncodingContainer<
+    Key
+  >
   where Key: CodingKey {
     var container = ArrowKeyedEncoding<Key>(self)
     container.codingPath = codingPath
@@ -92,11 +93,11 @@ public class ArrowEncoder: Encoder {
   }
 
   public func unkeyedContainer() -> UnkeyedEncodingContainer {
-    return ArrowUnkeyedEncoding(self, codingPath: self.codingPath)
+    ArrowUnkeyedEncoding(self, codingPath: self.codingPath)
   }
 
   public func singleValueContainer() -> SingleValueEncodingContainer {
-    return ArrowSingleValueEncoding(self, codingPath: codingPath)
+    ArrowSingleValueEncoding(self, codingPath: codingPath)
   }
 
   func doEncodeNil(key: CodingKey) throws {
@@ -104,7 +105,6 @@ public class ArrowEncoder: Encoder {
     guard let builder = builders[key.stringValue] else {
       throw ArrowError.invalid("Column not found for key: \(key)")
     }
-
     builder.appendAny(nil)
   }
 
@@ -113,60 +113,73 @@ public class ArrowEncoder: Encoder {
   // to limitations in the Swifts Mirror API (ex: it is unable to correctly
   // find the type for String? in [Int: String?])
   @discardableResult
-  func ensureColumnExists<T>(_ value: T, key: String) throws -> ArrowArrayHolderBuilder {
+  func ensureColumnExists<T>(
+    _ value: T,
+    key: String
+  ) throws(ArrowError) -> ArrowArrayHolderBuilder {
     try throwIfInvalid()
-    var builder = builders[key]
-    if builder == nil {
-      builder = try ArrowArrayBuilders.loadBuilder(T.self)
-      builders[key] = builder
-      byIndex.append(key)
+    if let builder = builders[key] {
+      return builder
     }
-
-    return builder!
+    let builder = try ArrowArrayBuilders.loadBuilder(T.self)
+    builders[key] = builder
+    byIndex.append(key)
+    return builder
   }
 
   func getIndex(_ index: Int) -> Int {
-    return self.modForIndex == nil ? index : index % self.modForIndex!
+    if let mod = self.modForIndex {
+      return index % mod
+    } else {
+      return index
+    }
   }
 
-  func doEncodeNil(_ keyIndex: Int) throws {
+  func doEncodeNil(_ keyIndex: Int) throws(ArrowError) {
     try throwIfInvalid()
     let index = self.getIndex(keyIndex)
-    if index >= builders.count {
+    guard index < builders.count else {
       throw ArrowError.outOfBounds(index: Int64(index))
     }
-
-    builders[byIndex[index]]!.appendAny(nil)
+    let key = byIndex[index]
+    guard let builder = builders[key] else {
+      throw .invalid("Missing builder for key: \(key)")
+    }
+    builder.appendAny(nil)
   }
 
-  func doEncode<T>(_ value: T, key: CodingKey) throws {
+  func doEncode<T>(_ value: T, key: CodingKey) throws(ArrowError) {
     try throwIfInvalid()
     let builder = try ensureColumnExists(value, key: key.stringValue)
     builder.appendAny(value)
   }
 
-  func doEncode<T>(_ value: T, keyIndex: Int) throws {
+  func doEncode<T>(_ value: T, keyIndex: Int) throws(ArrowError) {
     try throwIfInvalid()
     let index = self.getIndex(keyIndex)
-    if index >= builders.count {
-      if index == builders.count {
-        try ensureColumnExists(value, key: "col\(index)")
-      } else {
-        throw ArrowError.outOfBounds(index: Int64(index))
-      }
+    if index > builders.count {
+      throw .outOfBounds(index: Int64(index))
     }
-
-    builders[byIndex[index]]!.appendAny(value)
+    if index == builders.count {
+      try ensureColumnExists(value, key: "col\(index)")
+    }
+    let key = byIndex[index]
+    guard let builder = builders[key] else {
+      throw .invalid("Missing builder for key: \(key)")
+    }
+    builder.appendAny(value)
   }
 
-  func throwIfInvalid() throws {
+  func throwIfInvalid() throws(ArrowError) {
     if let errorMsg = self.errorMsg {
       throw ArrowError.invalid(errorMsg)
     }
   }
 }
 
-private struct ArrowKeyedEncoding<Key: CodingKey>: KeyedEncodingContainerProtocol {
+private struct ArrowKeyedEncoding<Key: CodingKey>:
+  KeyedEncodingContainerProtocol
+{
   var codingPath: [CodingKey] = []
   let encoder: ArrowEncoder
   init(_ encoder: ArrowEncoder) {
@@ -319,7 +332,8 @@ private struct ArrowKeyedEncoding<Key: CodingKey>: KeyedEncodingContainerProtoco
     }
   }
 
-  mutating func encodeIfPresent<T>(_ value: T?, forKey key: Self.Key) throws where T: Encodable {
+  mutating func encodeIfPresent<T>(_ value: T?, forKey key: Self.Key) throws
+  where T: Encodable {
     if ArrowArrayBuilders.isValidBuilderType(T?.self) {
       try doEncodeIf(value, forKey: key)
     } else {
@@ -343,7 +357,9 @@ private struct ArrowKeyedEncoding<Key: CodingKey>: KeyedEncodingContainerProtoco
   // nested container is currently not allowed.  This method doesn't throw
   // so setting an error mesg that will be throw by the encoder at the next
   // method call that throws
-  mutating func nestedUnkeyedContainer(forKey key: Key) -> UnkeyedEncodingContainer {
+  mutating func nestedUnkeyedContainer(forKey key: Key)
+    -> UnkeyedEncodingContainer
+  {
     self.encoder.errorMsg = "Nested decoding is currently not supported."
     return ArrowUnkeyedEncoding(self.encoder, codingPath: self.codingPath)
   }
@@ -371,7 +387,8 @@ private struct ArrowUnkeyedEncoding: UnkeyedEncodingContainer {
   var currentIndex: Int
   var count: Int = 0
 
-  init(_ encoder: ArrowEncoder, codingPath: [CodingKey], currentIndex: Int = 0) {
+  init(_ encoder: ArrowEncoder, codingPath: [CodingKey], currentIndex: Int = 0)
+  {
     self.encoder = encoder
     self.currentIndex = currentIndex
   }
@@ -442,7 +459,7 @@ private struct ArrowSingleValueEncoding: SingleValueEncodingContainer {
   }
 
   mutating func encodeNil() throws {
-    return try self.encoder.doEncodeNil(0)
+    try self.encoder.doEncodeNil(0)
   }
 
   mutating func encode<T: Encodable>(_ value: T) throws {

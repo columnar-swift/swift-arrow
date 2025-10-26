@@ -26,7 +26,7 @@ public class ArrowData {
     _ arrowType: ArrowType,
     buffers: [ArrowBuffer],
     nullCount: UInt
-  ) throws {
+  ) throws(ArrowError) {
     try self.init(
       arrowType, buffers: buffers,
       children: [ArrowData](), nullCount: nullCount,
@@ -39,7 +39,7 @@ public class ArrowData {
     children: [ArrowData],
     nullCount: UInt,
     length: UInt
-  ) throws {
+  ) throws(ArrowError) {
     let infoType = arrowType.info
     switch infoType {
     case .primitiveInfo(let typeId):
