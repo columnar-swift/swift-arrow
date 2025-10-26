@@ -105,7 +105,10 @@ public class ArrowCExporter {
       cSchema.private_data =
         UnsafeMutableRawPointer(mutating: UnsafeRawPointer(bitPattern: exportSchema.id))
       cSchema.release = { (data: UnsafeMutablePointer<ArrowC.ArrowSchema>?) in
-        let arraySchema = data!.pointee
+        guard let data else {
+          fatalError("Nil data passed to ArrowSwiftClearReleaseSchema")
+        }
+        let arraySchema = data.pointee
         let exportId = Int(bitPattern: arraySchema.private_data)
         guard ArrowCExporter.exportedData[exportId] != nil else {
           fatalError("Export schema not found with id \(exportId)")
@@ -145,7 +148,10 @@ public class ArrowCExporter {
     cArray.private_data =
       UnsafeMutableRawPointer(mutating: UnsafeRawPointer(bitPattern: exportArray.id))
     cArray.release = { (data: UnsafeMutablePointer<ArrowC.ArrowArray>?) in
-      let arrayData = data!.pointee
+      guard let data else {
+        fatalError("Nil data passed to ExportArray")
+      }
+      let arrayData = data.pointee
       let exportId = Int(bitPattern: arrayData.private_data)
       guard ArrowCExporter.exportedData[exportId] != nil else {
         fatalError("Export data not found with id \(exportId)")

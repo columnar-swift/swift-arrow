@@ -50,8 +50,10 @@ public class ArrowCImporter {
       arrowBuffers.append(ArrowBuffer.createEmptyBuffer())
       return
     }
-
-    let pointer = UnsafeMutableRawPointer(mutating: cBuffer)!
+    // TODO: Should not be passing around unsafe pointers like this.
+    guard let pointer = UnsafeMutableRawPointer(mutating: cBuffer) else {
+      fatalError("Unable to create pointer from cBuffer")
+    }
     arrowBuffers.append(
       ArrowBuffer(length: length, capacity: length, rawPointer: pointer, isMemoryOwner: false))
   }
@@ -138,7 +140,10 @@ public class ArrowCImporter {
         appendToBuffer(
           cArray.buffers[0], arrowBuffers: &arrowBuffers, length: UInt(ceil(Double(length) / 8)))
         appendToBuffer(cArray.buffers[1], arrowBuffers: &arrowBuffers, length: length)
-        let lastOffsetLength = cArray.buffers[1]!
+        guard let pointer = cArray.buffers[1] else {
+          return .failure(.invalid("Unexpected nil pointer to buffer"))
+        }
+        let lastOffsetLength = pointer
           .advanced(by: Int(length) * MemoryLayout<Int32>.stride)
           .load(as: Int32.self)
         appendToBuffer(
