@@ -374,7 +374,9 @@ public class ArrowReader {
     }
 
     for index in 0..<footer.recordBatchesCount {
-      let recordBatch = footer.recordBatches(at: index)!
+      guard let recordBatch: Block = footer.recordBatches(at: index) else {
+        return .failure(.invalid("Missing record batch at index \(index)"))
+      }
       var messageLength = fileData.withUnsafeBytes { rawBuffer in
         rawBuffer.loadUnaligned(fromByteOffset: Int(recordBatch.offset), as: UInt32.self)
       }
@@ -405,7 +407,8 @@ public class ArrowReader {
           schema: footer.schema!,
           arrowSchema: result.schema!,
           data: fileData,
-          messageEndOffset: messageEndOffset)
+          messageEndOffset: messageEndOffset
+        )
         switch recordBatchResult {
         case .success(let recordBatch):
           result.batches.append(recordBatch)

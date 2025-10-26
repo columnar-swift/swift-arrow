@@ -14,6 +14,22 @@
 
 import Foundation
 
+public protocol ByteConvertible {
+  func toData() -> Data
+}
+
+extension String: ByteConvertible {
+  public func toData() -> Data {
+    return Data(self.utf8)
+  }
+}
+
+extension Data: ByteConvertible {
+  public func toData() -> Data {
+    return self
+  }
+}
+
 public protocol ArrowBufferBuilder {
   associatedtype ItemType
   var capacity: UInt { get }
@@ -169,10 +185,11 @@ public class BoolBufferBuilder: ValuesBufferBuilder<Bool>, ArrowBufferBuilder {
   }
 }
 
-public class VariableBufferBuilder<T>: ValuesBufferBuilder<T>, ArrowBufferBuilder {
+public class VariableBufferBuilder<T>: ValuesBufferBuilder<T>, ArrowBufferBuilder where T: ByteConvertible {
   public typealias ItemType = T
   var offsets: ArrowBuffer
   let binaryStride = MemoryLayout<UInt8>.stride
+  
   public required init() throws {
     let values = ArrowBuffer.createBuffer(0, size: UInt(binaryStride))
     let nulls = ArrowBuffer.createBuffer(0, size: UInt(binaryStride))
@@ -187,17 +204,17 @@ public class VariableBufferBuilder<T>: ValuesBufferBuilder<T>, ArrowBufferBuilde
     if self.length >= self.offsets.length {
       self.resize(UInt(self.offsets.length + 1))
     }
-    var binData: Data
+    var data: Data
     var isNull = false
-    if let val = newValue {
-      binData = getBytesFor(val)!
+    if let newValue {
+      data = newValue.toData()
     } else {
       var nullVal = 0
       isNull = true
-      binData = Data(bytes: &nullVal, count: MemoryLayout<UInt32>.size)
+      data = Data(bytes: &nullVal, count: MemoryLayout<UInt32>.size)
     }
     var currentIndex: Int32 = 0
-    var currentOffset: Int32 = Int32(binData.count)
+    var currentOffset: Int32 = Int32(data.count)
     if index > 0 {
       currentIndex = self.offsets.rawPointer.advanced(by: offsetIndex).load(as: Int32.self)
       currentOffset += currentIndex
@@ -211,12 +228,13 @@ public class VariableBufferBuilder<T>: ValuesBufferBuilder<T>, ArrowBufferBuilde
     } else {
       BitUtility.setBit(index + self.offset, buffer: self.nulls)
     }
-    binData.withUnsafeBytes { bufferPointer in
-      let rawPointer = bufferPointer.baseAddress!
-      self.values.rawPointer.advanced(by: Int(currentIndex))
-        .copyMemory(from: rawPointer, byteCount: binData.count)
+    data.withUnsafeBytes { buffer in
+      UnsafeMutableRawBufferPointer(
+        start: self.values.rawPointer.advanced(by: Int(currentIndex)),
+        count: data.count
+      ).copyBytes(from: buffer)
     }
-    self.offsets.rawPointer.advanced(by: (offsetIndex + MemoryLayout<Int32>.stride))
+    self.offsets.rawPointer.advanced(by: offsetIndex + MemoryLayout<Int32>.stride)
       .storeBytes(of: currentOffset, as: Int32.self)
   }
 
@@ -425,15 +443,5 @@ public class ListBufferBuilder: BaseBufferBuilder, ArrowBufferBuilder {
     ArrowBuffer.copyCurrent(self.nulls, to: &nulls, len: nulls.capacity)
     ArrowBuffer.copyCurrent(self.offsets, to: &offsets, len: offsets.capacity)
     return [nulls, offsets]
-  }
-}
-
-fileprivate func getBytesFor<T>(_ data: T) -> Data? {
-  if let temp = data as? String {
-    return temp.data(using: .utf8)
-  } else if T.self == Data.self {
-    return data as? Data
-  } else {
-    return nil
   }
 }

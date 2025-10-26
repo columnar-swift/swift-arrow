@@ -63,6 +63,7 @@ final class CDataTests: XCTestCase {
     }
   }
 
+  #if os(macOS) || os(iOS) || os(tvOS) || os(watchOS)
   @MainActor
   func testImportExportSchema() throws {
     let schema = makeSchema()
@@ -130,4 +131,5 @@ final class CDataTests: XCTestCase {
       throw error
     }
   }
+  #endif
 }
