@@ -37,7 +37,9 @@ func fromProto(
   case .bool:
     arrowType = ArrowType(ArrowType.arrowBool)
   case .floatingpoint:
-    let floatType = field.type(type: org_apache_arrow_flatbuf_FloatingPoint.self)!
+    guard let floatType = field.type(type: FloatingPoint.self) else {
+      throw .invalid("Invalid FlatBuffer: \(field)")
+    }
     if floatType.precision == .single {
       arrowType = ArrowType(ArrowType.arrowFloat)
     } else if floatType.precision == .double {
@@ -48,7 +50,9 @@ func fromProto(
   case .binary:
     arrowType = ArrowType(ArrowType.arrowBinary)
   case .date:
-    let dateType = field.type(type: org_apache_arrow_flatbuf_Date.self)!
+    guard let dateType = field.type(type: FlatDate.self) else {
+      throw .invalid("Invalid FlatBuffer: \(field)")
+    }
     if dateType.unit == .day {
       arrowType = ArrowType(ArrowType.arrowDate32)
     } else {
@@ -64,7 +68,9 @@ func fromProto(
       arrowType = ArrowTypeTime64(arrowUnit)
     }
   case .timestamp:
-    let timestampType = field.type(type: org_apache_arrow_flatbuf_Timestamp.self)!
+    guard let timestampType = field.type(type: FlatTimestamp.self) else {
+      throw .invalid("Invalid FlatBuffer: \(field)")
+    }
     let arrowUnit: ArrowTimestampUnit
     switch timestampType.unit {
     case .second:
@@ -76,7 +82,6 @@ func fromProto(
     case .nanosecond:
       arrowUnit = .nanoseconds
     }
-
     let timezone = timestampType.timezone
     arrowType = ArrowTypeTimestamp(arrowUnit, timezone: timezone?.isEmpty == true ? nil : timezone)
   case .struct_:
@@ -85,7 +90,6 @@ func fromProto(
       let childField = field.children(at: index)!
       children.append(try fromProto(field: childField))
     }
-
     arrowType = ArrowTypeStruct(ArrowType.arrowStruct, fields: children)
   case .list:
     guard field.childrenCount == 1, let childField = field.children(at: 0) else {
@@ -97,6 +101,8 @@ func fromProto(
   default:
     arrowType = ArrowType(ArrowType.arrowUnknown)
   }
-
-  return ArrowField(field.name ?? "", type: arrowType, isNullable: field.nullable)
+  guard let fieldName = field.name else {
+    throw .invalid("Invalid FlatBuffer: \(field)")
+  }
+  return ArrowField(fieldName, type: arrowType, isNullable: field.nullable)
 }
