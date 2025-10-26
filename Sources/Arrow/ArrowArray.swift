@@ -325,7 +325,8 @@ public class BinaryArray: ArrowArray<Data> {
     let values = self.arrowData.buffers[2]
     var startIndex: Int32 = 0
     if index > 0 {
-      startIndex = offsets.rawPointer.advanced(by: offsetIndex).load(as: Int32.self)
+      startIndex = offsets.rawPointer.advanced(by: offsetIndex)
+        .load(as: Int32.self)
     }
     let endIndex = offsets.rawPointer.advanced(by: offsetIndex + MemoryLayout<Int32>.stride)
       .load(as: Int32.self)
@@ -377,8 +378,7 @@ public class NestedArray: ArrowArray<[Any?]> {
       }
       self.children = fields
     default:
-      throw ArrowError.invalid(
-        "NestedArray only supports list and struct types, got: \(arrowData.type.id)")
+      throw .invalid("NestedArray only supports list and struct types, got: \(arrowData.type.id)")
     }
   }
 
@@ -394,7 +394,8 @@ public class NestedArray: ArrowArray<[Any?]> {
       guard let values = children.first else { return nil }
       let offsets = self.arrowData.buffers[1]
       let offsetIndex = Int(index) * MemoryLayout<Int32>.stride
-      let startOffset = offsets.rawPointer.advanced(by: offsetIndex).load(as: Int32.self)
+      let startOffset = offsets.rawPointer.advanced(by: offsetIndex)
+        .load(as: Int32.self)
       let endOffset = offsets.rawPointer.advanced(by: offsetIndex + MemoryLayout<Int32>.stride)
         .load(as: Int32.self)
       var items = [Any?]()

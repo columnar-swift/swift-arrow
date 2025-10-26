@@ -227,11 +227,17 @@ func makeArrayHolder(
   case .timestamp:
     return makeTimestampHolder(field, buffers: buffers, nullCount: nullCount)
   case .strct:
+    guard let children else {
+      return .failure(.invalid("Expected a struct field to have children"))
+    }
     return makeNestedHolder(
-      field, buffers: buffers, nullCount: nullCount, children: children!, rbLength: rbLength)
+      field, buffers: buffers, nullCount: nullCount, children: children, rbLength: rbLength)
   case .list:
+    guard let children else {
+      return .failure(.invalid("Expected a list field to have children"))
+    }
     return makeNestedHolder(
-      field, buffers: buffers, nullCount: nullCount, children: children!, rbLength: rbLength)
+      field, buffers: buffers, nullCount: nullCount, children: children, rbLength: rbLength)
   default:
     return .failure(.unknownType("Type \(typeId) currently not supported"))
   }
@@ -346,9 +352,9 @@ func validateBufferIndex(_ recordBatch: FlatRecordBatch, index: Int32) throws {
 }
 
 func validateFileData(_ data: Data) -> Bool {
-  let markerLength = fileMarker.utf8.count
-  let startString = String(decoding: data[..<markerLength], as: UTF8.self)
-  let endString = String(decoding: data[(data.count - markerLength)...], as: UTF8.self)
+  let markerLength = fileMarker.count
+  let startString = data[..<markerLength]
+  let endString = data[(data.count - markerLength)...]
   return startString == fileMarker && endString == fileMarker
 }
 

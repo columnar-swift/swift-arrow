@@ -468,14 +468,14 @@ public class ArrowWriter {
     let fileHandle = FileHandle(forUpdatingAtPath: fileName.path)!
     defer { fileHandle.closeFile() }
 
-    var markerData = fileMarker.data(using: .utf8)!
+    var markerData = fileMarker
     addPadForAlignment(&markerData)
 
     var writer: any DataWriter = FileDataWriter(fileHandle)
     writer.append(markerData)
     switch writeFile(&writer, info: info) {
     case .success:
-      writer.append(fileMarker.data(using: .utf8)!)
+      writer.append(fileMarker)
     case .failure(let error):
       return .failure(error)
     }

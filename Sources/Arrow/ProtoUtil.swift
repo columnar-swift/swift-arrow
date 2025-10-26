@@ -59,7 +59,9 @@ func fromProto(
       arrowType = ArrowType(ArrowType.arrowDate64)
     }
   case .time:
-    let timeType = field.type(type: org_apache_arrow_flatbuf_Time.self)!
+    guard let timeType = field.type(type: FlatTime.self) else {
+      throw .invalid("Invalid FlatBuffer: \(field)")
+    }
     if timeType.unit == .second || timeType.unit == .millisecond {
       let arrowUnit: ArrowTime32Unit = timeType.unit == .second ? .seconds : .milliseconds
       arrowType = ArrowTypeTime32(arrowUnit)
@@ -87,7 +89,9 @@ func fromProto(
   case .struct_:
     var children = [ArrowField]()
     for index in 0..<field.childrenCount {
-      let childField = field.children(at: index)!
+      guard let childField = field.children(at: index) else {
+        throw .invalid("Missing childe at index: \(index) for field: \(field)")
+      }
       children.append(try fromProto(field: childField))
     }
     arrowType = ArrowTypeStruct(ArrowType.arrowStruct, fields: children)

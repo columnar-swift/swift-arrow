@@ -101,7 +101,6 @@ public class ArrowEncoder: Encoder {
     guard let builder = builders[key.stringValue] else {
       throw ArrowError.invalid("Column not found for key: \(key)")
     }
-
     builder.appendAny(nil)
   }
 
@@ -125,7 +124,11 @@ public class ArrowEncoder: Encoder {
   }
 
   func getIndex(_ index: Int) -> Int {
-    return self.modForIndex == nil ? index : index % self.modForIndex!
+    if let mod = self.modForIndex {
+      return index % mod
+    } else {
+      return index
+    }
   }
 
   func doEncodeNil(_ keyIndex: Int) throws(ArrowError) {
