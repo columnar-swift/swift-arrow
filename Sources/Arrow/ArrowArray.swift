@@ -70,49 +70,50 @@ public class ArrowArrayHolderImpl: ArrowArrayHolder {
   }
 
   public static func loadArray(
-    _ arrowType: ArrowType, with: ArrowData
-  ) throws -> ArrowArrayHolder {
+    _ arrowType: ArrowType,
+    with arrowData: ArrowData
+  ) throws(ArrowError) -> ArrowArrayHolder {
     switch arrowType.id {
     case .int8:
-      return try ArrowArrayHolderImpl(FixedArray<Int8>(with))
+      return try ArrowArrayHolderImpl(FixedArray<Int8>(arrowData))
     case .int16:
-      return try ArrowArrayHolderImpl(FixedArray<Int16>(with))
+      return try ArrowArrayHolderImpl(FixedArray<Int16>(arrowData))
     case .int32:
-      return try ArrowArrayHolderImpl(FixedArray<Int32>(with))
+      return try ArrowArrayHolderImpl(FixedArray<Int32>(arrowData))
     case .int64:
-      return try ArrowArrayHolderImpl(FixedArray<Int64>(with))
+      return try ArrowArrayHolderImpl(FixedArray<Int64>(arrowData))
     case .uint8:
-      return try ArrowArrayHolderImpl(FixedArray<UInt8>(with))
+      return try ArrowArrayHolderImpl(FixedArray<UInt8>(arrowData))
     case .uint16:
-      return try ArrowArrayHolderImpl(FixedArray<UInt16>(with))
+      return try ArrowArrayHolderImpl(FixedArray<UInt16>(arrowData))
     case .uint32:
-      return try ArrowArrayHolderImpl(FixedArray<UInt32>(with))
+      return try ArrowArrayHolderImpl(FixedArray<UInt32>(arrowData))
     case .uint64:
-      return try ArrowArrayHolderImpl(FixedArray<UInt64>(with))
+      return try ArrowArrayHolderImpl(FixedArray<UInt64>(arrowData))
     case .double:
-      return try ArrowArrayHolderImpl(FixedArray<Double>(with))
+      return try ArrowArrayHolderImpl(FixedArray<Double>(arrowData))
     case .float:
-      return try ArrowArrayHolderImpl(FixedArray<Float>(with))
+      return try ArrowArrayHolderImpl(FixedArray<Float>(arrowData))
     case .date32:
-      return try ArrowArrayHolderImpl(Date32Array(with))
+      return try ArrowArrayHolderImpl(Date32Array(arrowData))
     case .date64:
-      return try ArrowArrayHolderImpl(Date64Array(with))
+      return try ArrowArrayHolderImpl(Date64Array(arrowData))
     case .time32:
-      return try ArrowArrayHolderImpl(Time32Array(with))
+      return try ArrowArrayHolderImpl(Time32Array(arrowData))
     case .time64:
-      return try ArrowArrayHolderImpl(Time64Array(with))
+      return try ArrowArrayHolderImpl(Time64Array(arrowData))
     case .timestamp:
-      return try ArrowArrayHolderImpl(TimestampArray(with))
+      return try ArrowArrayHolderImpl(TimestampArray(arrowData))
     case .string:
-      return try ArrowArrayHolderImpl(StringArray(with))
+      return try ArrowArrayHolderImpl(StringArray(arrowData))
     case .boolean:
-      return try ArrowArrayHolderImpl(BoolArray(with))
+      return try ArrowArrayHolderImpl(BoolArray(arrowData))
     case .binary:
-      return try ArrowArrayHolderImpl(BinaryArray(with))
+      return try ArrowArrayHolderImpl(BinaryArray(arrowData))
     case .strct:
-      return try ArrowArrayHolderImpl(NestedArray(with))
+      return try ArrowArrayHolderImpl(NestedArray(arrowData))
     case .list:
-      return try ArrowArrayHolderImpl(NestedArray(with))
+      return try ArrowArrayHolderImpl(NestedArray(arrowData))
     default:
       throw ArrowError.invalid("Array not found for type: \(arrowType)")
     }
@@ -125,7 +126,7 @@ public class ArrowArray<T>: AsString, AnyArray {
   public var nullCount: UInt { return self.arrowData.nullCount }
   public var length: UInt { return self.arrowData.length }
 
-  public required init(_ arrowData: ArrowData) throws {
+  public required init(_ arrowData: ArrowData) throws(ArrowError) {
     self.arrowData = arrowData
   }
 
@@ -307,6 +308,7 @@ public class TimestampArray: FixedArray<Timestamp> {
 }
 
 public class BinaryArray: ArrowArray<Data> {
+  
   public struct Options {
     public var printAsHex = false
     public var printEncoding: String.Encoding = .utf8
@@ -352,7 +354,7 @@ public class BinaryArray: ArrowArray<Data> {
 public class NestedArray: ArrowArray<[Any?]> {
   private var children: [ArrowArrayHolder]?
 
-  public required init(_ arrowData: ArrowData) throws {
+  public required init(_ arrowData: ArrowData) throws(ArrowError) {
     try super.init(arrowData)
     switch arrowData.type.id {
     case .list:
@@ -434,7 +436,6 @@ public class NestedArray: ArrowArray<[Any?]> {
           output.append("\(someItem)")
         }
       }
-
       output.append("]")
       return output
     case .strct:

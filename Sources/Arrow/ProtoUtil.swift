@@ -14,14 +14,16 @@
 
 import Foundation
 
-func fromProto(  // swiftlint:disable:this cyclomatic_complexity function_body_length
+func fromProto(
   field: FlatField
-) -> ArrowField {
+) throws(ArrowError) -> ArrowField {
   let type = field.typeType
   var arrowType = ArrowType(ArrowType.arrowUnknown)
   switch type {
   case .int:
-    let intType = field.type(type: org_apache_arrow_flatbuf_Int.self)!
+    guard let intType = field.type(type: FlatInt.self) else {
+      throw .invalid("Invalid FlatBuffer: \(field)")
+    }
     let bitWidth = intType.bitWidth
     if bitWidth == 8 {
       arrowType = ArrowType(intType.isSigned ? ArrowType.arrowInt8 : ArrowType.arrowUInt8)
@@ -81,7 +83,7 @@ func fromProto(  // swiftlint:disable:this cyclomatic_complexity function_body_l
     var children = [ArrowField]()
     for index in 0..<field.childrenCount {
       let childField = field.children(at: index)!
-      children.append(fromProto(field: childField))
+      children.append(try fromProto(field: childField))
     }
 
     arrowType = ArrowTypeStruct(ArrowType.arrowStruct, fields: children)
@@ -90,7 +92,7 @@ func fromProto(  // swiftlint:disable:this cyclomatic_complexity function_body_l
       arrowType = ArrowType(ArrowType.arrowUnknown)
       break
     }
-    let childArrowField = fromProto(field: childField)
+    let childArrowField = try fromProto(field: childField)
     arrowType = ArrowTypeList(childArrowField.type)
   default:
     arrowType = ArrowType(ArrowType.arrowUnknown)
