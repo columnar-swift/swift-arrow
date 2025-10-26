@@ -17,11 +17,11 @@ import Foundation
 public class ArrowColumn {
   let dataHolder: ChunkedArrayHolder
   public let field: ArrowField
-  public var type: ArrowType { return self.dataHolder.type }
-  public var length: UInt { return self.dataHolder.length }
-  public var nullCount: UInt { return self.dataHolder.nullCount }
+  public var type: ArrowType { self.dataHolder.type }
+  public var length: UInt { self.dataHolder.length }
+  public var nullCount: UInt { self.dataHolder.nullCount }
 
-  public var name: String { return field.name }
+  public var name: String { field.name }
   public init(_ field: ArrowField, chunked: ChunkedArrayHolder) {
     self.field = field
     self.dataHolder = chunked
@@ -30,7 +30,7 @@ public class ArrowColumn {
 
 public class ArrowTable {
   public let schema: ArrowSchema
-  public var columnCount: UInt { return UInt(self.columns.count) }
+  public var columnCount: UInt { UInt(self.columns.count) }
   public let rowCount: UInt
   public let columns: [ArrowColumn]
   init(_ schema: ArrowSchema, columns: [ArrowColumn]) {
@@ -49,7 +49,7 @@ public class ArrowTable {
     if recordBatches.isEmpty {
       return .failure(.arrayHasNoElements)
     }
-    var holders = [[ArrowArrayHolder]]()
+    var holders: [[ArrowArrayHolder]] = []
     let schema = recordBatches[0].schema
     for recordBatch in recordBatches {
       for index in 0..<schema.fields.count {
@@ -84,7 +84,7 @@ public class ArrowTable {
 
   public class Builder {
     let schemaBuilder = ArrowSchema.Builder()
-    var columns = [ArrowColumn]()
+    var columns: [ArrowColumn] = []
 
     public init() {}
 
@@ -93,7 +93,7 @@ public class ArrowTable {
       _ fieldName: String,
       arrowArray: ArrowArray<T>
     ) throws -> Builder {
-      return self.addColumn(fieldName, chunked: try ChunkedArray([arrowArray]))
+      self.addColumn(fieldName, chunked: try ChunkedArray([arrowArray]))
     }
 
     @discardableResult
@@ -142,14 +142,14 @@ public class ArrowTable {
     }
 
     public func finish() -> ArrowTable {
-      return ArrowTable(self.schemaBuilder.finish(), columns: self.columns)
+      ArrowTable(self.schemaBuilder.finish(), columns: self.columns)
     }
   }
 }
 
 public class RecordBatch {
   public let schema: ArrowSchema
-  public var columnCount: UInt { return UInt(self.columns.count) }
+  public var columnCount: UInt { UInt(self.columns.count) }
   public let columns: [ArrowArrayHolder]
   public let length: UInt
   public init(_ schema: ArrowSchema, columns: [ArrowArrayHolder]) {
@@ -160,7 +160,7 @@ public class RecordBatch {
 
   public class Builder {
     let schemaBuilder = ArrowSchema.Builder()
-    var columns = [ArrowArrayHolder]()
+    var columns: [ArrowArrayHolder] = []
 
     public init() {}
 
@@ -223,13 +223,14 @@ public class RecordBatch {
   }
 
   public func column(_ index: Int) -> ArrowArrayHolder {
-    return self.columns[index]
+    self.columns[index]
   }
 
   public func column(_ name: String) -> ArrowArrayHolder? {
     if let index = self.schema.fieldIndex(name) {
       return self.columns[index]
+    } else {
+      return nil
     }
-    return nil
   }
 }

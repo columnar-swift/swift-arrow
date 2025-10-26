@@ -21,7 +21,8 @@ private func makeBinaryHolder(
 ) -> Result<ArrowArrayHolder, ArrowError> {
   do {
     let arrowType = ArrowType(ArrowType.arrowBinary)
-    let arrowData = try ArrowData(arrowType, buffers: buffers, nullCount: nullCount)
+    let arrowData = try ArrowData(
+      arrowType, buffers: buffers, nullCount: nullCount)
     return .success(ArrowArrayHolderImpl(try BinaryArray(arrowData)))
   } catch {
     return .failure(error)
@@ -34,7 +35,8 @@ private func makeStringHolder(
 ) -> Result<ArrowArrayHolder, ArrowError> {
   do {
     let arrowType = ArrowType(ArrowType.arrowString)
-    let arrowData = try ArrowData(arrowType, buffers: buffers, nullCount: nullCount)
+    let arrowData = try ArrowData(
+      arrowType, buffers: buffers, nullCount: nullCount)
     return .success(ArrowArrayHolderImpl(try StringArray(arrowData)))
   } catch {
     return .failure(error)
@@ -74,14 +76,17 @@ private func makeTimeHolder(
   do {
     if field.type.id == .time32 {
       if let arrowType = field.type as? ArrowTypeTime32 {
-        let arrowData = try ArrowData(arrowType, buffers: buffers, nullCount: nullCount)
+        let arrowData = try ArrowData(
+          arrowType, buffers: buffers, nullCount: nullCount)
         return .success(ArrowArrayHolderImpl(try FixedArray<Time32>(arrowData)))
       } else {
-        return .failure(.invalid("Incorrect field type for time: \(field.type)"))
+        return .failure(
+          .invalid("Incorrect field type for time: \(field.type)"))
       }
     }
     if let arrowType = field.type as? ArrowTypeTime64 {
-      let arrowData = try ArrowData(arrowType, buffers: buffers, nullCount: nullCount)
+      let arrowData = try ArrowData(
+        arrowType, buffers: buffers, nullCount: nullCount)
       return .success(ArrowArrayHolderImpl(try FixedArray<Time64>(arrowData)))
     } else {
       return .failure(.invalid("Incorrect field type for time: \(field.type)"))
@@ -98,10 +103,12 @@ private func makeTimestampHolder(
 ) -> Result<ArrowArrayHolder, ArrowError> {
   do {
     if let arrowType = field.type as? ArrowTypeTimestamp {
-      let arrowData = try ArrowData(arrowType, buffers: buffers, nullCount: nullCount)
+      let arrowData = try ArrowData(
+        arrowType, buffers: buffers, nullCount: nullCount)
       return .success(ArrowArrayHolderImpl(try TimestampArray(arrowData)))
     } else {
-      return .failure(.invalid("Incorrect field type for timestamp: \(field.type)"))
+      return .failure(
+        .invalid("Incorrect field type for timestamp: \(field.type)"))
     }
   } catch {
     return .failure(error)
@@ -159,8 +166,8 @@ func makeNestedHolder(
     return .success(ArrowArrayHolderImpl(try NestedArray(arrowData)))
   } catch {
     return .failure(error)
-//  } catch {
-//    return .failure(.unknownError("\(error)"))
+    //  } catch {
+    //    return .failure(.unknownError("\(error)"))
   }
 }
 
@@ -195,27 +202,37 @@ func makeArrayHolder(
   let typeId = field.type.id
   switch typeId {
   case .int8:
-    return makeFixedHolder(Int8.self, field: field, buffers: buffers, nullCount: nullCount)
+    return makeFixedHolder(
+      Int8.self, field: field, buffers: buffers, nullCount: nullCount)
   case .uint8:
-    return makeFixedHolder(UInt8.self, field: field, buffers: buffers, nullCount: nullCount)
+    return makeFixedHolder(
+      UInt8.self, field: field, buffers: buffers, nullCount: nullCount)
   case .int16:
-    return makeFixedHolder(Int16.self, field: field, buffers: buffers, nullCount: nullCount)
+    return makeFixedHolder(
+      Int16.self, field: field, buffers: buffers, nullCount: nullCount)
   case .uint16:
-    return makeFixedHolder(UInt16.self, field: field, buffers: buffers, nullCount: nullCount)
+    return makeFixedHolder(
+      UInt16.self, field: field, buffers: buffers, nullCount: nullCount)
   case .int32:
-    return makeFixedHolder(Int32.self, field: field, buffers: buffers, nullCount: nullCount)
+    return makeFixedHolder(
+      Int32.self, field: field, buffers: buffers, nullCount: nullCount)
   case .uint32:
-    return makeFixedHolder(UInt32.self, field: field, buffers: buffers, nullCount: nullCount)
+    return makeFixedHolder(
+      UInt32.self, field: field, buffers: buffers, nullCount: nullCount)
   case .int64:
-    return makeFixedHolder(Int64.self, field: field, buffers: buffers, nullCount: nullCount)
+    return makeFixedHolder(
+      Int64.self, field: field, buffers: buffers, nullCount: nullCount)
   case .uint64:
-    return makeFixedHolder(UInt64.self, field: field, buffers: buffers, nullCount: nullCount)
+    return makeFixedHolder(
+      UInt64.self, field: field, buffers: buffers, nullCount: nullCount)
   case .boolean:
     return makeBoolHolder(buffers, nullCount: nullCount)
   case .float:
-    return makeFixedHolder(Float.self, field: field, buffers: buffers, nullCount: nullCount)
+    return makeFixedHolder(
+      Float.self, field: field, buffers: buffers, nullCount: nullCount)
   case .double:
-    return makeFixedHolder(Double.self, field: field, buffers: buffers, nullCount: nullCount)
+    return makeFixedHolder(
+      Double.self, field: field, buffers: buffers, nullCount: nullCount)
   case .string:
     return makeStringHolder(buffers, nullCount: nullCount)
   case .binary:
@@ -231,13 +248,15 @@ func makeArrayHolder(
       return .failure(.invalid("Expected a struct field to have children"))
     }
     return makeNestedHolder(
-      field, buffers: buffers, nullCount: nullCount, children: children, rbLength: rbLength)
+      field, buffers: buffers, nullCount: nullCount, children: children,
+      rbLength: rbLength)
   case .list:
     guard let children else {
       return .failure(.invalid("Expected a list field to have children"))
     }
     return makeNestedHolder(
-      field, buffers: buffers, nullCount: nullCount, children: children, rbLength: rbLength)
+      field, buffers: buffers, nullCount: nullCount, children: children,
+      rbLength: rbLength)
   default:
     return .failure(.unknownType("Type \(typeId) currently not supported"))
   }
@@ -271,16 +290,20 @@ func findArrowType(_ field: FlatField) throws(ArrowError) -> ArrowType {
     }
     let bitWidth = intType.bitWidth
     if bitWidth == 8 {
-      return ArrowType(intType.isSigned ? ArrowType.arrowInt8 : ArrowType.arrowUInt8)
+      return ArrowType(
+        intType.isSigned ? ArrowType.arrowInt8 : ArrowType.arrowUInt8)
     }
     if bitWidth == 16 {
-      return ArrowType(intType.isSigned ? ArrowType.arrowInt16 : ArrowType.arrowUInt16)
+      return ArrowType(
+        intType.isSigned ? ArrowType.arrowInt16 : ArrowType.arrowUInt16)
     }
     if bitWidth == 32 {
-      return ArrowType(intType.isSigned ? ArrowType.arrowInt32 : ArrowType.arrowUInt32)
+      return ArrowType(
+        intType.isSigned ? ArrowType.arrowInt32 : ArrowType.arrowUInt32)
     }
     if bitWidth == 64 {
-      return ArrowType(intType.isSigned ? ArrowType.arrowInt64 : ArrowType.arrowUInt64)
+      return ArrowType(
+        intType.isSigned ? ArrowType.arrowInt64 : ArrowType.arrowUInt64)
     }
     return ArrowType(ArrowType.arrowUnknown)
   case .bool:
@@ -314,9 +337,11 @@ func findArrowType(_ field: FlatField) throws(ArrowError) -> ArrowType {
       throw .invalid("Could not get time type from field")
     }
     if timeType.unit == .second || timeType.unit == .millisecond {
-      return ArrowTypeTime32(timeType.unit == .second ? .seconds : .milliseconds)
+      return ArrowTypeTime32(
+        timeType.unit == .second ? .seconds : .milliseconds)
     }
-    return ArrowTypeTime64(timeType.unit == .microsecond ? .microseconds : .nanoseconds)
+    return ArrowTypeTime64(
+      timeType.unit == .microsecond ? .microseconds : .nanoseconds)
   case .timestamp:
     guard let timestampType = field.type(type: FlatTimestamp.self) else {
       throw .invalid("Could not get timestamp type from field")
@@ -338,18 +363,21 @@ func findArrowType(_ field: FlatField) throws(ArrowError) -> ArrowType {
     guard field.type(type: FlatStruct.self) != nil else {
       throw .invalid("Could not get struct type from field")
     }
-    var fields = [ArrowField]()
+    var fields: [ArrowField] = []
     for index in 0..<field.childrenCount {
       guard let childField = field.children(at: index) else {
         throw .invalid("Could not get child at index: \(index) ofrom struct")
       }
       let childType = try findArrowType(childField)
       fields.append(
-        ArrowField(childField.name ?? "", type: childType, isNullable: childField.nullable))
+        ArrowField(
+          childField.name ?? "", type: childType,
+          isNullable: childField.nullable))
     }
     return ArrowTypeStruct(ArrowType.arrowStruct, fields: fields)
   case .list:
-    guard field.childrenCount == 1, let childField = field.children(at: 0) else {
+    guard field.childrenCount == 1, let childField = field.children(at: 0)
+    else {
       return ArrowType(ArrowType.arrowUnknown)
     }
     let childType = try findArrowType(childField)

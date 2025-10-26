@@ -22,7 +22,7 @@ public class MemoryAllocator {
   }
 
   func allocateArray(_ byteCount: Int) -> UnsafeMutableRawPointer {
-    return UnsafeMutableRawPointer.allocate(
+    UnsafeMutableRawPointer.allocate(
       byteCount: byteCount,
       alignment: self.alignment
     )

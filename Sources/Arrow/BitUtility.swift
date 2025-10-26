@@ -17,21 +17,26 @@ import Foundation
 class BitUtility {
   static func isSet(_ bit: UInt, buffer: ArrowBuffer) -> Bool {
     let byteIndex = UInt(bit / 8)
-    let theByte = buffer.rawPointer.load(fromByteOffset: Int(byteIndex), as: UInt8.self)
+    let theByte = buffer.rawPointer.load(
+      fromByteOffset: Int(byteIndex), as: UInt8.self)
     return theByte & UInt8(1 << (bit % 8)) > 0
   }
 
   static func setBit(_ bit: UInt, buffer: ArrowBuffer) {
     let byteIndex = UInt(bit / 8)
-    var theByte = buffer.rawPointer.load(fromByteOffset: Int(byteIndex), as: UInt8.self)
+    var theByte = buffer.rawPointer.load(
+      fromByteOffset: Int(byteIndex), as: UInt8.self)
     theByte |= UInt8(1 << (bit % 8))
-    buffer.rawPointer.storeBytes(of: theByte, toByteOffset: Int(byteIndex), as: UInt8.self)
+    buffer.rawPointer.storeBytes(
+      of: theByte, toByteOffset: Int(byteIndex), as: UInt8.self)
   }
 
   static func clearBit(_ bit: UInt, buffer: ArrowBuffer) {
     let byteIndex = UInt(bit / 8)
-    var theByte = buffer.rawPointer.load(fromByteOffset: Int(byteIndex), as: UInt8.self)
+    var theByte = buffer.rawPointer.load(
+      fromByteOffset: Int(byteIndex), as: UInt8.self)
     theByte &= ~(UInt8(1 << (bit % 8)))
-    buffer.rawPointer.storeBytes(of: theByte, toByteOffset: Int(byteIndex), as: UInt8.self)
+    buffer.rawPointer.storeBytes(
+      of: theByte, toByteOffset: Int(byteIndex), as: UInt8.self)
   }
 }

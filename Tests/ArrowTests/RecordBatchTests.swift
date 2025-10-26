@@ -18,7 +18,8 @@ import XCTest
 
 final class RecordBatchTests: XCTestCase {
   func testRecordBatch() throws {
-    let uint8Builder: NumberArrayBuilder<UInt8> = try ArrowArrayBuilders.loadNumberArrayBuilder()
+    let uint8Builder: NumberArrayBuilder<UInt8> =
+      try ArrowArrayBuilders.loadNumberArrayBuilder()
     uint8Builder.append(10)
     uint8Builder.append(22)
     uint8Builder.append(nil)

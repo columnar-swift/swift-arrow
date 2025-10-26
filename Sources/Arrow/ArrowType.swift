@@ -440,7 +440,8 @@ public class ArrowType {
       let components = from.split(separator: ":", maxSplits: 1)
       guard let unitPart = components.first, unitPart.count == 3 else {
         throw ArrowError.invalid(
-          "Invalid timestamp format '\(from)'. Expected format 'ts[s|m|u|n][:timezone]'")
+          "Invalid timestamp format '\(from)'. Expected format 'ts[s|m|u|n][:timezone]'"
+        )
       }
 
       let unitChar = unitPart.suffix(1)
@@ -452,7 +453,8 @@ public class ArrowType {
       case "n": unit = .nanoseconds
       default:
         throw ArrowError.invalid(
-          "Unrecognized timestamp unit '\(unitChar)'. Expected 's', 'm', 'u', or 'n'.")
+          "Unrecognized timestamp unit '\(unitChar)'. Expected 's', 'm', 'u', or 'n'."
+        )
       }
 
       let timezone = components.count > 1 ? String(components[1]) : nil

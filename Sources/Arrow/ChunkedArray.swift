@@ -38,7 +38,7 @@ public class ChunkedArrayHolder {
     self.type = chunked.type
     self.nullCount = chunked.nullCount
     self.getBufferData = { () -> Result<[Data], ArrowError> in
-      var bufferData = [Data]()
+      var bufferData: [Data] = []
       var numBuffers = 2
       switch toFBTypeEnum(chunked.type) {
       case .success(let fbType):
@@ -63,7 +63,7 @@ public class ChunkedArrayHolder {
     }
 
     self.getBufferDataSizes = { () -> Result<[Int], ArrowError> in
-      var bufferDataSizes = [Int]()
+      var bufferDataSizes: [Int] = []
       var numBuffers = 2
 
       switch toFBTypeEnum(chunked.type) {
@@ -81,7 +81,8 @@ public class ChunkedArrayHolder {
 
       for arrowData in chunked.arrays {
         for index in 0..<numBuffers {
-          bufferDataSizes[index] += Int(arrowData.arrowData.buffers[index].capacity)
+          bufferDataSizes[index] += Int(
+            arrowData.arrowData.buffers[index].capacity)
         }
       }
 
@@ -95,7 +96,7 @@ public class ChunkedArray<T>: AsString {
   public let type: ArrowType
   public let nullCount: UInt
   public let length: UInt
-  public var arrayCount: UInt { return UInt(self.arrays.count) }
+  public var arrayCount: UInt { UInt(self.arrays.count) }
 
   public init(_ arrays: [ArrowArray<T>]) throws {
     if arrays.count == 0 {

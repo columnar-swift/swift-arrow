@@ -53,7 +53,7 @@ public class ArrowReader {
     }
 
     func isDone() -> Bool {
-      return nodeIndex >= self.recordBatch.nodesCount
+      nodeIndex >= self.recordBatch.nodesCount
     }
   }
 
@@ -66,7 +66,7 @@ public class ArrowReader {
   public class ArrowReaderResult {
     fileprivate var messageSchema: Schema?
     public var schema: ArrowSchema?
-    public var batches = [RecordBatch]()
+    public var batches: [RecordBatch] = []
   }
 
   public init() {}
@@ -86,12 +86,18 @@ public class ArrowReader {
         return .failure(error)
       }
       if fieldType.info == ArrowType.arrowUnknown {
-        return .failure(.unknownType("Unsupported field type found: \(field.typeType)"))
+        return .failure(
+          .unknownType("Unsupported field type found: \(field.typeType)")
+        )
       }
       guard let fieldName = field.name else {
         return .failure(.invalid("Field name not found"))
       }
-      let arrowField = ArrowField(fieldName, type: fieldType, isNullable: field.nullable)
+      let arrowField = ArrowField(
+        fieldName,
+        type: fieldType,
+        isNullable: field.nullable
+      )
       builder.addField(arrowField)
     }
     return .success(builder.finish())
@@ -113,7 +119,7 @@ public class ArrowReader {
     let arrowNullBuffer = makeBuffer(
       nullBuffer, fileData: loadInfo.fileData,
       length: nullLength, messageOffset: loadInfo.messageOffset)
-    var children = [ArrowData]()
+    var children: [ArrowData] = []
     for index in 0..<field.childrenCount {
       guard let childField = field.children(at: index) else {
         return .failure(.invalid("Child field not found at index: \(index)"))
@@ -157,14 +163,16 @@ public class ArrowReader {
       offsetBuffer, fileData: loadInfo.fileData, length: UInt(node.length + 1),
       messageOffset: loadInfo.messageOffset)
 
-    guard field.childrenCount == 1, let childField = field.children(at: 0) else {
+    guard field.childrenCount == 1, let childField = field.children(at: 0)
+    else {
       return .failure(.invalid("List must have exactly one child"))
     }
 
     switch loadField(loadInfo, field: childField) {
     case .success(let childHolder):
       return makeArrayHolder(
-        field, buffers: [arrowNullBuffer, arrowOffsetBuffer], nullCount: UInt(node.nullCount),
+        field, buffers: [arrowNullBuffer, arrowOffsetBuffer],
+        nullCount: UInt(node.nullCount),
         children: [childHolder.array.arrowData],
         rbLength: UInt(loadInfo.batchData.recordBatch.length))
     case .failure(let error):
@@ -364,7 +372,8 @@ public class ArrowReader {
         offset += Int(message.bodyLength + Int64(length))
         length = getUInt32(input, offset: offset)
       default:
-        return .failure(.unknownError("Unhandled header type: \(message.headerType)"))
+        return .failure(
+          .unknownError("Unhandled header type: \(message.headerType)"))
       }
     }
     return .success(result)
@@ -383,7 +392,8 @@ public class ArrowReader {
     useUnalignedBuffers: Bool = false
   ) -> Result<ArrowReaderResult, ArrowError> {
     let footerLength = fileData.withUnsafeBytes { rawBuffer in
-      rawBuffer.loadUnaligned(fromByteOffset: fileData.count - 4, as: Int32.self)
+      rawBuffer.loadUnaligned(
+        fromByteOffset: fileData.count - 4, as: Int32.self)
     }
 
     let result = ArrowReaderResult()
@@ -409,7 +419,8 @@ public class ArrowReader {
         return .failure(.invalid("Missing record batch at index \(index)"))
       }
       var messageLength = fileData.withUnsafeBytes { rawBuffer in
-        rawBuffer.loadUnaligned(fromByteOffset: Int(recordBatch.offset), as: UInt32.self)
+        rawBuffer.loadUnaligned(
+          fromByteOffset: Int(recordBatch.offset), as: UInt32.self)
       }
 
       var messageOffset: Int64 = 1
@@ -417,7 +428,8 @@ public class ArrowReader {
         messageOffset += 1
         messageLength = fileData.withUnsafeBytes { rawBuffer in
           rawBuffer.loadUnaligned(
-            fromByteOffset: Int(recordBatch.offset + Int64(MemoryLayout<Int32>.size)),
+            fromByteOffset: Int(
+              recordBatch.offset + Int64(MemoryLayout<Int32>.size)),
             as: UInt32.self)
         }
       }
@@ -456,7 +468,8 @@ public class ArrowReader {
           return .failure(error)
         }
       default:
-        return .failure(.unknownError("Unhandled header type: \(message.headerType)"))
+        return .failure(
+          .unknownError("Unhandled header type: \(message.headerType)"))
       }
     }
 
@@ -479,7 +492,7 @@ public class ArrowReader {
   }
 
   static public func makeArrowReaderResult() -> ArrowReaderResult {
-    return ArrowReaderResult()
+    ArrowReaderResult()
   }
 
   public func fromMessage(
@@ -511,7 +524,8 @@ public class ArrowReader {
       }
       // TODO: the result used here is also the return type. Ideally is would be constructed once as a struct (same issue as above)
       guard let messageSchema = result.messageSchema else {
-        return .failure(.invalid("Expected the result to have the messageSchema already"))
+        return .failure(
+          .invalid("Expected the result to have the messageSchema already"))
       }
       guard let resultSchema = result.schema else {
         return .failure(.invalid("Expected result to have a schema"))
@@ -531,7 +545,8 @@ public class ArrowReader {
         return .failure(error)
       }
     default:
-      return .failure(.unknownError("Unhandled header type: \(message.headerType)"))
+      return .failure(
+        .unknownError("Unhandled header type: \(message.headerType)"))
     }
   }
 }

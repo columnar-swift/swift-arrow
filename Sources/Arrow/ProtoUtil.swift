@@ -26,13 +26,17 @@ func fromProto(
     }
     let bitWidth = intType.bitWidth
     if bitWidth == 8 {
-      arrowType = ArrowType(intType.isSigned ? ArrowType.arrowInt8 : ArrowType.arrowUInt8)
+      arrowType = ArrowType(
+        intType.isSigned ? ArrowType.arrowInt8 : ArrowType.arrowUInt8)
     } else if bitWidth == 16 {
-      arrowType = ArrowType(intType.isSigned ? ArrowType.arrowInt16 : ArrowType.arrowUInt16)
+      arrowType = ArrowType(
+        intType.isSigned ? ArrowType.arrowInt16 : ArrowType.arrowUInt16)
     } else if bitWidth == 32 {
-      arrowType = ArrowType(intType.isSigned ? ArrowType.arrowInt32 : ArrowType.arrowUInt32)
+      arrowType = ArrowType(
+        intType.isSigned ? ArrowType.arrowInt32 : ArrowType.arrowUInt32)
     } else if bitWidth == 64 {
-      arrowType = ArrowType(intType.isSigned ? ArrowType.arrowInt64 : ArrowType.arrowUInt64)
+      arrowType = ArrowType(
+        intType.isSigned ? ArrowType.arrowInt64 : ArrowType.arrowUInt64)
     }
   case .bool:
     arrowType = ArrowType(ArrowType.arrowBool)
@@ -63,10 +67,12 @@ func fromProto(
       throw .invalid("Invalid FlatBuffer: \(field)")
     }
     if timeType.unit == .second || timeType.unit == .millisecond {
-      let arrowUnit: ArrowTime32Unit = timeType.unit == .second ? .seconds : .milliseconds
+      let arrowUnit: ArrowTime32Unit =
+        timeType.unit == .second ? .seconds : .milliseconds
       arrowType = ArrowTypeTime32(arrowUnit)
     } else {
-      let arrowUnit: ArrowTime64Unit = timeType.unit == .microsecond ? .microseconds : .nanoseconds
+      let arrowUnit: ArrowTime64Unit =
+        timeType.unit == .microsecond ? .microseconds : .nanoseconds
       arrowType = ArrowTypeTime64(arrowUnit)
     }
   case .timestamp:
@@ -85,9 +91,10 @@ func fromProto(
       arrowUnit = .nanoseconds
     }
     let timezone = timestampType.timezone
-    arrowType = ArrowTypeTimestamp(arrowUnit, timezone: timezone?.isEmpty == true ? nil : timezone)
+    arrowType = ArrowTypeTimestamp(
+      arrowUnit, timezone: timezone?.isEmpty == true ? nil : timezone)
   case .struct_:
-    var children = [ArrowField]()
+    var children: [ArrowField] = []
     for index in 0..<field.childrenCount {
       guard let childField = field.children(at: index) else {
         throw .invalid("Missing childe at index: \(index) for field: \(field)")
@@ -96,7 +103,8 @@ func fromProto(
     }
     arrowType = ArrowTypeStruct(ArrowType.arrowStruct, fields: children)
   case .list:
-    guard field.childrenCount == 1, let childField = field.children(at: 0) else {
+    guard field.childrenCount == 1, let childField = field.children(at: 0)
+    else {
       arrowType = ArrowType(ArrowType.arrowUnknown)
       break
     }
