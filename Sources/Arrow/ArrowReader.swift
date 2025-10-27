@@ -85,18 +85,18 @@ public class ArrowReader {
       } catch {
         return .failure(error)
       }
-      if fieldType.info == ArrowType.arrowUnknown {
-        return .failure(
-          .unknownType("Unsupported field type found: \(field.typeType)")
-        )
-      }
+      //      if fieldType.info == ArrowType.arrowUnknown {
+      //        return .failure(
+      //          .unknownType("Unsupported field type found: \(field.typeType)")
+      //        )
+      //      }
       guard let fieldName = field.name else {
         return .failure(.invalid("Field name not found"))
       }
       let arrowField = ArrowField(
-        fieldName,
-        type: fieldType,
-        isNullable: field.nullable
+        name: fieldName,
+        dataType: fieldType,
+        nullable: field.nullable
       )
       builder.addField(arrowField)
     }

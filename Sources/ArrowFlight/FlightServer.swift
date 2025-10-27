@@ -98,10 +98,13 @@ public func makeFlightServer(_ handler: ArrowFlightServer)
 internal final class InternalFlightServer:
   Arrow_Flight_Protocol_FlightServiceAsyncProvider
 {
-  func pollFlightInfo(request: Arrow_Flight_Protocol_FlightDescriptor, context: GRPC.GRPCAsyncServerCallContext) async throws -> Arrow_Flight_Protocol_PollInfo {
+  func pollFlightInfo(
+    request: Arrow_Flight_Protocol_FlightDescriptor,
+    context: GRPC.GRPCAsyncServerCallContext
+  ) async throws -> Arrow_Flight_Protocol_PollInfo {
     throw ArrowFlightError.notImplemented()
   }
-  
+
   let arrowFlightServer: ArrowFlightServer?
 
   init(_ arrowFlightServer: ArrowFlightServer?) {
@@ -223,7 +226,8 @@ internal final class InternalFlightServer:
   ) async throws {
     if let server = arrowFlightServer {
       try await server.doAction(
-        FlightAction(request), writer: ResultStreamWriter(stream: responseStream))
+        FlightAction(request),
+        writer: ResultStreamWriter(stream: responseStream))
       return
     }
 

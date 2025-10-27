@@ -45,7 +45,7 @@ public struct FlightInfoStreamWriter: Sendable {
 
 public struct PutResultDataStreamWriter: Sendable {
   let stream: GRPCAsyncResponseStreamWriter<Arrow_Flight_Protocol_PutResult>
-  
+
   public func write(_ result: FlightPutResult) async throws {
     try await self.stream.send(result.toProtocol())
   }

@@ -102,9 +102,9 @@ public class ArrowTable {
       chunked: ChunkedArray<T>
     ) -> Builder {
       let field = ArrowField(
-        fieldName,
-        type: chunked.type,
-        isNullable: chunked.nullCount != 0
+        name: fieldName,
+        dataType: chunked.type,
+        nullable: chunked.nullCount != 0
       )
       self.schemaBuilder.addField(field)
       let column = ArrowColumn(field, chunked: ChunkedArrayHolder(chunked))
@@ -170,9 +170,9 @@ public class RecordBatch {
       arrowArray: ArrowArrayHolder
     ) -> Builder {
       let field = ArrowField(
-        fieldName,
-        type: arrowArray.type,
-        isNullable: arrowArray.nullCount != 0
+        name: fieldName,
+        dataType: arrowArray.type,
+        nullable: arrowArray.nullCount != 0
       )
       self.schemaBuilder.addField(field)
       self.columns.append(arrowArray)

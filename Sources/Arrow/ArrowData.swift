@@ -40,25 +40,6 @@ public class ArrowData {
     nullCount: UInt,
     length: UInt
   ) throws(ArrowError) {
-    let infoType = arrowType.info
-    switch infoType {
-    case .primitiveInfo(let typeId):
-      if typeId == ArrowTypeId.unknown {
-        throw ArrowError.unknownType("Unknown primitive type for data")
-      }
-    case .variableInfo(let typeId):
-      if typeId == ArrowTypeId.unknown {
-        throw ArrowError.unknownType("Unknown variable type for data")
-      }
-    case .timeInfo(let typeId):
-      if typeId == ArrowTypeId.unknown {
-        throw ArrowError.unknownType("Unknown time type for data")
-      }
-    case .complexInfo(let typeId):
-      if typeId == ArrowTypeId.unknown {
-        throw ArrowError.unknownType("Unknown complex type for data")
-      }
-    }
 
     self.type = arrowType
     self.buffers = buffers

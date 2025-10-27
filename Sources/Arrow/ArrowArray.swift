@@ -22,7 +22,9 @@ public protocol ArrowArrayHolder {
   var data: ArrowData { get }
   var getBufferData: () -> [Data] { get }
   var getBufferDataSizes: () -> [Int] { get }
-  var getArrowColumn: (ArrowField, [ArrowArrayHolder]) throws -> ArrowColumn {
+  var getArrowColumn:
+    (ArrowField, [ArrowArrayHolder]) throws(ArrowError) -> ArrowColumn
+  {
     get
   }
 }
@@ -36,7 +38,7 @@ public class ArrowArrayHolderImpl: ArrowArrayHolder {
   public let getBufferData: () -> [Data]
   public let getBufferDataSizes: () -> [Int]
   public let getArrowColumn:
-    (ArrowField, [ArrowArrayHolder]) throws -> ArrowColumn
+    (ArrowField, [ArrowArrayHolder]) throws(ArrowError) -> ArrowColumn
   public init<T>(_ arrowArray: ArrowArray<T>) {
     self.array = arrowArray
     self.data = arrowArray.arrowData
@@ -61,7 +63,7 @@ public class ArrowArrayHolderImpl: ArrowArrayHolder {
     }
 
     self.getArrowColumn = {
-      (field: ArrowField, arrayHolders: [ArrowArrayHolder]) throws
+      (field: ArrowField, arrayHolders: [ArrowArrayHolder]) throws(ArrowError)
         -> ArrowColumn in
       var arrays: [ArrowArray<T>] = []
       for arrayHolder in arrayHolders {
@@ -78,7 +80,7 @@ public class ArrowArrayHolderImpl: ArrowArrayHolder {
     _ arrowType: ArrowType,
     with arrowData: ArrowData
   ) throws(ArrowError) -> ArrowArrayHolder {
-    switch arrowType.id {
+    switch arrowType {
     case .int8:
       return try ArrowArrayHolderImpl(FixedArray<Int8>(arrowData))
     case .int16:
@@ -95,9 +97,9 @@ public class ArrowArrayHolderImpl: ArrowArrayHolder {
       return try ArrowArrayHolderImpl(FixedArray<UInt32>(arrowData))
     case .uint64:
       return try ArrowArrayHolderImpl(FixedArray<UInt64>(arrowData))
-    case .double:
+    case .float64:
       return try ArrowArrayHolderImpl(FixedArray<Double>(arrowData))
-    case .float:
+    case .float32:
       return try ArrowArrayHolderImpl(FixedArray<Float>(arrowData))
     case .date32:
       return try ArrowArrayHolderImpl(Date32Array(arrowData))
@@ -109,15 +111,15 @@ public class ArrowArrayHolderImpl: ArrowArrayHolder {
       return try ArrowArrayHolderImpl(Time64Array(arrowData))
     case .timestamp:
       return try ArrowArrayHolderImpl(TimestampArray(arrowData))
-    case .string:
+    case .utf8:
       return try ArrowArrayHolderImpl(StringArray(arrowData))
     case .boolean:
       return try ArrowArrayHolderImpl(BoolArray(arrowData))
     case .binary:
       return try ArrowArrayHolderImpl(BinaryArray(arrowData))
-    case .strct:
+    case .strct(let _):
       return try ArrowArrayHolderImpl(NestedArray(arrowData))
-    case .list:
+    case .list(let _):
       return try ArrowArrayHolderImpl(NestedArray(arrowData))
     default:
       throw ArrowError.invalid("Array not found for type: \(arrowType)")
@@ -280,17 +282,18 @@ public class TimestampArray: FixedArray<Timestamp> {
   ) -> String? {
     guard let timestamp = self[index] else { return nil }
 
-    guard let timestampType = self.arrowData.type as? ArrowTypeTimestamp else {
+    guard case .timestamp(let timeUnit, let timezone) = self.arrowData.type
+    else {
       return options.fallbackToRaw ? "\(timestamp)" : nil
     }
 
-    let date = dateFromTimestamp(timestamp, unit: timestampType.unit)
+    let date = dateFromTimestamp(timestamp, unit: timeUnit)
 
     if cachedFormatter == nil || cachedOptions != options {
       let formatter = DateFormatter()
       formatter.dateFormat = options.dateFormat
       formatter.locale = options.locale
-      if options.includeTimezone, let timezone = timestampType.timezone {
+      if options.includeTimezone, let timezone {
         formatter.timeZone = TimeZone(identifier: timezone)
       }
       cachedFormatter = formatter
@@ -301,17 +304,17 @@ public class TimestampArray: FixedArray<Timestamp> {
 
   private func dateFromTimestamp(
     _ timestamp: Int64,
-    unit: ArrowTimestampUnit
+    unit: TimeUnit
   ) -> Date {
     let timeInterval: TimeInterval
     switch unit {
-    case .seconds:
+    case .second:
       timeInterval = TimeInterval(timestamp)
-    case .milliseconds:
+    case .millisecond:
       timeInterval = TimeInterval(timestamp) / 1_000
-    case .microseconds:
+    case .microsecond:
       timeInterval = TimeInterval(timestamp) / 1_000_000
-    case .nanoseconds:
+    case .nanosecond:
       timeInterval = TimeInterval(timestamp) / 1_000_000_000
     }
     return Date(timeIntervalSince1970: timeInterval)
@@ -378,21 +381,18 @@ public class NestedArray: ArrowArray<[Any?]> {
 
   public required init(_ arrowData: ArrowData) throws(ArrowError) {
     try super.init(arrowData)
-    switch arrowData.type.id {
-    case .list:
+    switch arrowData.type {
+    case .list(let field):
       guard arrowData.children.count == 1 else {
         throw ArrowError.invalid("List array must have exactly one child")
       }
-      guard let listType = arrowData.type as? ArrowTypeList else {
-        throw ArrowError.invalid("Expected ArrowTypeList for list type ID")
-      }
       self.children = [
         try ArrowArrayHolderImpl.loadArray(
-          listType.elementType,
+          field.dataType,
           with: arrowData.children[0]
         )
       ]
-    case .strct:
+    case .strct(let _):
       var fields: [ArrowArrayHolder] = []
       for child in arrowData.children {
         fields.append(
@@ -402,7 +402,7 @@ public class NestedArray: ArrowArray<[Any?]> {
       self.children = fields
     default:
       throw .invalid(
-        "NestedArray only supports list and struct types, got: \(arrowData.type.id)"
+        "NestedArray only supports list and struct types, got: \(arrowData.type)"
       )
     }
   }
@@ -414,8 +414,8 @@ public class NestedArray: ArrowArray<[Any?]> {
     guard let children = self.children else {
       return nil
     }
-    switch arrowData.type.id {
-    case .list:
+    switch arrowData.type {
+    case .list(let _):
       guard let values = children.first else { return nil }
       let offsets = self.arrowData.buffers[1]
       let offsetIndex = Int(index) * MemoryLayout<Int32>.stride
@@ -430,7 +430,7 @@ public class NestedArray: ArrowArray<[Any?]> {
         items.append(values.array.asAny(UInt(i)))
       }
       return items
-    case .strct:
+    case .strct(let _):
       var result: [Any?] = []
       for field in children {
         result.append(field.array.asAny(index))
@@ -442,8 +442,8 @@ public class NestedArray: ArrowArray<[Any?]> {
   }
 
   public override func asString(_ index: UInt) -> String {
-    switch arrowData.type.id {
-    case .list:
+    switch arrowData.type {
+    case .list(let _):
       if self.arrowData.isNull(index) {
         return "null"
       }
@@ -466,7 +466,7 @@ public class NestedArray: ArrowArray<[Any?]> {
       }
       output.append("]")
       return output
-    case .strct:
+    case .strct(let _):
       if self.arrowData.isNull(index) {
         return ""
       }
@@ -484,19 +484,27 @@ public class NestedArray: ArrowArray<[Any?]> {
     }
   }
 
-  public var isListArray: Bool {
-    arrowData.type.id == .list
-  }
+  //  public var isListArray: Bool {
+  //    arrowData.type == .List(_)
+  //  }
 
-  public var isStructArray: Bool {
-    arrowData.type.id == .strct
-  }
+  //  public var isStructArray: Bool {
+  //    arrowData.type.id == .strct
+  //  }
 
   public var fields: [ArrowArrayHolder]? {
-    arrowData.type.id == .strct ? children : nil
+    if case .strct(_) = arrowData.type {
+      return children
+    } else {
+      return nil
+    }
   }
 
   public var values: ArrowArrayHolder? {
-    arrowData.type.id == .list ? children?.first : nil
+    if case .list(_) = arrowData.type {
+      return children?.first
+    } else {
+      return nil
+    }
   }
 }

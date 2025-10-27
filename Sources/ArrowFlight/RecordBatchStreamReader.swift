@@ -38,7 +38,9 @@ public struct RecordBatchStreamReader: AsyncSequence, AsyncIteratorProtocol {
     self.useUnalignedBuffers = useUnalignedBuffers
   }
 
-  public mutating func next() async throws -> (Arrow.RecordBatch?, FlightDescriptor?)? {
+  public mutating func next() async throws -> (
+    Arrow.RecordBatch?, FlightDescriptor?
+  )? {
     guard !Task.isCancelled else {
       return nil
     }

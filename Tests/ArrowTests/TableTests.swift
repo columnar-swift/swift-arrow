@@ -26,20 +26,22 @@ final class TableTests: XCTestCase {
   func testSchema() throws {
     let schemaBuilder = ArrowSchema.Builder()
     let schema = schemaBuilder.addField(
-      "col1", type: ArrowType(ArrowType.arrowInt8), isNullable: true
+      "col1",
+      type: .int8,
+      isNullable: true
     )
-    .addField("col2", type: ArrowType(ArrowType.arrowBool), isNullable: false)
+    .addField("col2", type: .boolean, isNullable: false)
     .finish()
     XCTAssertEqual(schema.fields.count, 2)
     XCTAssertEqual(schema.fields[0].name, "col1")
-    XCTAssertEqual(schema.fields[0].type.info, ArrowType.arrowInt8)
-    XCTAssertEqual(schema.fields[0].isNullable, true)
+    XCTAssertEqual(schema.fields[0].dataType, .int8)
+    XCTAssertEqual(schema.fields[0].nullable, true)
     XCTAssertEqual(schema.fields[1].name, "col2")
-    XCTAssertEqual(schema.fields[1].type.info, ArrowType.arrowBool)
-    XCTAssertEqual(schema.fields[1].isNullable, false)
+    XCTAssertEqual(schema.fields[1].dataType, .boolean)
+    XCTAssertEqual(schema.fields[1].nullable, false)
   }
 
-  func testSchemaNested() {
+  func testSchemaNested() throws {
     class StructTest {
       var field0: Bool = false
       var field1: Int8 = 0
@@ -59,33 +61,42 @@ final class TableTests: XCTestCase {
 
     let testObj = StructTest()
     var fields: [ArrowField] = []
-    let buildStructType = { () -> ArrowTypeStruct in
+    let buildStructType = { () -> ArrowType in
       let mirror = Mirror(reflecting: testObj)
       for (property, value) in mirror.children {
-        let arrowType = ArrowType(ArrowType.infoForType(type(of: value)))
-        fields.append(ArrowField(property!, type: arrowType, isNullable: true))
+        let arrowType = try ArrowTypeConverter.infoForType(type(of: value))
+        fields.append(
+          ArrowField(
+            name: property!,
+            dataType: arrowType,
+            nullable: true
+          )
+        )
       }
 
-      return ArrowTypeStruct(ArrowType.arrowStruct, fields: fields)
+      return .strct(fields)
     }
 
-    let structType = buildStructType()
-    XCTAssertEqual(structType.id, ArrowTypeId.strct)
-    XCTAssertEqual(structType.fields.count, 14)
-    XCTAssertEqual(structType.fields[0].type.id, ArrowTypeId.boolean)
-    XCTAssertEqual(structType.fields[1].type.id, ArrowTypeId.int8)
-    XCTAssertEqual(structType.fields[2].type.id, ArrowTypeId.int16)
-    XCTAssertEqual(structType.fields[3].type.id, ArrowTypeId.int32)
-    XCTAssertEqual(structType.fields[4].type.id, ArrowTypeId.int64)
-    XCTAssertEqual(structType.fields[5].type.id, ArrowTypeId.uint8)
-    XCTAssertEqual(structType.fields[6].type.id, ArrowTypeId.uint16)
-    XCTAssertEqual(structType.fields[7].type.id, ArrowTypeId.uint32)
-    XCTAssertEqual(structType.fields[8].type.id, ArrowTypeId.uint64)
-    XCTAssertEqual(structType.fields[9].type.id, ArrowTypeId.double)
-    XCTAssertEqual(structType.fields[10].type.id, ArrowTypeId.float)
-    XCTAssertEqual(structType.fields[11].type.id, ArrowTypeId.string)
-    XCTAssertEqual(structType.fields[12].type.id, ArrowTypeId.binary)
-    XCTAssertEqual(structType.fields[13].type.id, ArrowTypeId.date64)
+    let structType = try buildStructType()
+    guard case .strct(let fields) = structType else {
+      XCTFail("Expected a struct")
+      return
+    }
+    XCTAssertEqual(fields.count, 14)
+    XCTAssertEqual(fields[0].dataType, .boolean)
+    XCTAssertEqual(fields[1].dataType, .int8)
+    XCTAssertEqual(fields[2].dataType, .int16)
+    XCTAssertEqual(fields[3].dataType, .int32)
+    XCTAssertEqual(fields[4].dataType, .int64)
+    XCTAssertEqual(fields[5].dataType, .uint8)
+    XCTAssertEqual(fields[6].dataType, .uint16)
+    XCTAssertEqual(fields[7].dataType, .uint32)
+    XCTAssertEqual(fields[8].dataType, .uint64)
+    XCTAssertEqual(fields[9].dataType, .float64)
+    XCTAssertEqual(fields[10].dataType, .float32)
+    XCTAssertEqual(fields[11].dataType, .utf8)
+    XCTAssertEqual(fields[12].dataType, .binary)
+    XCTAssertEqual(fields[13].dataType, .date64)
   }
 
   func testTable() throws {
@@ -110,14 +121,14 @@ final class TableTests: XCTestCase {
     let schema = table.schema
     XCTAssertEqual(schema.fields.count, 3)
     XCTAssertEqual(schema.fields[0].name, "col1")
-    XCTAssertEqual(schema.fields[0].type.info, ArrowType.arrowDouble)
-    XCTAssertEqual(schema.fields[0].isNullable, false)
+    XCTAssertEqual(schema.fields[0].dataType, .float64)
+    XCTAssertEqual(schema.fields[0].nullable, false)
     XCTAssertEqual(schema.fields[1].name, "col2")
-    XCTAssertEqual(schema.fields[1].type.info, ArrowType.arrowString)
-    XCTAssertEqual(schema.fields[1].isNullable, false)
+    XCTAssertEqual(schema.fields[1].dataType, .utf8)
+    XCTAssertEqual(schema.fields[1].nullable, false)
     XCTAssertEqual(schema.fields[1].name, "col2")
-    XCTAssertEqual(schema.fields[1].type.info, ArrowType.arrowString)
-    XCTAssertEqual(schema.fields[1].isNullable, false)
+    XCTAssertEqual(schema.fields[1].dataType, .utf8)
+    XCTAssertEqual(schema.fields[1].nullable, false)
     XCTAssertEqual(table.columns.count, 3)
     let col1: ChunkedArray<Double> = table.columns[0].data()
     let col2: ChunkedArray<String> = table.columns[1].data()
@@ -130,6 +141,9 @@ final class TableTests: XCTestCase {
   }
 
   func testTableWithChunkedData() throws {
+    // FIXME: this is hanging
+    XCTFail()
+    return
     let uint8Builder: NumberArrayBuilder<UInt8> =
       try ArrowArrayBuilders.loadNumberArrayBuilder()
     uint8Builder.append(10)
@@ -169,14 +183,14 @@ final class TableTests: XCTestCase {
     let schema = table.schema
     XCTAssertEqual(schema.fields.count, 3)
     XCTAssertEqual(schema.fields[0].name, "col1")
-    XCTAssertEqual(schema.fields[0].type.info, ArrowType.arrowUInt8)
-    XCTAssertEqual(schema.fields[0].isNullable, false)
+    XCTAssertEqual(schema.fields[0].dataType, .utf8)
+    XCTAssertEqual(schema.fields[0].nullable, false)
     XCTAssertEqual(schema.fields[1].name, "col2")
-    XCTAssertEqual(schema.fields[1].type.info, ArrowType.arrowString)
-    XCTAssertEqual(schema.fields[1].isNullable, false)
+    XCTAssertEqual(schema.fields[1].dataType, .utf8)
+    XCTAssertEqual(schema.fields[1].nullable, false)
     XCTAssertEqual(schema.fields[1].name, "col2")
-    XCTAssertEqual(schema.fields[1].type.info, ArrowType.arrowString)
-    XCTAssertEqual(schema.fields[1].isNullable, false)
+    XCTAssertEqual(schema.fields[1].dataType, .utf8)
+    XCTAssertEqual(schema.fields[1].nullable, false)
     XCTAssertEqual(table.columns.count, 3)
     let col1: ChunkedArray<UInt8> = table.columns[0].data()
     let col2: ChunkedArray<String> = table.columns[1].data()
@@ -211,11 +225,11 @@ final class TableTests: XCTestCase {
       let schema = table.schema
       XCTAssertEqual(schema.fields.count, 2)
       XCTAssertEqual(schema.fields[0].name, "col1")
-      XCTAssertEqual(schema.fields[0].type.info, ArrowType.arrowUInt8)
-      XCTAssertEqual(schema.fields[0].isNullable, false)
+      XCTAssertEqual(schema.fields[0].dataType, .uint8)
+      XCTAssertEqual(schema.fields[0].nullable, false)
       XCTAssertEqual(schema.fields[1].name, "col2")
-      XCTAssertEqual(schema.fields[1].type.info, ArrowType.arrowString)
-      XCTAssertEqual(schema.fields[1].isNullable, false)
+      XCTAssertEqual(schema.fields[1].dataType, .utf8)
+      XCTAssertEqual(schema.fields[1].nullable, false)
       XCTAssertEqual(table.columns.count, 2)
       let col1: ChunkedArray<UInt8> = table.columns[0].data()
       let col2: ChunkedArray<String> = table.columns[1].data()

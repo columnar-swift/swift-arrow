@@ -22,13 +22,13 @@ extension Data {
 }
 
 func toFBTypeEnum(_ arrowType: ArrowType) -> Result<FlatType, ArrowError> {
-  let typeId = arrowType.id
+  let typeId = arrowType
   switch typeId {
   case .int8, .int16, .int32, .int64, .uint8, .uint16, .uint32, .uint64:
     return .success(FlatType.int)
-  case .float, .double:
+  case .float16, .float32, .float64:
     return .success(FlatType.floatingpoint)
-  case .string:
+  case .utf8:
     return .success(FlatType.utf8)
   case .binary:
     return .success(FlatType.binary)
@@ -53,29 +53,27 @@ func toFBType(
   _ fbb: inout FlatBufferBuilder,
   arrowType: ArrowType
 ) -> Result<Offset, ArrowError> {
-  let infoType = arrowType.info
-  switch arrowType.id {
+  //  let infoType = arrowType.info
+  switch arrowType {
   case .int8, .uint8:
     return .success(
-      FlatInt.createInt(
-        &fbb, bitWidth: 8, isSigned: infoType == ArrowType.arrowInt8))
+      FlatInt.createInt(&fbb, bitWidth: 8, isSigned: arrowType == .uint8))
   case .int16, .uint16:
     return .success(
-      FlatInt.createInt(
-        &fbb, bitWidth: 16, isSigned: infoType == ArrowType.arrowInt16))
+      FlatInt.createInt(&fbb, bitWidth: 16, isSigned: arrowType == .int16))
   case .int32, .uint32:
     return .success(
-      FlatInt.createInt(
-        &fbb, bitWidth: 32, isSigned: infoType == ArrowType.arrowInt32))
+      FlatInt.createInt(&fbb, bitWidth: 32, isSigned: arrowType == .int32))
   case .int64, .uint64:
     return .success(
-      FlatInt.createInt(
-        &fbb, bitWidth: 64, isSigned: infoType == ArrowType.arrowInt64))
-  case .float:
+      FlatInt.createInt(&fbb, bitWidth: 64, isSigned: arrowType == .int64))
+  case .float16:
+    return .success(FloatingPoint.createFloatingPoint(&fbb, precision: .half))
+  case .float32:
     return .success(FloatingPoint.createFloatingPoint(&fbb, precision: .single))
-  case .double:
+  case .float64:
     return .success(FloatingPoint.createFloatingPoint(&fbb, precision: .double))
-  case .string:
+  case .utf8:
     return .success(Utf8.endUtf8(&fbb, start: Utf8.startUtf8(&fbb)))
   case .binary:
     return .success(Binary.endBinary(&fbb, start: Binary.startBinary(&fbb)))
@@ -89,51 +87,39 @@ func toFBType(
     let startOffset = FlatDate.startDate(&fbb)
     FlatDate.add(unit: .millisecond, &fbb)
     return .success(FlatDate.endDate(&fbb, start: startOffset))
-  case .time32:
+  case .time32(let unit):
     let startOffset = FlatTime.startTime(&fbb)
-    if let timeType = arrowType as? ArrowTypeTime32 {
-      FlatTime.add(
-        unit: timeType.unit == .seconds ? .second : .millisecond, &fbb
-      )
-      return .success(FlatTime.endTime(&fbb, start: startOffset))
-    }
-    return .failure(.invalid("Unable to case to Time32"))
-  case .time64:
+    FlatTime.add(unit: unit == .second ? .second : .millisecond, &fbb)
+    return .success(FlatTime.endTime(&fbb, start: startOffset))
+  case .time64(let unit):
     let startOffset = FlatTime.startTime(&fbb)
-    if let timeType = arrowType as? ArrowTypeTime64 {
-      FlatTime.add(
-        unit: timeType.unit == .microseconds ? .microsecond : .nanosecond, &fbb)
-      return .success(FlatTime.endTime(&fbb, start: startOffset))
+    FlatTime.add(unit: unit == .microsecond ? .microsecond : .nanosecond, &fbb)
+    return .success(FlatTime.endTime(&fbb, start: startOffset))
+  case .timestamp(let unit, let timezone):
+    let startOffset = FlatTimestamp.startTimestamp(&fbb)
+    let fbUnit: FlatTimeUnit
+    switch unit {
+    case .second:
+      fbUnit = .second
+    case .millisecond:
+      fbUnit = .millisecond
+    case .microsecond:
+      fbUnit = .microsecond
+    case .nanosecond:
+      fbUnit = .nanosecond
     }
-    return .failure(.invalid("Unable to case to Time64"))
-  case .timestamp:
-    if let timestampType = arrowType as? ArrowTypeTimestamp {
-      let startOffset = FlatTimestamp.startTimestamp(&fbb)
-      let fbUnit: FlatTimeUnit
-      switch timestampType.unit {
-      case .seconds:
-        fbUnit = .second
-      case .milliseconds:
-        fbUnit = .millisecond
-      case .microseconds:
-        fbUnit = .microsecond
-      case .nanoseconds:
-        fbUnit = .nanosecond
-      }
-      FlatTimestamp.add(unit: fbUnit, &fbb)
-      if let timezone = timestampType.timezone {
-        let timezoneOffset = fbb.create(string: timezone)
-        org_apache_arrow_flatbuf_Timestamp.add(timezone: timezoneOffset, &fbb)
-      }
-      return .success(FlatTimestamp.endTimestamp(&fbb, start: startOffset))
+    FlatTimestamp.add(unit: fbUnit, &fbb)
+    if let timezone {
+      let timezoneOffset = fbb.create(string: timezone)
+      FlatTimestamp.add(timezone: timezoneOffset, &fbb)
     }
-    return .failure(.invalid("Unable to cast to Timestamp"))
-  case .strct:
+    return .success(FlatTimestamp.endTimestamp(&fbb, start: startOffset))
+  case .strct(_):
     let startOffset = FlatStruct.startStruct_(&fbb)
     return .success(FlatStruct.endStruct_(&fbb, start: startOffset))
   default:
     return .failure(
-      .unknownType("Unable to add flatbuf type for Arrow type: \(infoType)")
+      .unknownType("Unable to add flatbuf type for Arrow type: \(arrowType)")
     )
   }
 }

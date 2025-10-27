@@ -270,19 +270,19 @@ final class CodableTests: XCTestCase {
     let rb = try ArrowEncoder.encode(infos)!
     XCTAssertEqual(Int(rb.length), infos.count)
     XCTAssertEqual(rb.columns.count, 13)
-    XCTAssertEqual(rb.columns[0].type.id, ArrowTypeId.boolean)
-    XCTAssertEqual(rb.columns[1].type.id, ArrowTypeId.int8)
-    XCTAssertEqual(rb.columns[2].type.id, ArrowTypeId.int16)
-    XCTAssertEqual(rb.columns[3].type.id, ArrowTypeId.int32)
-    XCTAssertEqual(rb.columns[4].type.id, ArrowTypeId.int64)
-    XCTAssertEqual(rb.columns[5].type.id, ArrowTypeId.uint8)
-    XCTAssertEqual(rb.columns[6].type.id, ArrowTypeId.uint16)
-    XCTAssertEqual(rb.columns[7].type.id, ArrowTypeId.uint32)
-    XCTAssertEqual(rb.columns[8].type.id, ArrowTypeId.uint64)
-    XCTAssertEqual(rb.columns[9].type.id, ArrowTypeId.float)
-    XCTAssertEqual(rb.columns[10].type.id, ArrowTypeId.double)
-    XCTAssertEqual(rb.columns[11].type.id, ArrowTypeId.string)
-    XCTAssertEqual(rb.columns[12].type.id, ArrowTypeId.date64)
+    XCTAssertEqual(rb.columns[0].type, .boolean)
+    XCTAssertEqual(rb.columns[1].type, .int8)
+    XCTAssertEqual(rb.columns[2].type, .int16)
+    XCTAssertEqual(rb.columns[3].type, .int32)
+    XCTAssertEqual(rb.columns[4].type, .int64)
+    XCTAssertEqual(rb.columns[5].type, .uint8)
+    XCTAssertEqual(rb.columns[6].type, .uint16)
+    XCTAssertEqual(rb.columns[7].type, .uint32)
+    XCTAssertEqual(rb.columns[8].type, .uint64)
+    XCTAssertEqual(rb.columns[9].type, .float32)
+    XCTAssertEqual(rb.columns[10].type, .float64)
+    XCTAssertEqual(rb.columns[11].type, .utf8)
+    XCTAssertEqual(rb.columns[12].type, .date64)
     for index in 0..<10 {
       let offset = index * 12
       XCTAssertEqual(
@@ -336,8 +336,8 @@ final class CodableTests: XCTestCase {
     let rb = try ArrowEncoder.encode(testMap)
     XCTAssertEqual(Int(rb.length), testMap.count)
     XCTAssertEqual(rb.columns.count, 2)
-    XCTAssertEqual(rb.columns[0].type.id, ArrowTypeId.int8)
-    XCTAssertEqual(rb.columns[1].type.id, ArrowTypeId.string)
+    XCTAssertEqual(rb.columns[0].type, .int8)
+    XCTAssertEqual(rb.columns[1].type, .utf8)
     for index in 0..<10 {
       let key: Int8 = getArrayValue(rb, colIndex: 0, rowIndex: UInt(index))!
       let value: String = getArrayValue(rb, colIndex: 1, rowIndex: UInt(index))!
@@ -358,7 +358,7 @@ final class CodableTests: XCTestCase {
     let rb = try ArrowEncoder.encode(intArray)!
     XCTAssertEqual(Int(rb.length), intArray.count)
     XCTAssertEqual(rb.columns.count, 1)
-    XCTAssertEqual(rb.columns[0].type.id, ArrowTypeId.int32)
+    XCTAssertEqual(rb.columns[0].type, .int32)
     for index in 0..<100 {
       if index == 10 {
         let anyArray = rb.columns[0].array

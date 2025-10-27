@@ -18,7 +18,7 @@ func fromProto(
   field: FlatField
 ) throws(ArrowError) -> ArrowField {
   let type = field.typeType
-  var arrowType = ArrowType(ArrowType.arrowUnknown)
+  var arrowType: ArrowType?
   switch type {
   case .int:
     guard let intType = field.type(type: FlatInt.self) else {
@@ -26,73 +26,70 @@ func fromProto(
     }
     let bitWidth = intType.bitWidth
     if bitWidth == 8 {
-      arrowType = ArrowType(
-        intType.isSigned ? ArrowType.arrowInt8 : ArrowType.arrowUInt8)
+      arrowType = intType.isSigned ? .int8 : .uint8
     } else if bitWidth == 16 {
-      arrowType = ArrowType(
-        intType.isSigned ? ArrowType.arrowInt16 : ArrowType.arrowUInt16)
+      arrowType = intType.isSigned ? .int16 : .uint16
     } else if bitWidth == 32 {
-      arrowType = ArrowType(
-        intType.isSigned ? ArrowType.arrowInt32 : ArrowType.arrowUInt32)
+      arrowType = intType.isSigned ? .int32 : .uint32
     } else if bitWidth == 64 {
-      arrowType = ArrowType(
-        intType.isSigned ? ArrowType.arrowInt64 : ArrowType.arrowUInt64)
+      arrowType = intType.isSigned ? .int64 : .uint64
     }
   case .bool:
-    arrowType = ArrowType(ArrowType.arrowBool)
+    arrowType = .boolean
   case .floatingpoint:
     guard let floatType = field.type(type: FloatingPoint.self) else {
       throw .invalid("Invalid FlatBuffer: \(field)")
     }
-    if floatType.precision == .single {
-      arrowType = ArrowType(ArrowType.arrowFloat)
-    } else if floatType.precision == .double {
-      arrowType = ArrowType(ArrowType.arrowDouble)
+    switch floatType.precision {
+    case .half:
+      arrowType = .float16
+    case .single:
+      arrowType = .float32
+    case .double:
+      arrowType = .float64
     }
   case .utf8:
-    arrowType = ArrowType(ArrowType.arrowString)
+    arrowType = .utf8
   case .binary:
-    arrowType = ArrowType(ArrowType.arrowBinary)
+    arrowType = .binary
   case .date:
     guard let dateType = field.type(type: FlatDate.self) else {
       throw .invalid("Invalid FlatBuffer: \(field)")
     }
     if dateType.unit == .day {
-      arrowType = ArrowType(ArrowType.arrowDate32)
+      arrowType = .date32
     } else {
-      arrowType = ArrowType(ArrowType.arrowDate64)
+      arrowType = .date64
     }
   case .time:
     guard let timeType = field.type(type: FlatTime.self) else {
       throw .invalid("Invalid FlatBuffer: \(field)")
     }
     if timeType.unit == .second || timeType.unit == .millisecond {
-      let arrowUnit: ArrowTime32Unit =
-        timeType.unit == .second ? .seconds : .milliseconds
-      arrowType = ArrowTypeTime32(arrowUnit)
+      let arrowUnit: TimeUnit =
+        timeType.unit == .second ? .second : .millisecond
+      arrowType = .time32(arrowUnit)
     } else {
-      let arrowUnit: ArrowTime64Unit =
-        timeType.unit == .microsecond ? .microseconds : .nanoseconds
-      arrowType = ArrowTypeTime64(arrowUnit)
+      let arrowUnit: TimeUnit =
+        timeType.unit == .microsecond ? .microsecond : .nanosecond
+      arrowType = .time64(arrowUnit)
     }
   case .timestamp:
     guard let timestampType = field.type(type: FlatTimestamp.self) else {
       throw .invalid("Invalid FlatBuffer: \(field)")
     }
-    let arrowUnit: ArrowTimestampUnit
+    let arrowUnit: TimeUnit
     switch timestampType.unit {
     case .second:
-      arrowUnit = .seconds
+      arrowUnit = .second
     case .millisecond:
-      arrowUnit = .milliseconds
+      arrowUnit = .millisecond
     case .microsecond:
-      arrowUnit = .microseconds
+      arrowUnit = .microsecond
     case .nanosecond:
-      arrowUnit = .nanoseconds
+      arrowUnit = .nanosecond
     }
-    let timezone = timestampType.timezone
-    arrowType = ArrowTypeTimestamp(
-      arrowUnit, timezone: timezone?.isEmpty == true ? nil : timezone)
+    arrowType = .timestamp(arrowUnit, timestampType.timezone)
   case .struct_:
     var children: [ArrowField] = []
     for index in 0..<field.childrenCount {
@@ -101,20 +98,23 @@ func fromProto(
       }
       children.append(try fromProto(field: childField))
     }
-    arrowType = ArrowTypeStruct(ArrowType.arrowStruct, fields: children)
+    arrowType = .strct(children)
   case .list:
     guard field.childrenCount == 1, let childField = field.children(at: 0)
     else {
-      arrowType = ArrowType(ArrowType.arrowUnknown)
-      break
+      throw .invalid("Expected a single child for list field: \(field)")
     }
     let childArrowField = try fromProto(field: childField)
-    arrowType = ArrowTypeList(childArrowField.type)
+    arrowType = .list(childArrowField)
   default:
-    arrowType = ArrowType(ArrowType.arrowUnknown)
+    throw .invalid("Unsupported FlatBuffer field type: \(field)")
   }
   guard let fieldName = field.name else {
     throw .invalid("Invalid FlatBuffer: \(field)")
   }
-  return ArrowField(fieldName, type: arrowType, isNullable: field.nullable)
+  guard let arrowType else {
+    throw .invalid("Unsupported FlatBuffer field type: \(field)")
+  }
+  return ArrowField(
+    name: fieldName, dataType: arrowType, nullable: field.nullable)
 }

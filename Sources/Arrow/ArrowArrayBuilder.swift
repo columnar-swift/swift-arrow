@@ -59,7 +59,10 @@ public class ArrowArrayBuilder<
   public func finish() throws(ArrowError) -> ArrowArray<T.ItemType> {
     let buffers = self.bufferBuilder.finish()
     let arrowData = try ArrowData(
-      self.type, buffers: buffers, nullCount: self.nullCount)
+      self.type,
+      buffers: buffers,
+      nullCount: self.nullCount
+    )
     let array = try U(arrowData)
     return array
   }
@@ -78,7 +81,7 @@ public class NumberArrayBuilder<T>: ArrowArrayBuilder<
 >
 where T: Numeric {
   fileprivate convenience init() throws(ArrowError) {
-    try self.init(ArrowType(ArrowType.infoForNumericType(T.self)))
+    try self.init(try ArrowTypeConverter.infoForNumericType(T.self))
   }
 }
 
@@ -87,7 +90,7 @@ public class StringArrayBuilder: ArrowArrayBuilder<
 >
 {
   fileprivate convenience init() throws(ArrowError) {
-    try self.init(ArrowType(ArrowType.arrowString))
+    try self.init(.utf8)
   }
 }
 
@@ -96,13 +99,13 @@ public class BinaryArrayBuilder: ArrowArrayBuilder<
 >
 {
   fileprivate convenience init() throws(ArrowError) {
-    try self.init(ArrowType(ArrowType.arrowBinary))
+    try self.init(.binary)
   }
 }
 
 public class BoolArrayBuilder: ArrowArrayBuilder<BoolBufferBuilder, BoolArray> {
   fileprivate convenience init() throws(ArrowError) {
-    try self.init(ArrowType(ArrowType.arrowBool))
+    try self.init(.boolean)
   }
 }
 
@@ -111,7 +114,7 @@ public class Date32ArrayBuilder: ArrowArrayBuilder<
 >
 {
   fileprivate convenience init() throws(ArrowError) {
-    try self.init(ArrowType(ArrowType.arrowDate32))
+    try self.init(.date32)
   }
 }
 
@@ -120,7 +123,7 @@ public class Date64ArrayBuilder: ArrowArrayBuilder<
 >
 {
   fileprivate convenience init() throws(ArrowError) {
-    try self.init(ArrowType(ArrowType.arrowDate64))
+    try self.init(.date64)
   }
 }
 
@@ -128,8 +131,8 @@ public class Time32ArrayBuilder: ArrowArrayBuilder<
   FixedBufferBuilder<Time32>, Time32Array
 >
 {
-  fileprivate convenience init(_ unit: ArrowTime32Unit) throws(ArrowError) {
-    try self.init(ArrowTypeTime32(unit))
+  fileprivate convenience init(_ unit: TimeUnit) throws(ArrowError) {
+    try self.init(.time32(unit))
   }
 }
 
@@ -137,8 +140,8 @@ public class Time64ArrayBuilder: ArrowArrayBuilder<
   FixedBufferBuilder<Time64>, Time64Array
 >
 {
-  fileprivate convenience init(_ unit: ArrowTime64Unit) throws(ArrowError) {
-    try self.init(ArrowTypeTime64(unit))
+  fileprivate convenience init(_ unit: TimeUnit) throws(ArrowError) {
+    try self.init(.time64(unit))
   }
 }
 
@@ -147,9 +150,9 @@ public class TimestampArrayBuilder: ArrowArrayBuilder<
 >
 {
   fileprivate convenience init(
-    _ unit: ArrowTimestampUnit, timezone: String? = nil
+    _ unit: TimeUnit, timezone: String? = nil
   ) throws(ArrowError) {
-    try self.init(ArrowTypeTimestamp(unit, timezone: timezone))
+    try self.init(.timestamp(unit, timezone))
   }
 }
 
@@ -164,7 +167,7 @@ public class StructArrayBuilder: ArrowArrayBuilder<
   {
     self.fields = fields
     self.builders = builders
-    try super.init(ArrowTypeStruct(ArrowType.arrowStruct, fields: fields))
+    try super.init(.strct(fields))
     self.bufferBuilder.initializeTypeInfo(fields)
   }
 
@@ -172,11 +175,11 @@ public class StructArrayBuilder: ArrowArrayBuilder<
     self.fields = fields
     var builders: [any ArrowArrayHolderBuilder] = []
     for field in fields {
-      builders.append(try ArrowArrayBuilders.loadBuilder(arrowType: field.type))
+      builders.append(
+        try ArrowArrayBuilders.loadBuilder(arrowType: field.dataType))
     }
-
     self.builders = builders
-    try super.init(ArrowTypeStruct(ArrowType.arrowStruct, fields: fields))
+    try super.init(.strct(fields))
   }
 
   public override func append(_ values: [Any?]?) {
@@ -215,7 +218,7 @@ public class ListArrayBuilder: ArrowArrayBuilder<ListBufferBuilder, NestedArray>
   public override init(_ elementType: ArrowType) throws(ArrowError) {
     self.valueBuilder = try ArrowArrayBuilders.loadBuilder(
       arrowType: elementType)
-    try super.init(ArrowTypeList(elementType))
+    try super.init(elementType)
   }
 
   public override func append(_ values: [Any?]?) {
@@ -309,20 +312,23 @@ public class ArrowArrayBuilders {
       guard let propertyName = property else {
         continue
       }
-
       let builderType = type(of: value)
-      let arrowType = ArrowType(ArrowType.infoForType(builderType))
-      fields.append(ArrowField(propertyName, type: arrowType, isNullable: true))
+      let arrowType = try ArrowTypeConverter.infoForType(builderType)
+      fields.append(
+        ArrowField(
+          name: propertyName,
+          dataType: arrowType,
+          nullable: true)
+      )
       builders.append(try loadBuilder(arrowType: arrowType))
     }
-
     return try StructArrayBuilder(fields, builders: builders)
   }
 
   public static func loadBuilder(
     arrowType: ArrowType
   ) throws(ArrowError) -> ArrowArrayHolderBuilder {
-    switch arrowType.id {
+    switch arrowType {
     case .uint8:
       return try loadNumberArrayBuilder() as NumberArrayBuilder<UInt8>
     case .uint16:
@@ -339,11 +345,13 @@ public class ArrowArrayBuilders {
       return try loadNumberArrayBuilder() as NumberArrayBuilder<Int32>
     case .int64:
       return try loadNumberArrayBuilder() as NumberArrayBuilder<Int64>
-    case .double:
+    case .float16:
+      return try loadNumberArrayBuilder() as NumberArrayBuilder<Float16>
+    case .float64:
       return try loadNumberArrayBuilder() as NumberArrayBuilder<Double>
-    case .float:
+    case .float32:
       return try loadNumberArrayBuilder() as NumberArrayBuilder<Float>
-    case .string:
+    case .utf8:
       return try StringArrayBuilder()
     case .boolean:
       return try BoolArrayBuilder()
@@ -353,40 +361,19 @@ public class ArrowArrayBuilders {
       return try Date32ArrayBuilder()
     case .date64:
       return try Date64ArrayBuilder()
-    case .time32:
-      guard let timeType = arrowType as? ArrowTypeTime32 else {
-        throw ArrowError.invalid(
-          "Expected arrow type for \(arrowType.id) not found"
-        )
-      }
-      return try Time32ArrayBuilder(timeType.unit)
-    case .time64:
-      guard let timeType = arrowType as? ArrowTypeTime64 else {
-        throw ArrowError.invalid(
-          "Expected arrow type for \(arrowType.id) not found"
-        )
-      }
-      return try Time64ArrayBuilder(timeType.unit)
-    case .timestamp:
-      guard let timestampType = arrowType as? ArrowTypeTimestamp else {
-        throw ArrowError.invalid(
-          "Expected arrow type for \(arrowType.id) not found"
-        )
-      }
-      return try TimestampArrayBuilder(timestampType.unit)
-    case .strct:
-      guard let structType = arrowType as? ArrowTypeStruct else {
-        throw ArrowError.invalid("Expected ArrowStructType for \(arrowType.id)")
-      }
-      return try StructArrayBuilder(structType.fields)
-    case .list:
-      guard let listType = arrowType as? ArrowTypeList else {
-        throw ArrowError.invalid("Expected ArrowTypeList for \(arrowType.id)")
-      }
-      return try ListArrayBuilder(listType.elementType)
+    case .time32(let unit):
+      return try Time32ArrayBuilder(unit)
+    case .time64(let unit):
+      return try Time64ArrayBuilder(unit)
+    case .timestamp(let unit, let timezone):
+      return try TimestampArrayBuilder(unit)
+    case .strct(let fields):
+      return try StructArrayBuilder(fields)
+    case .list(let field):
+      return try ListArrayBuilder(field.dataType)
     default:
       throw ArrowError.unknownType(
-        "Builder not found for arrow type: \(arrowType.id)"
+        "Builder not found for arrow type: \(arrowType)"
       )
     }
   }
@@ -450,20 +437,20 @@ public class ArrowArrayBuilders {
     try BinaryArrayBuilder()
   }
 
-  public static func loadTime32ArrayBuilder(_ unit: ArrowTime32Unit)
+  public static func loadTime32ArrayBuilder(_ unit: TimeUnit)
     throws(ArrowError) -> Time32ArrayBuilder
   {
     try Time32ArrayBuilder(unit)
   }
 
-  public static func loadTime64ArrayBuilder(_ unit: ArrowTime64Unit)
+  public static func loadTime64ArrayBuilder(_ unit: TimeUnit)
     throws(ArrowError) -> Time64ArrayBuilder
   {
     try Time64ArrayBuilder(unit)
   }
 
   public static func loadTimestampArrayBuilder(
-    _ unit: ArrowTimestampUnit, timezone: String? = nil
+    _ unit: TimeUnit, timezone: String? = nil
   )
     throws -> TimestampArrayBuilder
   {
