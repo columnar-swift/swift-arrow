@@ -98,6 +98,10 @@ public func makeFlightServer(_ handler: ArrowFlightServer)
 internal final class InternalFlightServer:
   Arrow_Flight_Protocol_FlightServiceAsyncProvider
 {
+  func pollFlightInfo(request: Arrow_Flight_Protocol_FlightDescriptor, context: GRPC.GRPCAsyncServerCallContext) async throws -> Arrow_Flight_Protocol_PollInfo {
+    throw ArrowFlightError.notImplemented()
+  }
+  
   let arrowFlightServer: ArrowFlightServer?
 
   init(_ arrowFlightServer: ArrowFlightServer?) {
@@ -124,7 +128,7 @@ internal final class InternalFlightServer:
     context: GRPC.GRPCAsyncServerCallContext
   ) async throws {
     if let server = arrowFlightServer {
-      let writer = FlightInfoStreamWriter(responseStream)
+      let writer = FlightInfoStreamWriter(stream: responseStream)
       try await server.listFlights(FlightCriteria(request), writer: writer)
       return
     }
@@ -183,7 +187,7 @@ internal final class InternalFlightServer:
   ) async throws {
     if let server = arrowFlightServer {
       let reader = RecordBatchStreamReader(requestStream)
-      let writer = PutResultDataStreamWriter(responseStream)
+      let writer = PutResultDataStreamWriter(stream: responseStream)
       try await server.doPut(reader, writer: writer)
       return
     }
@@ -219,7 +223,7 @@ internal final class InternalFlightServer:
   ) async throws {
     if let server = arrowFlightServer {
       try await server.doAction(
-        FlightAction(request), writer: ResultStreamWriter(responseStream))
+        FlightAction(request), writer: ResultStreamWriter(stream: responseStream))
       return
     }
 
@@ -234,7 +238,7 @@ internal final class InternalFlightServer:
     context: GRPC.GRPCAsyncServerCallContext
   ) async throws {
     if let server = arrowFlightServer {
-      let writer = ActionTypeStreamWriter(responseStream)
+      let writer = ActionTypeStreamWriter(stream: responseStream)
       try await server.listActions(writer)
       return
     }

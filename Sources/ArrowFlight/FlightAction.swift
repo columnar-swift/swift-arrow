@@ -17,9 +17,10 @@
 
 import Foundation
 
-public class FlightAction {
+public struct FlightAction: Sendable {
   public let type: String
   public let body: Data
+  
   init(_ action: Arrow_Flight_Protocol_Action) {
     self.type = action.type
     self.body = action.body

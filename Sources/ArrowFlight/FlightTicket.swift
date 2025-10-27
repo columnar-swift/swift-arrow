@@ -17,7 +17,7 @@
 
 import Foundation
 
-public class FlightTicket {
+public struct FlightTicket: Sendable {
   public let data: Data
   init(_ ticket: Arrow_Flight_Protocol_Ticket) {
     self.data = ticket.ticket

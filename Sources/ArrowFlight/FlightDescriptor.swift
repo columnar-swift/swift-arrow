@@ -17,8 +17,8 @@
 
 import Foundation
 
-public class FlightDescriptor {
-  public enum DescriptorType {
+public struct FlightDescriptor: Sendable {
+  public enum DescriptorType: Sendable {
     case unknown
     case path
     case cmd

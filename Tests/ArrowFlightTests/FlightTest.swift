@@ -71,8 +71,10 @@ func makeRecordBatch() throws -> RecordBatch {
   }
 }
 
-@MainActor var flights: [String: FlightInfo] = [:]
-final class MyFlightServer: ArrowFlightServer {
+actor MyFlightServer: ArrowFlightServer {
+  
+  var flights: [String: FlightInfo] = [:]
+
   func doExchange(
     _ reader: ArrowFlight.RecordBatchStreamReader,
     writer: ArrowFlight.RecordBatchStreamWriter
@@ -91,7 +93,6 @@ final class MyFlightServer: ArrowFlightServer {
     }
   }
 
-  @MainActor
   func doPut(
     _ reader: ArrowFlight.RecordBatchStreamReader,
     writer: ArrowFlight.PutResultDataStreamWriter

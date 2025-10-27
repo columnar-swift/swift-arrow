@@ -18,7 +18,7 @@
 import Arrow
 import Foundation
 
-public class FlightSchemaResult {
+public struct FlightSchemaResult: Sendable {
   let schemaResult: Arrow_Flight_Protocol_SchemaResult
 
   public var schema: ArrowSchema? {

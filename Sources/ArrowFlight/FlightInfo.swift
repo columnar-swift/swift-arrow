@@ -18,7 +18,7 @@
 import Arrow
 import Foundation
 
-public class FlightInfo {
+public final class FlightInfo: Sendable {
   let flightInfo: Arrow_Flight_Protocol_FlightInfo
   public var flightDescriptor: FlightDescriptor? {
     flightInfo.hasFlightDescriptor
@@ -32,7 +32,7 @@ public class FlightInfo {
     schemaFromMessage(self.flightInfo.schema)
   }
 
-  var endpoint: [Arrow_Flight_Protocol_FlightEndpoint] = []
+  let endpoint: [Arrow_Flight_Protocol_FlightEndpoint] = []
   init(_ flightInfo: Arrow_Flight_Protocol_FlightInfo) {
     self.flightInfo = flightInfo
   }

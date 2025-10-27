@@ -19,37 +19,24 @@ import Arrow
 import Foundation
 import GRPC
 
-public class ActionTypeStreamWriter {
+public struct ActionTypeStreamWriter: Sendable {
   let stream: GRPCAsyncResponseStreamWriter<Arrow_Flight_Protocol_ActionType>
-  init(
-    _ stream: GRPCAsyncResponseStreamWriter<Arrow_Flight_Protocol_ActionType>
-  ) {
-    self.stream = stream
-  }
 
   public func write(_ actionType: FlightActionType) async throws {
     try await self.stream.send(actionType.toProtocol())
   }
 }
 
-public class ResultStreamWriter {
+public struct ResultStreamWriter: Sendable {
   let stream: GRPCAsyncResponseStreamWriter<Arrow_Flight_Protocol_Result>
-  init(_ stream: GRPCAsyncResponseStreamWriter<Arrow_Flight_Protocol_Result>) {
-    self.stream = stream
-  }
 
   public func write(_ result: FlightResult) async throws {
     try await self.stream.send(result.toProtocol())
   }
 }
 
-public class FlightInfoStreamWriter {
+public struct FlightInfoStreamWriter: Sendable {
   let stream: GRPCAsyncResponseStreamWriter<Arrow_Flight_Protocol_FlightInfo>
-  init(
-    _ stream: GRPCAsyncResponseStreamWriter<Arrow_Flight_Protocol_FlightInfo>
-  ) {
-    self.stream = stream
-  }
 
   public func write(_ result: FlightInfo) async throws {
     try await self.stream.send(result.toProtocol())
@@ -59,12 +46,6 @@ public class FlightInfoStreamWriter {
 public struct PutResultDataStreamWriter: Sendable {
   let stream: GRPCAsyncResponseStreamWriter<Arrow_Flight_Protocol_PutResult>
   
-//  init(
-//    _ stream: GRPCAsyncResponseStreamWriter<Arrow_Flight_Protocol_PutResult>
-//  ) {
-//    self.stream = stream
-//  }
-
   public func write(_ result: FlightPutResult) async throws {
     try await self.stream.send(result.toProtocol())
   }

@@ -19,7 +19,7 @@ import Arrow
 import Foundation
 import GRPC
 
-public class RecordBatchStreamReader: AsyncSequence, AsyncIteratorProtocol {
+public struct RecordBatchStreamReader: AsyncSequence, AsyncIteratorProtocol {
   public typealias AsyncIterator = RecordBatchStreamReader
   public typealias Element = (Arrow.RecordBatch?, FlightDescriptor?)
   let reader = ArrowReader()
@@ -38,7 +38,7 @@ public class RecordBatchStreamReader: AsyncSequence, AsyncIteratorProtocol {
     self.useUnalignedBuffers = useUnalignedBuffers
   }
 
-  public func next() async throws -> (Arrow.RecordBatch?, FlightDescriptor?)? {
+  public mutating func next() async throws -> (Arrow.RecordBatch?, FlightDescriptor?)? {
     guard !Task.isCancelled else {
       return nil
     }

@@ -17,14 +17,15 @@
 
 import Foundation
 
-public class FlightActionType {
+public struct FlightActionType {
   public let type: String
   public let description: String
+  
   init(_ actionType: Arrow_Flight_Protocol_ActionType) {
     self.type = actionType.type
     self.description = actionType.description_p
-
   }
+  
   public init(_ type: String, description: String) {
     self.type = type
     self.description = description

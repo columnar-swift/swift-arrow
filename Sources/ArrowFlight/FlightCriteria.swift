@@ -17,7 +17,7 @@
 
 import Foundation
 
-public class FlightCriteria {
+public struct FlightCriteria: Sendable {
   let criteria: Arrow_Flight_Protocol_Criteria
 
   public var expression: Data { criteria.expression }
