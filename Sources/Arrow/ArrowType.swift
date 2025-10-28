@@ -414,7 +414,7 @@ public enum IntervalUnit: Codable, Sendable {
   case monthDayNano
 }
 
-/// Sparse or Dense union layouts
+/// Sparse or Dense union layouts.
 public enum UnionMode: Codable, Sendable {
   /// Sparse union layout
   case sparse
@@ -529,13 +529,13 @@ extension ArrowType {
     }
   }
 
-  /// Returns true if this type is valid as a dictionary key
+  /// Returns true if this type is valid as a dictionary key.
   @inlinable
   public var isDictionaryKeyType: Bool {
     self.isInteger
   }
 
-  /// Returns true if this type is valid for run-ends array in RunArray
+  /// Returns true if this type is valid for run-ends array in RunArray.
   @inlinable
   public var isRunEndsType: Bool {
     switch self {
@@ -546,8 +546,10 @@ extension ArrowType {
     }
 
   }
-  /// Returns true if this type is nested (List, FixedSizeList, LargeList, ListView. LargeListView, Struct, Union,
-  /// or Map), or a dictionary of a nested type
+  /// Returns true if this type is nested.
+  ///
+  ///  Nested types are: (List, FixedSizeList, LargeList, ListView. LargeListView, Struct, Union, or Map,
+  ///  or a dictionary of a nested type.
   @inlinable
   public var isNested: Bool {
     switch self {
@@ -560,13 +562,12 @@ extension ArrowType {
       return true
     default:
       return false
-
     }
   }
 
   /// Returns true if this type is DataType::Null.
   @inlinable
-  public var is_null: Bool {
+  public var isNull: Bool {
     if case .null = self {
       return true
     } else {
@@ -582,23 +583,25 @@ extension ArrowType {
       (.largeList(let a), .largeList(let b)),
       (.listView(let a), .listView(let b)),
       (.largeListView(let a), .largeListView(let b)):
-      return a.nullable == b.nullable && a.dataType.equalsDataType(b.dataType)
+      return a.isNullable == b.isNullable
+        && a.dataType.equalsDataType(b.dataType)
 
     // FixedSizeList
     case (.fixedSizeList(let a, let aSize), .fixedSizeList(let b, let bSize)):
-      return aSize == bSize && a.nullable == b.nullable
+      return aSize == bSize && a.isNullable == b.isNullable
         && a.dataType.equalsDataType(b.dataType)
 
     // Struct
     case (.strct(let aFields), .strct(let bFields)):
       guard aFields.count == bFields.count else { return false }
       return zip(aFields, bFields).allSatisfy {
-        $0.nullable == $1.nullable && $0.dataType.equalsDataType($1.dataType)
+        $0.isNullable == $1.isNullable
+          && $0.dataType.equalsDataType($1.dataType)
       }
 
     // Map
     case (.map(let aField, let aSorted), .map(let bField, let bSorted)):
-      return aField.nullable == bField.nullable
+      return aField.isNullable == bField.isNullable
         && aField.dataType.equalsDataType(bField.dataType) && aSorted == bSorted
 
     // Dictionary
@@ -610,9 +613,9 @@ extension ArrowType {
       .runEndEncoded(let aRunEnds, let aValues),
       .runEndEncoded(let bRunEnds, let bValues)
     ):
-      return aRunEnds.nullable == bRunEnds.nullable
+      return aRunEnds.isNullable == bRunEnds.isNullable
         && aRunEnds.dataType.equalsDataType(bRunEnds.dataType)
-        && aValues.nullable == bValues.nullable
+        && aValues.isNullable == bValues.isNullable
         && aValues.dataType.equalsDataType(bValues.dataType)
 
     // Union
@@ -625,7 +628,7 @@ extension ArrowType {
         bFields.contains { bField in
 
           aField.typeId == bField.typeId
-            && aField.field.nullable == bField.field.nullable
+            && aField.field.isNullable == bField.field.isNullable
             && aField.field.dataType.equalsDataType(bField.field.dataType)
         }
       }
@@ -716,11 +719,10 @@ extension ArrowType {
     }
   }
 
-  /// Check to see if `self` is a superset of `other`
+  /// Check  if `self` is a superset of `other`.
   ///
-  /// If DataType is a nested type, then it will check to see if the nested type is a superset of the other nested type
-  /// else it will check to see if the DataType is equal to the other DataType
-  /// Check whether `self` is a superset of `other`.
+  /// If it is a nested type,  it will check if the nested type is a superset of the other nested type.
+  /// Otherwise it will check to see if the DataType is equal to the other DataType.
   ///
   /// If the type is nested (List, Struct, etc.), this checks recursively
   /// whether the nested type is a superset of the other's nested type.
@@ -736,22 +738,18 @@ extension ArrowType {
       (.largeListView(let f1), .largeListView(let f2)):
       return f1.contains(other: f2)
 
-    // ─────────────────────────────
     // FixedSizeList
     case (.fixedSizeList(let f1, let s1), .fixedSizeList(let f2, let s2)):
       return s1 == s2 && f1.contains(other: f2)
 
-    // ─────────────────────────────
     // Map
     case (.map(let f1, let s1), .map(let f2, let s2)):
       return s1 == s2 && f1.contains(other: f2)
 
-    // ─────────────────────────────
     // Struct
     case (.strct(let f1), .strct(let f2)):
       return f1.contains(f2)
 
-    // ─────────────────────────────
     // Union
     case (.union(let f1, let s1), .union(let f2, let s2)):
       guard s1 == s2 else { return false }
@@ -762,47 +760,32 @@ extension ArrowType {
         }
       }
 
-    // ─────────────────────────────
     // Dictionary
     case (.dictionary(let k1, let v1), .dictionary(let k2, let v2)):
       return k1.contains(k2) && v1.contains(v2)
 
-    // ─────────────────────────────
     // Base case: equality
     default:
       return self == other
     }
   }
-  ///
 
-  /// Create a [`DataType::List`] with elements of the specified type
-  /// and nullability, and conventionally named inner [`Field`] (`"item"`).
-  ///
-  /// To specify field level metadata, construct the inner [`Field`]
-  /// directly via [`Field::new`] or [`Field::new_list_field`].
-  public init(listFieldWith data_type: ArrowType, nullable: Bool) {
-    self = .list(ArrowField(listFieldWith: data_type, nullable: nullable))
+  /// Create a `List` with elements of the specified type and nullability.
+  public init(listFieldWith dataType: ArrowType, isNullable: Bool) {
+    self = .list(ArrowField(listFieldWith: dataType, isNullable: isNullable))
   }
 
-  /// Create a [`DataType::LargeList`] with elements of the specified type
-  /// and nullability, and conventionally named inner [`Field`] (`"item"`).
-  ///
-  /// To specify field level metadata, construct the inner [`Field`]
-  /// directly via [`Field::new`] or [`Field::new_list_field`].
-  public init(largeListFieldWith data_type: ArrowType, nullable: Bool) {
+  /// Create a `LargeList` with elements of the specified type and nullability.
+  public init(largeListFieldWith dataType: ArrowType, isNullable: Bool) {
     self = .largeList(
-      (ArrowField(listFieldWith: data_type, nullable: nullable)))
+      (ArrowField(listFieldWith: dataType, isNullable: isNullable)))
   }
 
-  /// Create a [`DataType::FixedSizeList`] with elements of the specified type, size
-  /// and nullability, and conventionally named inner [`Field`] (`"item"`).
-  ///
-  /// To specify field level metadata, construct the inner [`Field`]
-  /// directly via [`Field::new`] or [`Field::new_list_field`].
+  /// Create a `FixedSizeList` with elements of the specified type, size  and nullability.
   public init(
-    fixedListFieldWith data_type: ArrowType, size: Int32, nullable: Bool
+    fixedListFieldWith dataType: ArrowType, size: Int32, isNullable: Bool
   ) {
     self = .fixedSizeList(
-      ArrowField(listFieldWith: data_type, nullable: nullable), size)
+      ArrowField(listFieldWith: dataType, isNullable: isNullable), size)
   }
 }

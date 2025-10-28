@@ -18,7 +18,7 @@
 import Foundation
 
 public class FlightData {
-  let flightData: Arrow_Flight_Protocol_FlightData
+  let flightData: ProtoFlightData
   public var flightDescriptor: FlightDescriptor? {
     flightData.hasFlightDescriptor
       ? FlightDescriptor(flightData.flightDescriptor) : nil
@@ -28,7 +28,7 @@ public class FlightData {
 
   public var dataBody: Data { flightData.dataBody }
 
-  init(_ flightData: Arrow_Flight_Protocol_FlightData) {
+  init(_ flightData: ProtoFlightData) {
     self.flightData = flightData
   }
 
@@ -37,17 +37,17 @@ public class FlightData {
     flightDescriptor: FlightDescriptor? = nil
   ) {
     if let flightDescriptor {
-      self.flightData = Arrow_Flight_Protocol_FlightData.with {
+      self.flightData = ProtoFlightData.with {
         $0.dataHeader = dataHeader
         $0.dataBody = dataBody
         $0.flightDescriptor = flightDescriptor.toProtocol()
       }
     } else {
-      self.flightData = Arrow_Flight_Protocol_FlightData.with {
+      self.flightData = ProtoFlightData.with {
         $0.dataBody = dataBody
       }
     }
   }
 
-  func toProtocol() -> Arrow_Flight_Protocol_FlightData { self.flightData }
+  func toProtocol() -> ProtoFlightData { self.flightData }
 }

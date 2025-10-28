@@ -96,7 +96,7 @@ public class ArrowReader {
       let arrowField = ArrowField(
         name: fieldName,
         dataType: fieldType,
-        nullable: field.nullable
+        isNullable: field.nullable
       )
       builder.addField(arrowField)
     }

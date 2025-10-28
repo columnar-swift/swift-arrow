@@ -53,7 +53,7 @@ public class ArrowSchema {
       isNullable: Bool
     ) -> Builder {
       fields.append(
-        ArrowField(name: name, dataType: type, nullable: isNullable))
+        ArrowField(name: name, dataType: type, isNullable: isNullable))
       return self
     }
 

@@ -318,7 +318,8 @@ public class ArrowArrayBuilders {
         ArrowField(
           name: propertyName,
           dataType: arrowType,
-          nullable: true)
+          isNullable: true
+        )
       )
       builders.append(try loadBuilder(arrowType: arrowType))
     }

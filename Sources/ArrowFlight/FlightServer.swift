@@ -45,7 +45,9 @@ public func schemaToMessage(_ schema: ArrowSchema) throws -> Data {
   }
 }
 
-public func schemaFromMessage(_ schemaData: Data) -> ArrowSchema? {
+public func schemaFromMessage(_ schemaData: Data) throws(ArrowFlightError)
+  -> ArrowSchema
+{
   let messageLength = schemaData.withUnsafeBytes { rawBuffer in
     rawBuffer.loadUnaligned(fromByteOffset: 4, as: Int32.self)
   }
@@ -57,10 +59,13 @@ public func schemaFromMessage(_ schemaData: Data) -> ArrowSchema? {
   let result = ArrowReader.makeArrowReaderResult()
   switch reader.fromMessage(schema, dataBody: Data(), result: result) {
   case .success:
-    return result.schema!
+    if let resultSchema = result.schema {
+      return resultSchema
+    } else {
+      throw .unknown("Unable to parse Arrow schema from data")
+    }
   case .failure:
-    // TODO: add handling of error swiftlint:disable:this todo
-    return nil
+    throw .unknown("Unable to parse Arrow schema from data")
   }
 }
 
@@ -165,7 +170,7 @@ internal final class InternalFlightServer:
   func doGet(
     request: Arrow_Flight_Protocol_Ticket,
     responseStream: GRPC.GRPCAsyncResponseStreamWriter<
-      Arrow_Flight_Protocol_FlightData
+      ProtoFlightData
     >,
     context: GRPC.GRPCAsyncServerCallContext
   ) async throws {
@@ -181,7 +186,7 @@ internal final class InternalFlightServer:
 
   func doPut(
     requestStream: GRPC.GRPCAsyncRequestStream<
-      Arrow_Flight_Protocol_FlightData
+      ProtoFlightData
     >,
     responseStream: GRPC.GRPCAsyncResponseStreamWriter<
       Arrow_Flight_Protocol_PutResult
@@ -199,12 +204,8 @@ internal final class InternalFlightServer:
   }
 
   func doExchange(
-    requestStream: GRPC.GRPCAsyncRequestStream<
-      Arrow_Flight_Protocol_FlightData
-    >,
-    responseStream: GRPC.GRPCAsyncResponseStreamWriter<
-      Arrow_Flight_Protocol_FlightData
-    >,
+    requestStream: GRPC.GRPCAsyncRequestStream<ProtoFlightData>,
+    responseStream: GRPC.GRPCAsyncResponseStreamWriter<ProtoFlightData>,
     context: GRPC.GRPCAsyncServerCallContext
   ) async throws {
     if let server = arrowFlightServer {

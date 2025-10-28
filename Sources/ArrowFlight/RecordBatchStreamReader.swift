@@ -28,9 +28,9 @@ public struct RecordBatchStreamReader: AsyncSequence, AsyncIteratorProtocol {
   var batchIndex = 0
   var streamIterator: any AsyncIteratorProtocol
   var useUnalignedBuffers: Bool
-  let stream: GRPC.GRPCAsyncRequestStream<Arrow_Flight_Protocol_FlightData>
+  let stream: GRPC.GRPCAsyncRequestStream<ProtoFlightData>
   init(
-    _ stream: GRPC.GRPCAsyncRequestStream<Arrow_Flight_Protocol_FlightData>,
+    _ stream: GRPC.GRPCAsyncRequestStream<ProtoFlightData>,
     useUnalignedBuffers: Bool = false
   ) {
     self.stream = stream
@@ -58,7 +58,10 @@ public struct RecordBatchStreamReader: AsyncSequence, AsyncIteratorProtocol {
         return nil
       }
 
-      let flightData = (streamData as? Arrow_Flight_Protocol_FlightData)!
+      guard let flightData = streamData as? ProtoFlightData else {
+        throw ArrowFlightError.unknown("Unable to parse FlightData from stream")
+      }
+
       let dataBody = flightData.dataBody
       let dataHeader = flightData.dataHeader
       descriptor = FlightDescriptor(flightData.flightDescriptor)

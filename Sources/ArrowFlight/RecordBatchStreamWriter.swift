@@ -53,9 +53,9 @@ public struct PutResultDataStreamWriter: Sendable {
 
 public class RecordBatchStreamWriter {
   let writer = ArrowWriter()
-  let stream: GRPCAsyncResponseStreamWriter<Arrow_Flight_Protocol_FlightData>
+  let stream: GRPCAsyncResponseStreamWriter<ProtoFlightData>
   init(
-    _ stream: GRPCAsyncResponseStreamWriter<Arrow_Flight_Protocol_FlightData>
+    _ stream: GRPCAsyncResponseStreamWriter<ProtoFlightData>
   ) {
     self.stream = stream
   }
@@ -63,18 +63,17 @@ public class RecordBatchStreamWriter {
   public func write(_ rb: RecordBatch) async throws {
     switch writer.toMessage(rb.schema) {
     case .success(let schemaData):
-      let schemaFlightData = Arrow_Flight_Protocol_FlightData.with {
+      let schemaFlightData = ProtoFlightData.with {
         $0.dataHeader = schemaData
       }
 
       try await self.stream.send(schemaFlightData)
       switch writer.toMessage(rb) {
       case .success(let recordMessages):
-        let rbMessage = Arrow_Flight_Protocol_FlightData.with {
+        let rbMessage = ProtoFlightData.with {
           $0.dataHeader = recordMessages[0]
           $0.dataBody = recordMessages[1]
         }
-
         try await self.stream.send(rbMessage)
       case .failure(let error):
         throw error

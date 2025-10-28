@@ -13,9 +13,4 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-/// The metadata key for the string name identifying an [`ExtensionType`].
-public let extensionTypeNameKey = "ARROW:extension:name"
-
-/// The metadata key for a serialized representation of the [`ExtensionType`]
-/// necessary to reconstruct the custom type.
-public let extensionTypeNameMetadataKey = "ARROW:extension:metadata"
+typealias ProtoFlightData = Arrow_Flight_Protocol_FlightData

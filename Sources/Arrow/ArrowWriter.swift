@@ -99,7 +99,7 @@ public class ArrowWriter {
     let fieldTypeOffsetResult = toFBType(&fbb, arrowType: field.dataType)
     let startOffset = FlatField.startField(&fbb)
     FlatField.add(name: nameOffset, &fbb)
-    FlatField.add(nullable: field.nullable, &fbb)
+    FlatField.add(nullable: field.isNullable, &fbb)
     if let childrenOffset = fieldsOffset {
       FlatField.addVectorOf(children: childrenOffset, &fbb)
     }

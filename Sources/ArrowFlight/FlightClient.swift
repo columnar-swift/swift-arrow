@@ -34,7 +34,7 @@ public class FlightClient {
   }
 
   private func readMessages(
-    _ responseStream: GRPCAsyncResponseStream<Arrow_Flight_Protocol_FlightData>
+    _ responseStream: GRPCAsyncResponseStream<ProtoFlightData>
   ) async throws -> ArrowReader.ArrowReaderResult {
     let reader = ArrowReader()
     let arrowResult = ArrowReader.makeArrowReaderResult()
@@ -56,9 +56,7 @@ public class FlightClient {
   }
 
   private func writeBatches(
-    _ requestStream: GRPCAsyncRequestStreamWriter<
-      Arrow_Flight_Protocol_FlightData
-    >,
+    _ requestStream: GRPCAsyncRequestStreamWriter<ProtoFlightData>,
     descriptor: FlightDescriptor,
     recordBatches: [RecordBatch]
   ) async throws {

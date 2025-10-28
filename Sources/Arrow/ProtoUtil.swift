@@ -116,5 +116,8 @@ func fromProto(
     throw .invalid("Unsupported FlatBuffer field type: \(field)")
   }
   return ArrowField(
-    name: fieldName, dataType: arrowType, nullable: field.nullable)
+    name: fieldName,
+    dataType: arrowType,
+    isNullable: field.nullable
+  )
 }

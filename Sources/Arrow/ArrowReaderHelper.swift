@@ -378,7 +378,7 @@ func findArrowType(_ field: FlatField) throws(ArrowError) -> ArrowType {
         ArrowField(
           name: name,
           dataType: childType,
-          nullable: childField.nullable
+          isNullable: childField.nullable
         )
       )
     }
@@ -395,7 +395,7 @@ func findArrowType(_ field: FlatField) throws(ArrowError) -> ArrowType {
     let arrowField = ArrowField(
       name: name,
       dataType: childType,
-      nullable: childField.nullable
+      isNullable: childField.nullable
     )
     return .list(arrowField)
   default:
