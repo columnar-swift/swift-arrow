@@ -91,7 +91,9 @@ extension ArrowField {
   /// - `name`: the name of the field
   /// - `fields`: the description of each struct element
   /// - `isNullable`: if the [`DataType::Struct`] array is nullable
-  public init(structWithName name: String, fields: Fields, isNullable: Bool) {
+  public init(
+    structWithName name: String, fields: ArrowFields, isNullable: Bool
+  ) {
     self.init(name: name, dataType: .strct(fields), isNullable: isNullable)
   }
 

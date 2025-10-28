@@ -19,23 +19,34 @@ public typealias Date32 = Int32
 public typealias Date64 = Int64
 public typealias Timestamp = Int64
 
-/// Datatypes supported by this implementation of Apache Arrow.
+public typealias ArrowFields = [ArrowField]
+
+public struct UnionField: Codable, Sendable, Equatable {
+  public let typeId: Int8
+  public let field: ArrowField
+
+  public init(typeId: Int8, field: ArrowField) {
+    self.typeId = typeId
+    self.field = field
+  }
+}
+
+/// Datatypes _intended_ to be supported by this implementation of Apache Arrow.
+///
+/// This is *Work In Progress*. Many of these have not been implemented or tested yet.
 ///
 /// The variants of this enum include primitive fixed size types as well as
-/// parametric or nested types. See [`Schema.fbs`] for Arrow's specification.
-///
-/// # Display and FromStr
-///
-/// The `Display` and `FromStr` implementations for `DataType` are
-/// human-readable, parseable, and reversible.
+/// parametric or nested types. See `Schema.fbs` for Arrow's specification.
 ///
 /// # Nested Support
-/// Currently, the Rust implementation supports the following nested types:
+/// Currently, the Swift implementation supports the following nested types:
 ///  - `List<T>`
-///  - `LargeList<T>`
-///  - `FixedSizeList<T>`
 ///  - `Struct<T, U, V, ...>`
+///
+/// The intention is to implement these:
+///  - `FixedSizeList<T>`
 ///  - `Union<T, U, V, ...>`
+///  - `LargeList<T>`
 ///  - `Map<K, V>`
 ///
 /// Nested types can themselves be nested within other arrays.
@@ -103,8 +114,7 @@ public indirect enum ArrowType: Codable, Sendable, Equatable {
   /// can be compared and ordered directly, since they all share the same
   /// well-known point of reference (the Unix epoch).
   ///
-  /// Timestamps with an unset / empty timezone
-  /// -----------------------------------------
+  /// # Timestamps with an unset / empty timezone
   ///
   /// If a Timestamp column has no timezone value, its epoch is
   /// 1970-01-01 00:00:00 (January 1st 1970, midnight) in an *unknown* timezone.
@@ -124,7 +134,6 @@ public indirect enum ArrowType: Codable, Sendable, Equatable {
   /// or empty timezone as the same as "UTC".
   ///
   /// Conversion between timezones
-  /// ----------------------------
   ///
   /// If a Timestamp column has a non-empty timezone, changing the timezone
   /// to a different non-empty value is a metadata-only operation:
@@ -141,24 +150,7 @@ public indirect enum ArrowType: Codable, Sendable, Equatable {
   /// nevertheless correct).
   ///
   ///
-  /// # Timezone representation
-  /// ----------------------------
-  /// It is possible to use either the timezone string representation, such as "UTC", or the absolute time zone offset "+00:00".
-  /// For timezones with fixed offsets, such as "UTC" or "JST", the offset representation is recommended, as it is more explicit and less ambiguous.
-  ///
-  /// Most arrow-rs functionalities use the absolute offset representation,
-  /// such as [`PrimitiveArray::with_timezone_utc`] that applies a
-  /// UTC timezone to timestamp arrays.
-  ///
-  /// [`PrimitiveArray::with_timezone_utc`]: https://docs.rs/arrow/latest/arrow/array/struct.PrimitiveArray.html#method.with_timezone_utc
-  ///
-  /// Timezone string parsing
-  /// -----------------------
-  /// When feature `chrono-tz` is not enabled, allowed timezone strings are fixed offsets of the form "+09:00", "-09" or "+0930".
-  ///
-  /// When feature `chrono-tz` is enabled, additional strings supported by [chrono_tz](https://docs.rs/chrono-tz/latest/chrono_tz/)
-  /// are also allowed, which include [IANA database](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones)
-  /// timezones.
+  // TODO: decide on what kind of timezone support should be added.
   case timestamp(TimeUnit, String?)
   /// A signed 32-bit date representing the elapsed time since UNIX epoch (1970-01-01)
   /// in days.
@@ -284,7 +276,7 @@ public indirect enum ArrowType: Codable, Sendable, Equatable {
   /// [`LargeList`]: Self::LargeList
   case largeListView(ArrowField)
   /// A nested datatype that contains a number of sub-fields.
-  case strct(Fields)
+  case strct(ArrowFields)
   /// A nested datatype that can represent slots of differing types. Components:
   ///
   /// 1. [`UnionFields`]
@@ -655,7 +647,7 @@ extension ArrowType {
       return false
     }
   }
-  
+
   /// Compares the datatype with another, ignoring nested field names and metadata.
   public func equalsDataType(_ other: ArrowType) -> Bool {
     switch (self, other) {
@@ -871,11 +863,3 @@ extension ArrowType {
       ArrowField(listFieldWith: dataType, isNullable: isNullable), size)
   }
 }
-
-//extension ArrowType: Equatable {
-//  
-//  public static func == (lhs: ArrowType, rhs: ArrowType) -> Bool {
-//    
-//    return false
-//  }
-//}

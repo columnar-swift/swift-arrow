@@ -216,8 +216,14 @@ public class ListArrayBuilder: ArrowArrayBuilder<ListBufferBuilder, NestedArray>
   let valueBuilder: any ArrowArrayHolderBuilder
 
   public override init(_ elementType: ArrowType) throws(ArrowError) {
+
+    guard case .list(let field) = elementType else {
+      throw .invalid("Expected a field with type .list")
+    }
+
     self.valueBuilder = try ArrowArrayBuilders.loadBuilder(
-      arrowType: elementType)
+      arrowType: field.dataType
+    )
     try super.init(elementType)
   }
 
@@ -234,9 +240,12 @@ public class ListArrayBuilder: ArrowArrayBuilder<ListBufferBuilder, NestedArray>
     let buffers = self.bufferBuilder.finish()
     let childData = try valueBuilder.toHolder().array.arrowData
     let arrowData = try ArrowData(
-      self.type, buffers: buffers, children: [childData],
+      self.type,
+      buffers: buffers,
+      children: [childData],
       nullCount: self.nullCount,
-      length: self.length)
+      length: self.length
+    )
     return try NestedArray(arrowData)
   }
 }
@@ -366,12 +375,12 @@ public class ArrowArrayBuilders {
       return try Time32ArrayBuilder(unit)
     case .time64(let unit):
       return try Time64ArrayBuilder(unit)
-    case .timestamp(let unit, let timezone):
+    case .timestamp(let unit, _):
       return try TimestampArrayBuilder(unit)
     case .strct(let fields):
       return try StructArrayBuilder(fields)
-    case .list(let field):
-      return try ListArrayBuilder(field.dataType)
+    case .list(_):
+      return try ListArrayBuilder(arrowType)
     default:
       throw ArrowError.unknownType(
         "Builder not found for arrow type: \(arrowType)"
