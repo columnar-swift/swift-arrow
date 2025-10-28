@@ -69,7 +69,7 @@ final class TableTests: XCTestCase {
           ArrowField(
             name: property!,
             dataType: arrowType,
-            nullable: true
+            isNullable: true
           )
         )
       }
@@ -141,9 +141,6 @@ final class TableTests: XCTestCase {
   }
 
   func testTableWithChunkedData() throws {
-    // FIXME: this is hanging
-    XCTFail()
-    return
     let uint8Builder: NumberArrayBuilder<UInt8> =
       try ArrowArrayBuilders.loadNumberArrayBuilder()
     uint8Builder.append(10)
@@ -183,7 +180,7 @@ final class TableTests: XCTestCase {
     let schema = table.schema
     XCTAssertEqual(schema.fields.count, 3)
     XCTAssertEqual(schema.fields[0].name, "col1")
-    XCTAssertEqual(schema.fields[0].dataType, .utf8)
+    XCTAssertEqual(schema.fields[0].dataType, .uint8)
     XCTAssertEqual(schema.fields[0].isNullable, false)
     XCTAssertEqual(schema.fields[1].name, "col2")
     XCTAssertEqual(schema.fields[1].dataType, .utf8)

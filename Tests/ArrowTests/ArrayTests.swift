@@ -408,7 +408,7 @@ final class ArrayTests: XCTestCase {
         rawPointer: UnsafeMutableRawPointer.allocate(
           byteCount: 0, alignment: .zero)),
     ]
-    let field = ArrowField(name: "", dataType: checkType, nullable: true)
+    let field = ArrowField(name: "", dataType: checkType, isNullable: true)
     switch makeArrayHolder(
       field, buffers: buffers, nullCount: 0, children: nil, rbLength: 0)
     {
@@ -506,39 +506,40 @@ final class ArrayTests: XCTestCase {
     XCTAssertEqual(try boolBuilder.finish()[2], true)
   }
 
-  //  func testListArrayPrimitive() throws {
-  //    let listBuilder = try ListArrayBuilder(.Int32)
-  //
-  //    listBuilder.append([Int32(1), Int32(2), Int32(3)])
-  //    listBuilder.append([Int32(4), Int32(5)])
-  //    listBuilder.append(nil)
-  //    listBuilder.append([Int32(6), Int32(7), Int32(8), Int32(9)])
-  //
-  //    XCTAssertEqual(listBuilder.length, 4)
-  //    XCTAssertEqual(listBuilder.nullCount, 1)
-  //
-  //    let listArray = try listBuilder.finish()
-  //    XCTAssertEqual(listArray.length, 4)
-  //
-  //    let firstList = listArray[0]
-  //    XCTAssertNotNil(firstList, "First list should not be nil")
-  //    XCTAssertEqual(firstList!.count, 3, "First list should have 3 elements")
-  //    XCTAssertEqual(firstList![0] as? Int32, 1)
-  //    XCTAssertEqual(firstList![1] as? Int32, 2)
-  //    XCTAssertEqual(firstList![2] as? Int32, 3)
-  //
-  //    let secondList = listArray[1]
-  //    XCTAssertEqual(secondList!.count, 2)
-  //    XCTAssertEqual(secondList![0] as? Int32, 4)
-  //    XCTAssertEqual(secondList![1] as? Int32, 5)
-  //
-  //    XCTAssertNil(listArray[2])
-  //
-  //    let fourthList = listArray[3]
-  //    XCTAssertEqual(fourthList!.count, 4)
-  //    XCTAssertEqual(fourthList![0] as? Int32, 6)
-  //    XCTAssertEqual(fourthList![3] as? Int32, 9)
-  //  }
+    func testListArrayPrimitive() throws {
+      let field = ArrowField(listFieldWith: .int32, isNullable: false)
+      let listBuilder = try ListArrayBuilder(.list(field))
+  
+      listBuilder.append([Int32(1), Int32(2), Int32(3)])
+      listBuilder.append([Int32(4), Int32(5)])
+      listBuilder.append(nil)
+      listBuilder.append([Int32(6), Int32(7), Int32(8), Int32(9)])
+  
+      XCTAssertEqual(listBuilder.length, 4)
+      XCTAssertEqual(listBuilder.nullCount, 1)
+  
+      let listArray = try listBuilder.finish()
+      XCTAssertEqual(listArray.length, 4)
+  
+      let firstList = listArray[0]
+      XCTAssertNotNil(firstList, "First list should not be nil")
+      XCTAssertEqual(firstList!.count, 3, "First list should have 3 elements")
+      XCTAssertEqual(firstList![0] as? Int32, 1)
+      XCTAssertEqual(firstList![1] as? Int32, 2)
+      XCTAssertEqual(firstList![2] as? Int32, 3)
+  
+      let secondList = listArray[1]
+      XCTAssertEqual(secondList!.count, 2)
+      XCTAssertEqual(secondList![0] as? Int32, 4)
+      XCTAssertEqual(secondList![1] as? Int32, 5)
+  
+      XCTAssertNil(listArray[2])
+  
+      let fourthList = listArray[3]
+      XCTAssertEqual(fourthList!.count, 4)
+      XCTAssertEqual(fourthList![0] as? Int32, 6)
+      XCTAssertEqual(fourthList![3] as? Int32, 9)
+    }
 
   //  func testListArrayNested() throws {
   //    let outerListBuilder = try ListArrayBuilder(.Int32)

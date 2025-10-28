@@ -21,9 +21,9 @@ import Foundation
 public struct FlightSchemaResult: Sendable {
   let schemaResult: Arrow_Flight_Protocol_SchemaResult
 
-  public var schema: ArrowSchema? {
-    schemaFromMessage(self.schemaResult.schema)
-  }
+//  public var schema: ArrowSchema? {
+//    schemaFromMessage(self.schemaResult.schema)
+//  }
 
   public init(_ schema: Data) {
     self.schemaResult = Arrow_Flight_Protocol_SchemaResult.with {

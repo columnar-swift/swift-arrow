@@ -28,9 +28,9 @@ public final class FlightInfo: Sendable {
   public var endpoints: [FlightEndpoint] {
     self.flightInfo.endpoint.map { FlightEndpoint($0) }
   }
-  public var schema: ArrowSchema? {
-    schemaFromMessage(self.flightInfo.schema)
-  }
+//  public var schema: ArrowSchema? {
+//    schemaFromMessage(self.flightInfo.schema)
+//  }
 
   let endpoint: [Arrow_Flight_Protocol_FlightEndpoint] = []
   init(_ flightInfo: Arrow_Flight_Protocol_FlightInfo) {

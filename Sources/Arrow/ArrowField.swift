@@ -58,7 +58,7 @@ extension ArrowField {
     self.metadata = .init()
   }
 
-  /// Creates a new `ArrowFieldField` suitable for `ArrowType::List`.
+  /// Creates a new `ArrowField` suitable for `ArrowType::List`.
   ///
   /// While not required, this method follows the convention of naming the
   /// `Field` `"item"`.

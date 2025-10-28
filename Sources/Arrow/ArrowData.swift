@@ -40,7 +40,6 @@ public class ArrowData {
     nullCount: UInt,
     length: UInt
   ) throws(ArrowError) {
-
     self.type = arrowType
     self.buffers = buffers
     self.children = children

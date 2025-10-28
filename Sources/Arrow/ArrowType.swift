@@ -428,14 +428,95 @@ extension ArrowType: CustomStringConvertible {
     case .strct(let fields):
       var result = "Struct("
       if !fields.isEmpty {
-        let fieldDescriptions = fields.map { "\($0.name) \($0.dataType)" }
+        let fieldDescriptions = fields.map { "\($0.name): \($0.dataType)" }
         result += fieldDescriptions.joined(separator: ", ")
       }
       result += ")"
       return result
-
-    default:
-      return String(describing: self)
+    case .null:
+      return "Null"
+    case .boolean:
+      return "Boolean"
+    case .int8:
+      return "Int8"
+    case .int16:
+      return "Int16"
+    case .int32:
+      return "Int32"
+    case .int64:
+      return "Int64"
+    case .uint8:
+      return "UInt8"
+    case .uint16:
+      return "UInt16"
+    case .uint32:
+      return "UInt32"
+    case .uint64:
+      return "UInt64"
+    case .float16:
+      return "Float16"
+    case .float32:
+      return "Float32"
+    case .float64:
+      return "Float64"
+    case .timestamp(let unit, let timezone):
+      if let tz = timezone {
+        return "Timestamp(\(unit), \(tz))"
+      } else {
+        return "Timestamp(\(unit))"
+      }
+    case .date32:
+      return "Date32"
+    case .date64:
+      return "Date64"
+    case .time32(let unit):
+      return "Time32(\(unit))"
+    case .time64(let unit):
+      return "Time64(\(unit))"
+    case .duration(let unit):
+      return "Duration(\(unit))"
+    case .interval(let unit):
+      return "Interval(\(unit))"
+    case .binary:
+      return "Binary"
+    case .fixedSizeBinary(let size):
+      return "FixedSizeBinary(\(size))"
+    case .largeBinary:
+      return "LargeBinary"
+    case .binaryView:
+      return "BinaryView"
+    case .utf8:
+      return "Utf8"
+    case .largeUtf8:
+      return "LargeUtf8"
+    case .utf8View:
+      return "Utf8View"
+    case .list(let elementType):
+      return "List(\(elementType))"
+    case .listView(let elementType):
+      return "ListView(\(elementType))"
+    case .fixedSizeList(let elementType, let size):
+      return "FixedSizeList(\(elementType), \(size))"
+    case .largeList(let elementType):
+      return "LargeList(\(elementType))"
+    case .largeListView(let elementType):
+      return "LargeListView(\(elementType))"
+    case .union(let mode, let fields):
+      return "Union(\(mode), \(fields) fields)"
+    case .dictionary(let keyType, let valueType):
+      return "Dictionary(\(keyType), \(valueType))"
+    case .decimal32(let precision, let scale):
+      return "Decimal32(\(precision), \(scale))"
+    case .decimal64(let precision, let scale):
+      return "Decimal64(\(precision), \(scale))"
+    case .decimal128(let precision, let scale):
+      return "Decimal128(\(precision), \(scale))"
+    case .decimal256(let precision, let scale):
+      return "Decimal256(\(precision), \(scale))"
+    case .map(let keyType, let valueType):
+      return "Map(\(keyType), \(valueType))"
+    case .runEndEncoded(let runEndsType, let valueType):
+      return "RunEndEncoded(\(runEndsType), \(valueType))"
     }
   }
 }
@@ -574,6 +655,7 @@ extension ArrowType {
       return false
     }
   }
+  
   /// Compares the datatype with another, ignoring nested field names and metadata.
   public func equalsDataType(_ other: ArrowType) -> Bool {
     switch (self, other) {
@@ -789,3 +871,11 @@ extension ArrowType {
       ArrowField(listFieldWith: dataType, isNullable: isNullable), size)
   }
 }
+
+//extension ArrowType: Equatable {
+//  
+//  public static func == (lhs: ArrowType, rhs: ArrowType) -> Bool {
+//    
+//    return false
+//  }
+//}

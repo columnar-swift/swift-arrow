@@ -96,7 +96,7 @@ func checkStructRecordBatch(
     XCTAssertEqual(recordBatch.columns.count, 1)
     XCTAssertEqual(recordBatch.schema.fields.count, 1)
     XCTAssertEqual(recordBatch.schema.fields[0].name, "my struct")
-    guard case .strct(let x) = recordBatch.schema.fields[0].dataType else {
+    guard case .strct(_) = recordBatch.schema.fields[0].dataType else {
       XCTFail("Expected field 0 to be a struct")
       return []
     }
@@ -140,9 +140,8 @@ func makeStructSchema() throws -> ArrowSchema {
     for (property, value) in mirror.children {
       let arrowType = try ArrowTypeConverter.infoForType(type(of: value))
       fields.append(
-        ArrowField(name: property!, dataType: arrowType, nullable: true))
+        ArrowField(name: property!, dataType: arrowType, isNullable: true))
     }
-
     return .strct(fields)
   }
 
@@ -251,25 +250,15 @@ final class IPCStreamReaderTests: XCTestCase {
           XCTAssertEqual(recordBatch.columns.count, 5)
           XCTAssertEqual(recordBatch.schema.fields.count, 5)
           XCTAssertEqual(recordBatch.schema.fields[0].name, "col1")
-          XCTAssertEqual(
-            recordBatch.schema.fields[0].dataType, .uint8
-          )
+          XCTAssertEqual(recordBatch.schema.fields[0].dataType, .int8)
           XCTAssertEqual(recordBatch.schema.fields[1].name, "col2")
-          XCTAssertEqual(
-            recordBatch.schema.fields[1].dataType, .utf8
-          )
+          XCTAssertEqual(recordBatch.schema.fields[1].dataType, .utf8)
           XCTAssertEqual(recordBatch.schema.fields[2].name, "col3")
-          XCTAssertEqual(
-            recordBatch.schema.fields[2].dataType, .date32
-          )
+          XCTAssertEqual(recordBatch.schema.fields[2].dataType, .date32)
           XCTAssertEqual(recordBatch.schema.fields[3].name, "col4")
-          XCTAssertEqual(
-            recordBatch.schema.fields[3].dataType, .int32
-          )
+          XCTAssertEqual(recordBatch.schema.fields[3].dataType, .int32)
           XCTAssertEqual(recordBatch.schema.fields[4].name, "col5")
-          XCTAssertEqual(
-            recordBatch.schema.fields[4].dataType, .float32
-          )
+          XCTAssertEqual(recordBatch.schema.fields[4].dataType, .float32)
           let columns = recordBatch.columns
           XCTAssertEqual(columns[0].nullCount, 2)
           let dateVal =
@@ -419,7 +408,7 @@ final class IPCFileReaderTests: XCTestCase {
           XCTAssertEqual(recordBatch.columns.count, 5)
           XCTAssertEqual(recordBatch.schema.fields.count, 5)
           XCTAssertEqual(recordBatch.schema.fields[0].name, "col1")
-          XCTAssertEqual(recordBatch.schema.fields[0].dataType, .uint8)
+          XCTAssertEqual(recordBatch.schema.fields[0].dataType, .int8)
           XCTAssertEqual(recordBatch.schema.fields[1].name, "col2")
           XCTAssertEqual(recordBatch.schema.fields[1].dataType, .utf8)
           XCTAssertEqual(recordBatch.schema.fields[2].name, "col3")
@@ -468,7 +457,7 @@ final class IPCFileReaderTests: XCTestCase {
         let schema = result.schema!
         XCTAssertEqual(schema.fields.count, 5)
         XCTAssertEqual(schema.fields[0].name, "col1")
-        XCTAssertEqual(schema.fields[0].dataType, .uint8)
+        XCTAssertEqual(schema.fields[0].dataType, .int8)
         XCTAssertEqual(schema.fields[1].name, "col2")
         XCTAssertEqual(schema.fields[1].dataType, .utf8)
         XCTAssertEqual(schema.fields[2].name, "col3")
@@ -547,10 +536,6 @@ final class IPCFileReaderTests: XCTestCase {
   }
 
   func testStructRBInMemoryToFromStream() throws {
-
-    // FIXME: this hangs with infinte recursion
-    XCTFail()
-    return
     // read existing file
     let schema = try makeStructSchema()
     let recordBatch = try makeStructRecordBatch()

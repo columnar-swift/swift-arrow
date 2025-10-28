@@ -57,7 +57,7 @@ func toFBType(
   switch arrowType {
   case .int8, .uint8:
     return .success(
-      FlatInt.createInt(&fbb, bitWidth: 8, isSigned: arrowType == .uint8))
+      FlatInt.createInt(&fbb, bitWidth: 8, isSigned: arrowType == .int8))
   case .int16, .uint16:
     return .success(
       FlatInt.createInt(&fbb, bitWidth: 16, isSigned: arrowType == .int16))
