@@ -357,7 +357,7 @@ public class Date64BufferBuilder: AbstractWrapperBufferBuilder<Date, Int64> {
 
 public final class StructBufferBuilder: BaseBufferBuilder, ArrowBufferBuilder {
   public typealias ItemType = [Any?]
-  var info: ArrowTypeStruct?
+  var info: ArrowType?
   public init() throws(ArrowError) {
     let nulls = ArrowBuffer.createBuffer(
       0, size: UInt(MemoryLayout<UInt8>.stride))
@@ -365,7 +365,7 @@ public final class StructBufferBuilder: BaseBufferBuilder, ArrowBufferBuilder {
   }
 
   public func initializeTypeInfo(_ fields: [ArrowField]) {
-    info = ArrowTypeStruct(ArrowType.arrowStruct, fields: fields)
+    info = .strct(fields)
   }
 
   public func append(_ newValue: [Any?]?) {

@@ -17,10 +17,8 @@ import XCTest
 @testable import Arrow
 
 final class ArrayTests: XCTestCase {
+
   func testPrimitiveArray() throws {
-    // This is an example of a functional test case.
-    // Use XCTAssert and related functions to verify your tests produce the correct
-    // results.
     let arrayBuilder: NumberArrayBuilder<UInt8> =
       try ArrowArrayBuilders.loadNumberArrayBuilder()
     for index in 0..<100 {
@@ -157,7 +155,7 @@ final class ArrayTests: XCTestCase {
 
   func testTime32Array() throws {
     let milliBuilder = try ArrowArrayBuilders.loadTime32ArrayBuilder(
-      .milliseconds)
+      .millisecond)
     milliBuilder.append(100)
     milliBuilder.append(1_000_000)
     milliBuilder.append(nil)
@@ -165,13 +163,16 @@ final class ArrayTests: XCTestCase {
     XCTAssertEqual(milliBuilder.length, 3)
     XCTAssertEqual(milliBuilder.capacity, 136)
     let milliArray = try milliBuilder.finish()
-    let milliType = milliArray.arrowData.type as! ArrowTypeTime32
-    XCTAssertEqual(milliType.unit, .milliseconds)
+    guard case .time32(let milliType) = milliArray.arrowData.type else {
+      XCTFail("Expected time32")
+      return
+    }
+    XCTAssertEqual(milliType, .millisecond)
     XCTAssertEqual(milliArray.length, 3)
     XCTAssertEqual(milliArray[1], 1_000_000)
     XCTAssertEqual(milliArray[2], nil)
 
-    let secBuilder = try ArrowArrayBuilders.loadTime32ArrayBuilder(.seconds)
+    let secBuilder = try ArrowArrayBuilders.loadTime32ArrayBuilder(.second)
     secBuilder.append(200)
     secBuilder.append(nil)
     secBuilder.append(2_000_011)
@@ -179,8 +180,11 @@ final class ArrayTests: XCTestCase {
     XCTAssertEqual(secBuilder.length, 3)
     XCTAssertEqual(secBuilder.capacity, 136)
     let secArray = try secBuilder.finish()
-    let secType = secArray.arrowData.type as! ArrowTypeTime32
-    XCTAssertEqual(secType.unit, .seconds)
+    guard case .time32(let secType) = secArray.arrowData.type else {
+      XCTFail("Expected time32")
+      return
+    }
+    XCTAssertEqual(secType, .second)
     XCTAssertEqual(secArray.length, 3)
     XCTAssertEqual(secArray[1], nil)
     XCTAssertEqual(secArray[2], 2_000_011)
@@ -188,7 +192,7 @@ final class ArrayTests: XCTestCase {
 
   func testTime64Array() throws {
     let nanoBuilder = try ArrowArrayBuilders.loadTime64ArrayBuilder(
-      .nanoseconds)
+      .nanosecond)
     nanoBuilder.append(10000)
     nanoBuilder.append(nil)
     nanoBuilder.append(123_456_789)
@@ -196,14 +200,18 @@ final class ArrayTests: XCTestCase {
     XCTAssertEqual(nanoBuilder.length, 3)
     XCTAssertEqual(nanoBuilder.capacity, 264)
     let nanoArray = try nanoBuilder.finish()
-    let nanoType = nanoArray.arrowData.type as! ArrowTypeTime64
-    XCTAssertEqual(nanoType.unit, .nanoseconds)
+    guard case .time64(let nanoType) = nanoArray.arrowData.type else {
+      XCTFail("Expected time64")
+      return
+    }
+    XCTAssertEqual(nanoType, .nanosecond)
     XCTAssertEqual(nanoArray.length, 3)
     XCTAssertEqual(nanoArray[1], nil)
     XCTAssertEqual(nanoArray[2], 123_456_789)
 
     let microBuilder = try ArrowArrayBuilders.loadTime64ArrayBuilder(
-      .microseconds)
+      .microsecond
+    )
     microBuilder.append(nil)
     microBuilder.append(20000)
     microBuilder.append(987_654_321)
@@ -211,8 +219,11 @@ final class ArrayTests: XCTestCase {
     XCTAssertEqual(microBuilder.length, 3)
     XCTAssertEqual(microBuilder.capacity, 264)
     let microArray = try microBuilder.finish()
-    let microType = microArray.arrowData.type as! ArrowTypeTime64
-    XCTAssertEqual(microType.unit, .microseconds)
+    guard case .time64(let microType) = microArray.arrowData.type else {
+      XCTFail("Expected time64")
+      return
+    }
+    XCTAssertEqual(microType, .microsecond)
     XCTAssertEqual(microArray.length, 3)
     XCTAssertEqual(microArray[1], 20000)
     XCTAssertEqual(microArray[2], 987_654_321)
@@ -221,7 +232,9 @@ final class ArrayTests: XCTestCase {
   func testTimestampArray() throws {
     // Test timestamp with seconds unit
     let secBuilder = try ArrowArrayBuilders.loadTimestampArrayBuilder(
-      .seconds, timezone: nil)
+      .second,
+      timezone: nil
+    )
     secBuilder.append(1_609_459_200)  // 2021-01-01 00:00:00
     secBuilder.append(1_609_545_600)  // 2021-01-02 00:00:00
     secBuilder.append(nil)
@@ -229,9 +242,13 @@ final class ArrayTests: XCTestCase {
     XCTAssertEqual(secBuilder.length, 3)
     XCTAssertEqual(secBuilder.capacity, 264)
     let secArray = try secBuilder.finish()
-    let secType = secArray.arrowData.type as! ArrowTypeTimestamp
-    XCTAssertEqual(secType.unit, .seconds)
-    XCTAssertNil(secType.timezone)
+    guard case .timestamp(let secType, let timezone) = secArray.arrowData.type
+    else {
+      XCTFail("Expected timestamp")
+      return
+    }
+    XCTAssertEqual(secType, .second)
+    XCTAssertNil(timezone)
     XCTAssertEqual(secArray.length, 3)
     XCTAssertEqual(secArray[0], 1_609_459_200)
     XCTAssertEqual(secArray[1], 1_609_545_600)
@@ -239,7 +256,9 @@ final class ArrayTests: XCTestCase {
 
     // Test timestamp with milliseconds unit and timezone America/New_York
     let msBuilder = try ArrowArrayBuilders.loadTimestampArrayBuilder(
-      .milliseconds, timezone: "America/New_York")
+      .millisecond,
+      timezone: "America/New_York"
+    )
     msBuilder.append(1_609_459_200_000)  // 2021-01-01 00:00:00.000
     msBuilder.append(nil)
     msBuilder.append(1_609_545_600_000)  // 2021-01-02 00:00:00.000
@@ -247,9 +266,13 @@ final class ArrayTests: XCTestCase {
     XCTAssertEqual(msBuilder.length, 3)
     XCTAssertEqual(msBuilder.capacity, 264)
     let msArray = try msBuilder.finish()
-    let msType = msArray.arrowData.type as! ArrowTypeTimestamp
-    XCTAssertEqual(msType.unit, .milliseconds)
-    XCTAssertEqual(msType.timezone, "America/New_York")
+    guard case .timestamp(let msType, let timezone) = msArray.arrowData.type
+    else {
+      XCTFail("Expected timestamp")
+      return
+    }
+    XCTAssertEqual(msType, .millisecond)
+    XCTAssertEqual(timezone, "America/New_York")
     XCTAssertEqual(msArray.length, 3)
     XCTAssertEqual(msArray[0], 1_609_459_200_000)
     XCTAssertNil(msArray[1])
@@ -257,7 +280,7 @@ final class ArrayTests: XCTestCase {
 
     // Test timestamp with microseconds unit and timezone UTC
     let usBuilder = try ArrowArrayBuilders.loadTimestampArrayBuilder(
-      .microseconds, timezone: "UTC")
+      .microsecond, timezone: "UTC")
     usBuilder.append(1_609_459_200_000_000)  // 2021-01-01 00:00:00.000000
     usBuilder.append(1_609_545_600_000_000)  // 2021-01-02 00:00:00.000000
     usBuilder.append(1_609_632_000_000_000)  // 2021-01-03 00:00:00.000000
@@ -265,9 +288,13 @@ final class ArrayTests: XCTestCase {
     XCTAssertEqual(usBuilder.length, 3)
     XCTAssertEqual(usBuilder.capacity, 264)
     let usArray = try usBuilder.finish()
-    let usType = usArray.arrowData.type as! ArrowTypeTimestamp
-    XCTAssertEqual(usType.unit, .microseconds)
-    XCTAssertEqual(usType.timezone, "UTC")
+    guard case .timestamp(let usType, let timezone) = usArray.arrowData.type
+    else {
+      XCTFail("Expected timestamp")
+      return
+    }
+    XCTAssertEqual(usType, .microsecond)
+    XCTAssertEqual(timezone, "UTC")
     XCTAssertEqual(usArray.length, 3)
     XCTAssertEqual(usArray[0], 1_609_459_200_000_000)
     XCTAssertEqual(usArray[1], 1_609_545_600_000_000)
@@ -275,7 +302,7 @@ final class ArrayTests: XCTestCase {
 
     // Test timestamp with nanoseconds unit
     let nsBuilder = try ArrowArrayBuilders.loadTimestampArrayBuilder(
-      .nanoseconds, timezone: nil)
+      .nanosecond, timezone: nil)
     nsBuilder.append(nil)
     // 2021-01-01 00:00:00.000000000
     nsBuilder.append(1_609_459_200_000_000_000)
@@ -285,9 +312,13 @@ final class ArrayTests: XCTestCase {
     XCTAssertEqual(nsBuilder.length, 3)
     XCTAssertEqual(nsBuilder.capacity, 264)
     let nsArray = try nsBuilder.finish()
-    let nsType = nsArray.arrowData.type as! ArrowTypeTimestamp
-    XCTAssertEqual(nsType.unit, .nanoseconds)
-    XCTAssertNil(nsType.timezone)
+    guard case .timestamp(let nsType, let timezone) = nsArray.arrowData.type
+    else {
+      XCTFail("Expected timestamp")
+      return
+    }
+    XCTAssertEqual(nsType, .nanosecond)
+    XCTAssertNil(timezone)
     XCTAssertEqual(nsArray.length, 3)
     XCTAssertNil(nsArray[0])
     XCTAssertEqual(nsArray[1], 1_609_459_200_000_000_000)
@@ -374,35 +405,35 @@ final class ArrayTests: XCTestCase {
         rawPointer: UnsafeMutableRawPointer.allocate(
           byteCount: 0, alignment: .zero)),
     ]
-    let field = ArrowField("", type: checkType, isNullable: true)
+    let field = ArrowField(name: "", dataType: checkType, isNullable: true)
     switch makeArrayHolder(
       field, buffers: buffers, nullCount: 0, children: nil, rbLength: 0)
     {
     case .success(let holder):
-      XCTAssertEqual(holder.type.id, checkType.id)
+      XCTAssertEqual(holder.type, checkType)
     case .failure(let err):
       throw err
     }
   }
 
   func testArrayHolders() throws {
-    try checkHolderForType(ArrowType(ArrowType.arrowInt8))
-    try checkHolderForType(ArrowType(ArrowType.arrowUInt8))
-    try checkHolderForType(ArrowType(ArrowType.arrowInt16))
-    try checkHolderForType(ArrowType(ArrowType.arrowUInt16))
-    try checkHolderForType(ArrowType(ArrowType.arrowInt32))
-    try checkHolderForType(ArrowType(ArrowType.arrowUInt32))
-    try checkHolderForType(ArrowType(ArrowType.arrowInt64))
-    try checkHolderForType(ArrowType(ArrowType.arrowUInt64))
-    try checkHolderForType(ArrowTypeTime32(.seconds))
-    try checkHolderForType(ArrowTypeTime32(.milliseconds))
-    try checkHolderForType(ArrowTypeTime64(.microseconds))
-    try checkHolderForType(ArrowTypeTime64(.nanoseconds))
-    try checkHolderForType(ArrowType(ArrowType.arrowBinary))
-    try checkHolderForType(ArrowType(ArrowType.arrowFloat))
-    try checkHolderForType(ArrowType(ArrowType.arrowDouble))
-    try checkHolderForType(ArrowType(ArrowType.arrowBool))
-    try checkHolderForType(ArrowType(ArrowType.arrowString))
+    try checkHolderForType(.int8)
+    try checkHolderForType(.uint8)
+    try checkHolderForType(.int16)
+    try checkHolderForType(.uint16)
+    try checkHolderForType(.int32)
+    try checkHolderForType(.uint32)
+    try checkHolderForType(.int64)
+    try checkHolderForType(.uint64)
+    try checkHolderForType(.time32(.second))
+    try checkHolderForType(.time32(.millisecond))
+    try checkHolderForType(.time64(.microsecond))
+    try checkHolderForType(.time64(.nanosecond))
+    try checkHolderForType(.binary)
+    try checkHolderForType(.float32)
+    try checkHolderForType(.float64)
+    try checkHolderForType(.boolean)
+    try checkHolderForType(.utf8)
   }
 
   func testArrowArrayHolderBuilder() throws {
@@ -473,7 +504,8 @@ final class ArrayTests: XCTestCase {
   }
 
   func testListArrayPrimitive() throws {
-    let listBuilder = try ListArrayBuilder(ArrowType(ArrowType.arrowInt32))
+    let field = ArrowField(listFieldWith: .int32, isNullable: false)
+    let listBuilder = try ListArrayBuilder(.list(field))
 
     listBuilder.append([Int32(1), Int32(2), Int32(3)])
     listBuilder.append([Int32(4), Int32(5)])
@@ -507,8 +539,11 @@ final class ArrayTests: XCTestCase {
   }
 
   func testListArrayNested() throws {
-    let innerListType = ArrowTypeList(ArrowType(ArrowType.arrowInt32))
-    let outerListBuilder = try ListArrayBuilder(innerListType)
+    let field = ArrowField(listFieldWith: .int32, isNullable: false)
+    let innerListType: ArrowType = .list(field)
+
+    let outerField = ArrowField(listFieldWith: innerListType, isNullable: false)
+    let outerListBuilder = try ListArrayBuilder(.list(outerField))
 
     guard
       let innerListBuilder = outerListBuilder.valueBuilder as? ListArrayBuilder

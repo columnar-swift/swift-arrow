@@ -19,7 +19,7 @@ import Foundation
 let fileMarker = Data("ARROW1".utf8)
 let continuationMarker = UInt32(0xFFFF_FFFF)
 
-public class ArrowReader {
+public struct ArrowReader: Sendable {
   private class RecordBatchData {
     let schema: Schema
     let recordBatch: FlatRecordBatch
@@ -85,17 +85,17 @@ public class ArrowReader {
       } catch {
         return .failure(error)
       }
-      if fieldType.info == ArrowType.arrowUnknown {
-        return .failure(
-          .unknownType("Unsupported field type found: \(field.typeType)")
-        )
-      }
+      //      if fieldType.info == ArrowType.arrowUnknown {
+      //        return .failure(
+      //          .unknownType("Unsupported field type found: \(field.typeType)")
+      //        )
+      //      }
       guard let fieldName = field.name else {
         return .failure(.invalid("Field name not found"))
       }
       let arrowField = ArrowField(
-        fieldName,
-        type: fieldType,
+        name: fieldName,
+        dataType: fieldType,
         isNullable: field.nullable
       )
       builder.addField(arrowField)

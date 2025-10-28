@@ -82,9 +82,9 @@ public class ArrowWriter {
     field: ArrowField
   ) -> Result<Offset, ArrowError> {
     var fieldsOffset: Offset?
-    if let nestedField = field.type as? ArrowTypeStruct {
+    if case .strct(let fields) = field.type {
       var offsets: [Offset] = []
-      for field in nestedField.fields {
+      for field in fields {
         switch writeField(&fbb, field: field) {
         case .success(let offset):
           offsets.append(offset)
@@ -207,11 +207,12 @@ public class ArrowWriter {
         nullCount: Int64(column.nullCount)
       )
       offsets.append(fbb.create(struct: fieldNode))
-      if let nestedType = column.type as? ArrowTypeStruct {
+      if case .strct(let fields) = column.type {
+
         let nestedArray = column.array as? NestedArray
         if let nestedFields = nestedArray?.fields {
           writeFieldNodes(
-            nestedType.fields,
+            fields,
             columns: nestedFields,
             offsets: &offsets,
             fbb: &fbb
@@ -237,11 +238,12 @@ public class ArrowWriter {
           offset: Int64(bufferOffset), length: Int64(bufferDataSize))
         buffers.append(buffer)
         bufferOffset += bufferDataSize
-        if let nestedType = column.type as? ArrowTypeStruct {
+
+        if case .strct(let fields) = column.type {
           let nestedArray = column.array as? NestedArray
           if let nestedFields = nestedArray?.fields {
             writeBufferInfo(
-              nestedType.fields, columns: nestedFields,
+              fields, columns: nestedFields,
               bufferOffset: &bufferOffset, buffers: &buffers, fbb: &fbb)
           }
         }
@@ -310,7 +312,7 @@ public class ArrowWriter {
       for var bufferData in colBufferData {
         addPadForAlignment(&bufferData)
         writer.append(bufferData)
-        if let nestedType = column.type as? ArrowTypeStruct {
+        if case .strct(let fields) = column.type {
           guard let nestedArray = column.array as? NestedArray,
             let nestedFields = nestedArray.fields
           else {
@@ -320,7 +322,7 @@ public class ArrowWriter {
           }
           switch writeRecordBatchData(
             &writer,
-            fields: nestedType.fields,
+            fields: fields,
             columns: nestedFields
           ) {
           case .success:

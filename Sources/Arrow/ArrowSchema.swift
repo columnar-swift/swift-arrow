@@ -14,19 +14,7 @@
 
 import Foundation
 
-public class ArrowField {
-  public let type: ArrowType
-  public let name: String
-  public let isNullable: Bool
-
-  init(_ name: String, type: ArrowType, isNullable: Bool) {
-    self.name = name
-    self.type = type
-    self.isNullable = isNullable
-  }
-}
-
-public class ArrowSchema {
+public struct ArrowSchema: Sendable {
   public let fields: [ArrowField]
   public let fieldLookup: [String: Int]
   init(_ fields: [ArrowField]) {
@@ -64,7 +52,8 @@ public class ArrowSchema {
       type: ArrowType,
       isNullable: Bool
     ) -> Builder {
-      fields.append(ArrowField(name, type: type, isNullable: isNullable))
+      fields.append(
+        ArrowField(name: name, dataType: type, isNullable: isNullable))
       return self
     }
 

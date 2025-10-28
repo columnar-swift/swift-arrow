@@ -20,7 +20,7 @@ import PackageDescription
 let package = Package(
   name: "Arrow",
   platforms: [
-    .macOS(.v10_14)
+    .macOS(.v13)
   ],
   products: [
     .library(
@@ -36,6 +36,14 @@ let package = Package(
     .package(
       url: "https://github.com/apple/swift-atomics.git",
       from: "1.3.0"
+    ),
+    .package(
+      url: "https://github.com/grpc/grpc-swift.git",
+      from: "1.25.0"
+    ),
+    .package(
+      url: "https://github.com/apple/swift-protobuf.git",
+      from: "1.29.0"
     ),
   ],
   targets: [
@@ -56,11 +64,34 @@ let package = Package(
         // build: .unsafeFlags(["-warnings-as-errors"])
       ]
     ),
+    .target(
+      name: "ArrowFlight",
+      dependencies: [
+        "Arrow",
+        .product(name: "GRPC", package: "grpc-swift"),
+        .product(name: "SwiftProtobuf", package: "swift-protobuf"),
+      ],
+      swiftSettings: [
+        // build: .unsafeFlags(["-warnings-as-errors"])
+      ]
+    ),
     .testTarget(
       name: "ArrowTests",
       dependencies: ["Arrow", "ArrowC"],
       resources: [
         .copy("Resources/")
+      ],
+      swiftSettings: [
+        // build: .unsafeFlags(["-warnings-as-errors"])
+      ]
+    ),
+    .testTarget(
+      name: "ArrowFlightTests",
+      dependencies: [
+        "Arrow",
+        "ArrowFlight",
+        .product(name: "GRPC", package: "grpc-swift"),
+        .product(name: "SwiftProtobuf", package: "swift-protobuf"),
       ],
       swiftSettings: [
         // build: .unsafeFlags(["-warnings-as-errors"])

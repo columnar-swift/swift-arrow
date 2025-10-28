@@ -26,6 +26,14 @@ public class ArrowColumn {
     self.field = field
     self.dataHolder = chunked
   }
+
+  public func data<T>() throws(ArrowError) -> ChunkedArray<T> {
+    if let holder = self.dataHolder.holder as? ChunkedArray<T> {
+      return holder
+    } else {
+      throw .runtimeError("Could not cast array holder to chunked array.")
+    }
+  }
 }
 
 public class ArrowTable {
@@ -102,8 +110,8 @@ public class ArrowTable {
       chunked: ChunkedArray<T>
     ) -> Builder {
       let field = ArrowField(
-        fieldName,
-        type: chunked.type,
+        name: fieldName,
+        dataType: chunked.type,
         isNullable: chunked.nullCount != 0
       )
       self.schemaBuilder.addField(field)
@@ -170,8 +178,8 @@ public class RecordBatch {
       arrowArray: ArrowArrayHolder
     ) -> Builder {
       let field = ArrowField(
-        fieldName,
-        type: arrowArray.type,
+        name: fieldName,
+        dataType: arrowArray.type,
         isNullable: arrowArray.nullCount != 0
       )
       self.schemaBuilder.addField(field)

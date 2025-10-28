@@ -18,11 +18,13 @@ import XCTest
 
 final class ArrayBuilderTests: XCTestCase {
   func testIsValidTypeForBuilder() throws {
+    XCTAssertTrue(ArrowArrayBuilders.isValidBuilderType(Int8.self))
     XCTAssertTrue(ArrowArrayBuilders.isValidBuilderType(UInt8.self))
+    XCTAssertTrue(ArrowArrayBuilders.isValidBuilderType(UInt8?.self))
+
     XCTAssertTrue(ArrowArrayBuilders.isValidBuilderType(Int16.self))
     XCTAssertTrue(ArrowArrayBuilders.isValidBuilderType(Int32.self))
     XCTAssertTrue(ArrowArrayBuilders.isValidBuilderType(Int64.self))
-    XCTAssertTrue(ArrowArrayBuilders.isValidBuilderType(UInt8.self))
     XCTAssertTrue(ArrowArrayBuilders.isValidBuilderType(UInt16.self))
     XCTAssertTrue(ArrowArrayBuilders.isValidBuilderType(UInt32.self))
     XCTAssertTrue(ArrowArrayBuilders.isValidBuilderType(UInt64.self))
@@ -34,7 +36,6 @@ final class ArrayBuilderTests: XCTestCase {
     XCTAssertTrue(ArrowArrayBuilders.isValidBuilderType(Int16?.self))
     XCTAssertTrue(ArrowArrayBuilders.isValidBuilderType(Int32?.self))
     XCTAssertTrue(ArrowArrayBuilders.isValidBuilderType(Int64?.self))
-    XCTAssertTrue(ArrowArrayBuilders.isValidBuilderType(UInt8?.self))
     XCTAssertTrue(ArrowArrayBuilders.isValidBuilderType(UInt16?.self))
     XCTAssertTrue(ArrowArrayBuilders.isValidBuilderType(UInt32?.self))
     XCTAssertTrue(ArrowArrayBuilders.isValidBuilderType(UInt64?.self))
