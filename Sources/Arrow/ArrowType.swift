@@ -420,7 +420,7 @@ extension ArrowType: CustomStringConvertible {
     case .strct(let fields):
       var result = "Struct("
       if !fields.isEmpty {
-        let fieldDescriptions = fields.map { "\($0.name): \($0.dataType)" }
+        let fieldDescriptions = fields.map { "\($0.name): \($0.type)" }
         result += fieldDescriptions.joined(separator: ", ")
       }
       result += ")"
@@ -629,7 +629,7 @@ extension ArrowType {
     case .dictionary(_, let v):
       return v.isNested
     case .runEndEncoded(_, let v):
-      return v.dataType.isNested
+      return v.type.isNested
     case .list, .fixedSizeList, .largeList, .listView, .largeListView,
       .strct, .union, .map:
       return true
@@ -658,25 +658,25 @@ extension ArrowType {
       (.listView(let a), .listView(let b)),
       (.largeListView(let a), .largeListView(let b)):
       return a.isNullable == b.isNullable
-        && a.dataType.equalsDataType(b.dataType)
+        && a.type.equalsDataType(b.type)
 
     // FixedSizeList
     case (.fixedSizeList(let a, let aSize), .fixedSizeList(let b, let bSize)):
       return aSize == bSize && a.isNullable == b.isNullable
-        && a.dataType.equalsDataType(b.dataType)
+        && a.type.equalsDataType(b.type)
 
     // Struct
     case (.strct(let aFields), .strct(let bFields)):
       guard aFields.count == bFields.count else { return false }
       return zip(aFields, bFields).allSatisfy {
         $0.isNullable == $1.isNullable
-          && $0.dataType.equalsDataType($1.dataType)
+          && $0.type.equalsDataType($1.type)
       }
 
     // Map
     case (.map(let aField, let aSorted), .map(let bField, let bSorted)):
       return aField.isNullable == bField.isNullable
-        && aField.dataType.equalsDataType(bField.dataType) && aSorted == bSorted
+        && aField.type.equalsDataType(bField.type) && aSorted == bSorted
 
     // Dictionary
     case (.dictionary(let aKey, let aValue), .dictionary(let bKey, let bValue)):
@@ -688,9 +688,9 @@ extension ArrowType {
       .runEndEncoded(let bRunEnds, let bValues)
     ):
       return aRunEnds.isNullable == bRunEnds.isNullable
-        && aRunEnds.dataType.equalsDataType(bRunEnds.dataType)
+        && aRunEnds.type.equalsDataType(bRunEnds.type)
         && aValues.isNullable == bValues.isNullable
-        && aValues.dataType.equalsDataType(bValues.dataType)
+        && aValues.type.equalsDataType(bValues.type)
 
     // Union
     case (.union(let aFields, let aMode), .union(let bFields, let bMode)):
@@ -703,7 +703,7 @@ extension ArrowType {
 
           aField.typeId == bField.typeId
             && aField.field.isNullable == bField.field.isNullable
-            && aField.field.dataType.equalsDataType(bField.field.dataType)
+            && aField.field.type.equalsDataType(bField.field.type)
         }
       }
 

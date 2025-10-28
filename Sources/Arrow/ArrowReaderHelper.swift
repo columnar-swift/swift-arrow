@@ -49,16 +49,16 @@ private func makeDateHolder(
   nullCount: UInt
 ) -> Result<ArrowArrayHolder, ArrowError> {
   do {
-    if field.dataType == .date32 {
+    if field.type == .date32 {
       let arrowData = try ArrowData(
-        field.dataType,
+        field.type,
         buffers: buffers,
         nullCount: nullCount
       )
       return .success(ArrowArrayHolderImpl(try Date32Array(arrowData)))
     }
     let arrowData = try ArrowData(
-      field.dataType,
+      field.type,
       buffers: buffers,
       nullCount: nullCount
     )
@@ -74,19 +74,19 @@ private func makeTimeHolder(
   nullCount: UInt
 ) -> Result<ArrowArrayHolder, ArrowError> {
   do {
-    switch field.dataType {
+    switch field.type {
     case .time32(_):
       let arrowData = try ArrowData(
-        field.dataType, buffers: buffers, nullCount: nullCount)
+        field.type, buffers: buffers, nullCount: nullCount)
       return .success(ArrowArrayHolderImpl(try FixedArray<Time32>(arrowData)))
 
     case .time64(_):
       let arrowData = try ArrowData(
-        field.dataType, buffers: buffers, nullCount: nullCount)
+        field.type, buffers: buffers, nullCount: nullCount)
       return .success(ArrowArrayHolderImpl(try FixedArray<Time64>(arrowData)))
     default:
       return .failure(
-        .invalid("Incorrect field type for time: \(field.dataType)"))
+        .invalid("Incorrect field type for time: \(field.type)"))
     }
   } catch {
     return .failure(error)
@@ -99,15 +99,15 @@ private func makeTimestampHolder(
   nullCount: UInt
 ) -> Result<ArrowArrayHolder, ArrowError> {
   do {
-    switch field.dataType {
+    switch field.type {
     case .timestamp(_, _):
       let arrowData = try ArrowData(
-        field.dataType, buffers: buffers, nullCount: nullCount)
+        field.type, buffers: buffers, nullCount: nullCount)
       let array = try TimestampArray(arrowData)
       return .success(ArrowArrayHolderImpl(array))
     default:
       return .failure(
-        .invalid("Incorrect field type for timestamp: \(field.dataType)"))
+        .invalid("Incorrect field type for timestamp: \(field.type)"))
     }
   } catch {
     return .failure(error)
@@ -138,7 +138,7 @@ private func makeFixedHolder<T>(
 ) -> Result<ArrowArrayHolder, ArrowError> {
   do {
     let arrowData = try ArrowData(
-      field.dataType,
+      field.type,
       buffers: buffers,
       nullCount: nullCount
     )
@@ -157,7 +157,7 @@ func makeNestedHolder(
 ) -> Result<ArrowArrayHolder, ArrowError> {
   do {
     let arrowData = try ArrowData(
-      field.dataType,
+      field.type,
       buffers: buffers,
       children: children,
       nullCount: nullCount,
@@ -199,7 +199,7 @@ func makeArrayHolder(
   children: [ArrowData]?,
   rbLength: UInt
 ) -> Result<ArrowArrayHolder, ArrowError> {
-  let typeId = field.dataType
+  let typeId = field.type
   switch typeId {
   case .int8:
     return makeFixedHolder(

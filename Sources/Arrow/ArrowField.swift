@@ -25,7 +25,8 @@
 /// Arrow Extension types, are encoded in `ArrowField`s metadata.
 public struct ArrowField: Codable, Sendable {
   public var name: String
-  public var dataType: ArrowType
+  public var type: ArrowType
+
   /// Indicates whether this `ArrowField` supports null values.
   ///
   /// If true, the field *may* contain null values.
@@ -39,7 +40,7 @@ public struct ArrowField: Codable, Sendable {
 extension ArrowField: Equatable {
   public static func == (lhs: ArrowField, rhs: ArrowField) -> Bool {
     lhs.name == rhs.name
-      && lhs.dataType == rhs.dataType
+      && lhs.type == rhs.type
       && lhs.isNullable == rhs.isNullable
       && lhs.metadata == rhs.metadata
   }
@@ -52,7 +53,7 @@ extension ArrowField {
   /// Creates a new field with the given name, data type, and nullability.
   public init(name: String, dataType: ArrowType, isNullable: Bool) {
     self.name = name
-    self.dataType = dataType
+    self.type = dataType
     self.isNullable = isNullable
     self.orderedDict = false
     self.metadata = .init()
@@ -169,12 +170,12 @@ extension ArrowField {
   /// Set the data type of the `ArrowField`.
   @inlinable
   public mutating func setDataType(dataType: ArrowType) {
-    self.dataType = dataType
+    self.type = dataType
   }
 
   /// Set the data type of the `ArrowField` and returns self.
   public mutating func withDataType(_ dataType: ArrowType) -> Self {
-    self.dataType = dataType
+    self.type = dataType
     return self
   }
 
@@ -211,7 +212,7 @@ extension ArrowField {
   /// Returns whether this `ArrowField` has an ordered dictionary, if this is a dictionary type.
   @inlinable
   public var dictIsOrdered: Bool {
-    switch self.dataType {
+    switch self.type {
     case .dictionary: return self.orderedDict
     default: return false
     }
@@ -224,7 +225,7 @@ extension ArrowField {
   /// * all other fields are equal
   public func contains(other: ArrowField) -> Bool {
     self.name == other.name
-      && self.dataType.contains(other.dataType)
+      && self.type.contains(other.type)
       && self.dictIsOrdered == other.dictIsOrdered
       // self need to be nullable or both of them are not nullable
       && (self.isNullable || !other.isNullable)

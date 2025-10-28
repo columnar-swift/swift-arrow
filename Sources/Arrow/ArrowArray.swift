@@ -388,7 +388,7 @@ public class NestedArray: ArrowArray<[Any?]> {
       }
       self.children = [
         try ArrowArrayHolderImpl.loadArray(
-          field.dataType,
+          field.type,
           with: arrowData.children[0]
         )
       ]

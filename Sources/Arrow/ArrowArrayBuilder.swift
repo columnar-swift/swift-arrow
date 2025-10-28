@@ -176,7 +176,7 @@ public class StructArrayBuilder: ArrowArrayBuilder<
     var builders: [any ArrowArrayHolderBuilder] = []
     for field in fields {
       builders.append(
-        try ArrowArrayBuilders.loadBuilder(arrowType: field.dataType))
+        try ArrowArrayBuilders.loadBuilder(arrowType: field.type))
     }
     self.builders = builders
     try super.init(.strct(fields))
@@ -222,7 +222,7 @@ public class ListArrayBuilder: ArrowArrayBuilder<ListBufferBuilder, NestedArray>
     }
 
     self.valueBuilder = try ArrowArrayBuilders.loadBuilder(
-      arrowType: field.dataType
+      arrowType: field.type
     )
     try super.init(elementType)
   }

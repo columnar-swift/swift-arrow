@@ -82,7 +82,7 @@ public class ArrowWriter {
     field: ArrowField
   ) -> Result<Offset, ArrowError> {
     var fieldsOffset: Offset?
-    if case .strct(let fields) = field.dataType {
+    if case .strct(let fields) = field.type {
       var offsets: [Offset] = []
       for field in fields {
         switch writeField(&fbb, field: field) {
@@ -96,7 +96,7 @@ public class ArrowWriter {
     }
 
     let nameOffset = fbb.create(string: field.name)
-    let fieldTypeOffsetResult = toFBType(&fbb, arrowType: field.dataType)
+    let fieldTypeOffsetResult = toFBType(&fbb, arrowType: field.type)
     let startOffset = FlatField.startField(&fbb)
     FlatField.add(name: nameOffset, &fbb)
     FlatField.add(nullable: field.isNullable, &fbb)
@@ -104,7 +104,7 @@ public class ArrowWriter {
       FlatField.addVectorOf(children: childrenOffset, &fbb)
     }
 
-    switch toFBTypeEnum(field.dataType) {
+    switch toFBTypeEnum(field.type) {
     case .success(let type):
       FlatField.add(typeType: type, &fbb)
     case .failure(let error):

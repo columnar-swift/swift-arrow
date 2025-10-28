@@ -60,9 +60,9 @@ func checkBoolRecordBatch(
     XCTAssertEqual(recordBatch.columns.count, 2)
     XCTAssertEqual(recordBatch.schema.fields.count, 2)
     XCTAssertEqual(recordBatch.schema.fields[0].name, "one")
-    XCTAssertEqual(recordBatch.schema.fields[0].dataType, .boolean)
+    XCTAssertEqual(recordBatch.schema.fields[0].type, .boolean)
     XCTAssertEqual(recordBatch.schema.fields[1].name, "two")
-    XCTAssertEqual(recordBatch.schema.fields[1].dataType, .utf8)
+    XCTAssertEqual(recordBatch.schema.fields[1].type, .utf8)
     for index in 0..<recordBatch.length {
       let column = recordBatch.columns[0]
       let str = column.array as! AsString
@@ -96,7 +96,7 @@ func checkStructRecordBatch(
     XCTAssertEqual(recordBatch.columns.count, 1)
     XCTAssertEqual(recordBatch.schema.fields.count, 1)
     XCTAssertEqual(recordBatch.schema.fields[0].name, "my struct")
-    guard case .strct(_) = recordBatch.schema.fields[0].dataType else {
+    guard case .strct(_) = recordBatch.schema.fields[0].type else {
       XCTFail("Expected field 0 to be a struct")
       return []
     }
@@ -250,15 +250,15 @@ final class IPCStreamReaderTests: XCTestCase {
           XCTAssertEqual(recordBatch.columns.count, 5)
           XCTAssertEqual(recordBatch.schema.fields.count, 5)
           XCTAssertEqual(recordBatch.schema.fields[0].name, "col1")
-          XCTAssertEqual(recordBatch.schema.fields[0].dataType, .int8)
+          XCTAssertEqual(recordBatch.schema.fields[0].type, .int8)
           XCTAssertEqual(recordBatch.schema.fields[1].name, "col2")
-          XCTAssertEqual(recordBatch.schema.fields[1].dataType, .utf8)
+          XCTAssertEqual(recordBatch.schema.fields[1].type, .utf8)
           XCTAssertEqual(recordBatch.schema.fields[2].name, "col3")
-          XCTAssertEqual(recordBatch.schema.fields[2].dataType, .date32)
+          XCTAssertEqual(recordBatch.schema.fields[2].type, .date32)
           XCTAssertEqual(recordBatch.schema.fields[3].name, "col4")
-          XCTAssertEqual(recordBatch.schema.fields[3].dataType, .int32)
+          XCTAssertEqual(recordBatch.schema.fields[3].type, .int32)
           XCTAssertEqual(recordBatch.schema.fields[4].name, "col5")
-          XCTAssertEqual(recordBatch.schema.fields[4].dataType, .float32)
+          XCTAssertEqual(recordBatch.schema.fields[4].type, .float32)
           let columns = recordBatch.columns
           XCTAssertEqual(columns[0].nullCount, 2)
           let dateVal =
@@ -306,10 +306,10 @@ final class IPCFileReaderTests: XCTestCase {
       XCTAssertEqual(recordBatch.schema.fields.count, 2)
       XCTAssertEqual(recordBatch.schema.fields[0].name, "one")
       XCTAssertEqual(
-        recordBatch.schema.fields[0].dataType, .float64)
+        recordBatch.schema.fields[0].type, .float64)
       XCTAssertEqual(recordBatch.schema.fields[1].name, "two")
       XCTAssertEqual(
-        recordBatch.schema.fields[1].dataType, .utf8)
+        recordBatch.schema.fields[1].type, .utf8)
       for index in 0..<recordBatch.length {
         let column = recordBatch.columns[1]
         let str = column.array as! AsString
@@ -408,15 +408,15 @@ final class IPCFileReaderTests: XCTestCase {
           XCTAssertEqual(recordBatch.columns.count, 5)
           XCTAssertEqual(recordBatch.schema.fields.count, 5)
           XCTAssertEqual(recordBatch.schema.fields[0].name, "col1")
-          XCTAssertEqual(recordBatch.schema.fields[0].dataType, .int8)
+          XCTAssertEqual(recordBatch.schema.fields[0].type, .int8)
           XCTAssertEqual(recordBatch.schema.fields[1].name, "col2")
-          XCTAssertEqual(recordBatch.schema.fields[1].dataType, .utf8)
+          XCTAssertEqual(recordBatch.schema.fields[1].type, .utf8)
           XCTAssertEqual(recordBatch.schema.fields[2].name, "col3")
-          XCTAssertEqual(recordBatch.schema.fields[2].dataType, .date32)
+          XCTAssertEqual(recordBatch.schema.fields[2].type, .date32)
           XCTAssertEqual(recordBatch.schema.fields[3].name, "col4")
-          XCTAssertEqual(recordBatch.schema.fields[3].dataType, .int32)
+          XCTAssertEqual(recordBatch.schema.fields[3].type, .int32)
           XCTAssertEqual(recordBatch.schema.fields[4].name, "col5")
-          XCTAssertEqual(recordBatch.schema.fields[4].dataType, .float32)
+          XCTAssertEqual(recordBatch.schema.fields[4].type, .float32)
           let columns = recordBatch.columns
           XCTAssertEqual(columns[0].nullCount, 2)
           let dateVal =
@@ -457,15 +457,15 @@ final class IPCFileReaderTests: XCTestCase {
         let schema = result.schema!
         XCTAssertEqual(schema.fields.count, 5)
         XCTAssertEqual(schema.fields[0].name, "col1")
-        XCTAssertEqual(schema.fields[0].dataType, .int8)
+        XCTAssertEqual(schema.fields[0].type, .int8)
         XCTAssertEqual(schema.fields[1].name, "col2")
-        XCTAssertEqual(schema.fields[1].dataType, .utf8)
+        XCTAssertEqual(schema.fields[1].type, .utf8)
         XCTAssertEqual(schema.fields[2].name, "col3")
-        XCTAssertEqual(schema.fields[2].dataType, .date32)
+        XCTAssertEqual(schema.fields[2].type, .date32)
         XCTAssertEqual(schema.fields[3].name, "col4")
-        XCTAssertEqual(schema.fields[3].dataType, .int32)
+        XCTAssertEqual(schema.fields[3].type, .int32)
         XCTAssertEqual(schema.fields[4].name, "col5")
-        XCTAssertEqual(schema.fields[4].dataType, .float32)
+        XCTAssertEqual(schema.fields[4].type, .float32)
       case .failure(let error):
         throw error
       }
@@ -557,7 +557,7 @@ final class IPCFileReaderTests: XCTestCase {
           XCTAssertEqual(recordBatch.columns.count, 1)
           XCTAssertEqual(recordBatch.schema.fields.count, 1)
           XCTAssertEqual(recordBatch.schema.fields[0].name, "struct1")
-          guard case .strct(let fields) = recordBatch.schema.fields[0].dataType
+          guard case .strct(let fields) = recordBatch.schema.fields[0].type
           else {
             XCTFail("Expected Struct")
             return
@@ -613,7 +613,7 @@ final class IPCFileReaderTests: XCTestCase {
         let schema = result.schema!
         XCTAssertEqual(schema.fields.count, 1)
         XCTAssertEqual(schema.fields[0].name, "binary")
-        XCTAssertEqual(schema.fields[0].dataType, .binary)
+        XCTAssertEqual(schema.fields[0].type, .binary)
         XCTAssertEqual(result.batches.count, 1)
         let recordBatch = result.batches[0]
         XCTAssertEqual(recordBatch.length, 4)
@@ -646,9 +646,9 @@ final class IPCFileReaderTests: XCTestCase {
         let schema = result.schema!
         XCTAssertEqual(schema.fields.count, 2)
         XCTAssertEqual(schema.fields[0].name, "time64")
-        XCTAssertEqual(schema.fields[0].dataType, .time64(.microsecond))
+        XCTAssertEqual(schema.fields[0].type, .time64(.microsecond))
         XCTAssertEqual(schema.fields[1].name, "time32")
-        XCTAssertEqual(schema.fields[1].dataType, .time32(.millisecond))
+        XCTAssertEqual(schema.fields[1].type, .time32(.millisecond))
         XCTAssertEqual(result.batches.count, 1)
         let recordBatch = result.batches[0]
         XCTAssertEqual(recordBatch.length, 4)

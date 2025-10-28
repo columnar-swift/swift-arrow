@@ -39,10 +39,10 @@ final class RecordBatchTests: XCTestCase {
       let schema = recordBatch.schema
       XCTAssertEqual(schema.fields.count, 2)
       XCTAssertEqual(schema.fields[0].name, "col1")
-      XCTAssertEqual(schema.fields[0].dataType, .uint8)
+      XCTAssertEqual(schema.fields[0].type, .uint8)
       XCTAssertEqual(schema.fields[0].isNullable, true)
       XCTAssertEqual(schema.fields[1].name, "col2")
-      XCTAssertEqual(schema.fields[1].dataType, .utf8)
+      XCTAssertEqual(schema.fields[1].type, .utf8)
       XCTAssertEqual(schema.fields[1].isNullable, false)
       XCTAssertEqual(recordBatch.columns.count, 2)
       let col1: ArrowArray<UInt8> = try recordBatch.data(for: 0)
