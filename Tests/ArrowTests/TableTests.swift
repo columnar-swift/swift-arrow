@@ -16,12 +16,6 @@ import XCTest
 
 @testable import Arrow
 
-extension ArrowColumn {
-  public func data<T>() -> ChunkedArray<T> {
-    (self.dataHolder.holder as! ChunkedArray<T>)
-  }
-}
-
 final class TableTests: XCTestCase {
   func testSchema() throws {
     let schemaBuilder = ArrowSchema.Builder()
@@ -130,9 +124,9 @@ final class TableTests: XCTestCase {
     XCTAssertEqual(schema.fields[1].dataType, .utf8)
     XCTAssertEqual(schema.fields[1].isNullable, false)
     XCTAssertEqual(table.columns.count, 3)
-    let col1: ChunkedArray<Double> = table.columns[0].data()
-    let col2: ChunkedArray<String> = table.columns[1].data()
-    let col3: ChunkedArray<Date> = table.columns[2].data()
+    let col1: ChunkedArray<Double> = try table.columns[0].data()
+    let col2: ChunkedArray<String> = try table.columns[1].data()
+    let col3: ChunkedArray<Date> = try table.columns[2].data()
     XCTAssertEqual(col1.length, 2)
     XCTAssertEqual(col2.length, 2)
     XCTAssertEqual(col3.length, 2)
@@ -189,9 +183,9 @@ final class TableTests: XCTestCase {
     XCTAssertEqual(schema.fields[1].dataType, .utf8)
     XCTAssertEqual(schema.fields[1].isNullable, false)
     XCTAssertEqual(table.columns.count, 3)
-    let col1: ChunkedArray<UInt8> = table.columns[0].data()
-    let col2: ChunkedArray<String> = table.columns[1].data()
-    let col3: ChunkedArray<Date> = table.columns[2].data()
+    let col1: ChunkedArray<UInt8> = try table.columns[0].data()
+    let col2: ChunkedArray<String> = try table.columns[1].data()
+    let col3: ChunkedArray<Date> = try table.columns[2].data()
     XCTAssertEqual(col1.length, 4)
     XCTAssertEqual(col2.length, 4)
     XCTAssertEqual(col3.length, 4)
@@ -228,8 +222,8 @@ final class TableTests: XCTestCase {
       XCTAssertEqual(schema.fields[1].dataType, .utf8)
       XCTAssertEqual(schema.fields[1].isNullable, false)
       XCTAssertEqual(table.columns.count, 2)
-      let col1: ChunkedArray<UInt8> = table.columns[0].data()
-      let col2: ChunkedArray<String> = table.columns[1].data()
+      let col1: ChunkedArray<UInt8> = try table.columns[0].data()
+      let col2: ChunkedArray<String> = try table.columns[1].data()
       XCTAssertEqual(col1.length, 2)
       XCTAssertEqual(col2.length, 2)
     case .failure(let error):

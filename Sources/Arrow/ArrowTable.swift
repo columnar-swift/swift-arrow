@@ -26,6 +26,14 @@ public class ArrowColumn {
     self.field = field
     self.dataHolder = chunked
   }
+
+  public func data<T>() throws(ArrowError) -> ChunkedArray<T> {
+    if let holder = self.dataHolder.holder as? ChunkedArray<T> {
+      return holder
+    } else {
+      throw .runtimeError("Could not cast array holder to chunked array.")
+    }
+  }
 }
 
 public class ArrowTable {

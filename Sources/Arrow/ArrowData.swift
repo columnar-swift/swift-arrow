@@ -14,7 +14,7 @@
 
 import Foundation
 
-public class ArrowData {
+public struct ArrowData {
   public let type: ArrowType
   public let buffers: [ArrowBuffer]
   public let children: [ArrowData]
@@ -22,14 +22,15 @@ public class ArrowData {
   public let length: UInt
   public let stride: Int
 
-  convenience init(
+  init(
     _ arrowType: ArrowType,
     buffers: [ArrowBuffer],
     nullCount: UInt
   ) throws(ArrowError) {
     try self.init(
       arrowType, buffers: buffers,
-      children: [ArrowData](), nullCount: nullCount,
+      children: [ArrowData](),
+      nullCount: nullCount,
       length: buffers[1].length)
   }
 

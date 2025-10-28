@@ -29,7 +29,7 @@ public protocol ArrowArrayHolder {
   }
 }
 
-public class ArrowArrayHolderImpl: ArrowArrayHolder {
+public struct ArrowArrayHolderImpl: ArrowArrayHolder {
   public let data: ArrowData
   public let type: ArrowType
   public let length: UInt
@@ -483,14 +483,6 @@ public class NestedArray: ArrowArray<[Any?]> {
       return ""
     }
   }
-
-  //  public var isListArray: Bool {
-  //    arrowData.type == .List(_)
-  //  }
-
-  //  public var isStructArray: Bool {
-  //    arrowData.type.id == .strct
-  //  }
 
   public var fields: [ArrowArrayHolder]? {
     if case .strct(_) = arrowData.type {

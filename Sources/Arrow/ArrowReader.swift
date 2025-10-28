@@ -19,7 +19,7 @@ import Foundation
 let fileMarker = Data("ARROW1".utf8)
 let continuationMarker = UInt32(0xFFFF_FFFF)
 
-public class ArrowReader {
+public struct ArrowReader: Sendable {
   private class RecordBatchData {
     let schema: Schema
     let recordBatch: FlatRecordBatch

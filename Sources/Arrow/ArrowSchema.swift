@@ -14,7 +14,7 @@
 
 import Foundation
 
-public class ArrowSchema {
+public struct ArrowSchema: Sendable {
   public let fields: [ArrowField]
   public let fieldLookup: [String: Int]
   init(_ fields: [ArrowField]) {
