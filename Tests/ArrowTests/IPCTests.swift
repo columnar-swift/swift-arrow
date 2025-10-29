@@ -13,12 +13,14 @@
 // limitations under the License.
 
 import FlatBuffers
-import XCTest
+import Foundation
+import Testing
 
 @testable import Arrow
 
 let currentDate = Date.now
-class StructTest {
+
+struct StructTest {
   var field0: Bool = false
   var field1: Int8 = 0
   var field2: Int16 = 0
@@ -35,18 +37,22 @@ class StructTest {
   var field13: Date = currentDate
 }
 
-func loadArrowResource(name: String) -> URL {
-  Bundle.module.url(
+func loadArrowResource(name: String) throws(ArrowError) -> URL {
+  if let resource = Bundle.module.url(
     forResource: name,
     withExtension: "arrow",
     subdirectory: "Resources"
-  )!
+  ) {
+    return resource
+  } else {
+    throw .runtimeError("Couldn't find \(name).arrow in the test resources.")
+  }
 }
 
 @discardableResult
 func checkBoolRecordBatch(
   _ result: Result<ArrowReader.ArrowReaderResult, ArrowError>
-) throws -> [RecordBatch] {
+) throws(ArrowError) -> [RecordBatch] {
   let recordBatches: [RecordBatch]
   switch result {
   case .success(let result):
@@ -54,25 +60,27 @@ func checkBoolRecordBatch(
   case .failure(let error):
     throw error
   }
-  XCTAssertEqual(recordBatches.count, 1)
+  #expect(recordBatches.count == 1)
   for recordBatch in recordBatches {
-    XCTAssertEqual(recordBatch.length, 5)
-    XCTAssertEqual(recordBatch.columns.count, 2)
-    XCTAssertEqual(recordBatch.schema.fields.count, 2)
-    XCTAssertEqual(recordBatch.schema.fields[0].name, "one")
-    XCTAssertEqual(recordBatch.schema.fields[0].type, .boolean)
-    XCTAssertEqual(recordBatch.schema.fields[1].name, "two")
-    XCTAssertEqual(recordBatch.schema.fields[1].type, .utf8)
+    #expect(recordBatch.length == 5)
+    #expect(recordBatch.columns.count == 2)
+    #expect(recordBatch.schema.fields.count == 2)
+    #expect(recordBatch.schema.fields[0].name == "one")
+    #expect(recordBatch.schema.fields[0].type == .boolean)
+    #expect(recordBatch.schema.fields[1].name == "two")
+    #expect(recordBatch.schema.fields[1].type == .utf8)
     for index in 0..<recordBatch.length {
       let column = recordBatch.columns[0]
-      let str = column.array as! AsString
+      guard let str = column.array as? AsString else {
+        throw .invalid("Could not cast column to AsString")
+      }
       let val = "\(str.asString(index))"
       if index == 0 || index == 4 {
-        XCTAssertEqual(val, "true")
+        #expect(val == "true")
       } else if index == 2 {
-        XCTAssertEqual(val, "")
+        #expect(val.isEmpty)
       } else {
-        XCTAssertEqual(val, "false")
+        #expect(val == "false")
       }
     }
   }
@@ -82,7 +90,7 @@ func checkBoolRecordBatch(
 @discardableResult
 func checkStructRecordBatch(
   _ result: Result<ArrowReader.ArrowReaderResult, ArrowError>
-) throws -> [RecordBatch] {
+) throws(ArrowError) -> [RecordBatch] {
   let recordBatches: [RecordBatch]
   switch result {
   case .success(let result):
@@ -90,29 +98,34 @@ func checkStructRecordBatch(
   case .failure(let error):
     throw error
   }
-  XCTAssertEqual(recordBatches.count, 1)
+  #expect(recordBatches.count == 1)
   for recordBatch in recordBatches {
-    XCTAssertEqual(recordBatch.length, 3)
-    XCTAssertEqual(recordBatch.columns.count, 1)
-    XCTAssertEqual(recordBatch.schema.fields.count, 1)
-    XCTAssertEqual(recordBatch.schema.fields[0].name, "my struct")
+    #expect(recordBatch.length == 3)
+    #expect(recordBatch.columns.count == 1)
+    #expect(recordBatch.schema.fields.count == 1)
+    #expect(recordBatch.schema.fields[0].name == "my struct")
     guard case .strct(_) = recordBatch.schema.fields[0].type else {
-      XCTFail("Expected field 0 to be a struct")
+      Issue.record("Expected field 0 to be a struct")
       return []
     }
     let nestedArray = recordBatch.columns[0].array as? NestedArray
-    XCTAssertNotNil(nestedArray)
-    XCTAssertNotNil(nestedArray!.fields)
-    XCTAssertEqual(nestedArray!.fields!.count, 2)
-    XCTAssertEqual(nestedArray!.fields![0].type, .utf8)
-    XCTAssertEqual(nestedArray!.fields![1].type, .boolean)
+    guard let nestedArray else {
+      throw .runtimeError("Could not cast to NestedArray")
+    }
+    guard let fields = nestedArray.fields else {
+      throw .runtimeError("NestedArray.fields is nil")
+    }
+    #expect(fields.count == 2)
+    #expect(fields[0].type == .utf8)
+    #expect(fields[1].type == .boolean)
     let column = recordBatch.columns[0]
-    let str = column.array as? AsString
-    XCTAssertEqual("\(str!.asString(0))", "{0,false}")
-    XCTAssertEqual("\(str!.asString(1))", "{1,true}")
-    XCTAssertTrue(column.array.asAny(2) == nil)
+    guard let str = column.array as? AsString else {
+      throw .runtimeError("String array is nil")
+    }
+    #expect("\(str.asString(0))" == "{0,false}")
+    #expect("\(str.asString(1))" == "{1,true}")
+    #expect(column.array.asAny(2) == nil)
   }
-
   return recordBatches
 }
 
@@ -138,9 +151,12 @@ func makeStructSchema() throws -> ArrowSchema {
   let buildStructType = { () -> ArrowType in
     let mirror = Mirror(reflecting: testObj)
     for (property, value) in mirror.children {
+      guard let property else {
+        fatalError("Cannot get field name")
+      }
       let arrowType = try ArrowTypeConverter.infoForType(type(of: value))
       fields.append(
-        ArrowField(name: property!, dataType: arrowType, isNullable: true))
+        ArrowField(name: property, dataType: arrowType, isNullable: true))
     }
     return .strct(fields)
   }
@@ -231,8 +247,9 @@ func makeRecordBatch() throws -> RecordBatch {
   }
 }
 
-final class IPCStreamReaderTests: XCTestCase {
-  func testRBInMemoryToFromStream() throws {
+struct IPCStreamReaderTests {
+
+  @Test func recordBatchInMemoryToFromStream() throws {
     let schema = makeSchema()
     let recordBatch = try makeRecordBatch()
     let arrowWriter = ArrowWriter()
@@ -244,38 +261,33 @@ final class IPCStreamReaderTests: XCTestCase {
       switch arrowReader.readStreaming(writeData) {
       case .success(let result):
         let recordBatches = result.batches
-        XCTAssertEqual(recordBatches.count, 1)
+        #expect(recordBatches.count == 1)
         for recordBatch in recordBatches {
-          XCTAssertEqual(recordBatch.length, 4)
-          XCTAssertEqual(recordBatch.columns.count, 5)
-          XCTAssertEqual(recordBatch.schema.fields.count, 5)
-          XCTAssertEqual(recordBatch.schema.fields[0].name, "col1")
-          XCTAssertEqual(recordBatch.schema.fields[0].type, .int8)
-          XCTAssertEqual(recordBatch.schema.fields[1].name, "col2")
-          XCTAssertEqual(recordBatch.schema.fields[1].type, .utf8)
-          XCTAssertEqual(recordBatch.schema.fields[2].name, "col3")
-          XCTAssertEqual(recordBatch.schema.fields[2].type, .date32)
-          XCTAssertEqual(recordBatch.schema.fields[3].name, "col4")
-          XCTAssertEqual(recordBatch.schema.fields[3].type, .int32)
-          XCTAssertEqual(recordBatch.schema.fields[4].name, "col5")
-          XCTAssertEqual(recordBatch.schema.fields[4].type, .float32)
+          #expect(recordBatch.length == 4)
+          #expect(recordBatch.columns.count == 5)
+          #expect(recordBatch.schema.fields.count == 5)
+          #expect(recordBatch.schema.fields[0].name == "col1")
+          #expect(recordBatch.schema.fields[0].type == .int8)
+          #expect(recordBatch.schema.fields[1].name == "col2")
+          #expect(recordBatch.schema.fields[1].type == .utf8)
+          #expect(recordBatch.schema.fields[2].name == "col3")
+          #expect(recordBatch.schema.fields[2].type == .date32)
+          #expect(recordBatch.schema.fields[3].name == "col4")
+          #expect(recordBatch.schema.fields[3].type == .int32)
+          #expect(recordBatch.schema.fields[4].name == "col5")
+          #expect(recordBatch.schema.fields[4].type == .float32)
           let columns = recordBatch.columns
-          XCTAssertEqual(columns[0].nullCount, 2)
-          let dateVal =
-            "\((columns[2].array as! AsString).asString(0))"
-          XCTAssertEqual(dateVal, "2014-09-10 00:00:00 +0000")
-          let stringVal =
-            "\((columns[1].array as! AsString).asString(1))"
-          XCTAssertEqual(stringVal, "test22")
-          let uintVal =
-            "\((columns[0].array as! AsString).asString(0))"
-          XCTAssertEqual(uintVal, "10")
-          let stringVal2 =
-            "\((columns[1].array as! AsString).asString(3))"
-          XCTAssertEqual(stringVal2, "test44")
-          let uintVal2 =
-            "\((columns[0].array as! AsString).asString(3))"
-          XCTAssertEqual(uintVal2, "44")
+          #expect(columns[0].nullCount == 2)
+          let dateVal = "\((columns[2].array as! AsString).asString(0))"
+          #expect(dateVal == "2014-09-10 00:00:00 +0000")
+          let stringVal = "\((columns[1].array as! AsString).asString(1))"
+          #expect(stringVal == "test22")
+          let uintVal = "\((columns[0].array as! AsString).asString(0))"
+          #expect(uintVal == "10")
+          let stringVal2 = "\((columns[1].array as! AsString).asString(3))"
+          #expect(stringVal2 == "test44")
+          let uintVal2 = "\((columns[0].array as! AsString).asString(3))"
+          #expect(uintVal2 == "44")
         }
       case .failure(let error):
         throw error
@@ -286,9 +298,9 @@ final class IPCStreamReaderTests: XCTestCase {
   }
 }
 
-final class IPCFileReaderTests: XCTestCase {
-  func testFileReader_double() throws {
-    let fileURL = loadArrowResource(name: "testdata_double")
+struct IPCFileReaderTests {
+  @Test func fileReader_double() throws {
+    let fileURL = try loadArrowResource(name: "testdata_double")
     let arrowReader = ArrowReader()
     let result = arrowReader.fromFile(fileURL)
     let recordBatches: [RecordBatch]
@@ -299,39 +311,39 @@ final class IPCFileReaderTests: XCTestCase {
       throw error
     }
 
-    XCTAssertEqual(recordBatches.count, 1)
+    #expect(recordBatches.count == 1)
     for recordBatch in recordBatches {
-      XCTAssertEqual(recordBatch.length, 5)
-      XCTAssertEqual(recordBatch.columns.count, 2)
-      XCTAssertEqual(recordBatch.schema.fields.count, 2)
-      XCTAssertEqual(recordBatch.schema.fields[0].name, "one")
-      XCTAssertEqual(
-        recordBatch.schema.fields[0].type, .float64)
-      XCTAssertEqual(recordBatch.schema.fields[1].name, "two")
-      XCTAssertEqual(
-        recordBatch.schema.fields[1].type, .utf8)
+      #expect(recordBatch.length == 5)
+      #expect(recordBatch.columns.count == 2)
+      #expect(recordBatch.schema.fields.count == 2)
+      #expect(recordBatch.schema.fields[0].name == "one")
+      #expect(
+        recordBatch.schema.fields[0].type == .float64)
+      #expect(recordBatch.schema.fields[1].name == "two")
+      #expect(
+        recordBatch.schema.fields[1].type == .utf8)
       for index in 0..<recordBatch.length {
         let column = recordBatch.columns[1]
         let str = column.array as! AsString
         let val = "\(str.asString(index))"
         if index != 1 {
-          XCTAssertNotEqual(val, "")
+          #expect(!val.isEmpty)
         } else {
-          XCTAssertEqual(val, "")
+          #expect(val.isEmpty)
         }
       }
     }
   }
 
-  func testFileReader_bool() throws {
-    let fileURL = loadArrowResource(name: "testdata_bool")
+  @Test func fileReader_bool() throws {
+    let fileURL = try loadArrowResource(name: "testdata_bool")
     let arrowReader = ArrowReader()
     try checkBoolRecordBatch(arrowReader.fromFile(fileURL))
   }
 
-  func testFileWriter_bool() throws {
+  @Test func fileWriter_bool() throws {
     // read existing file
-    let fileURL = loadArrowResource(name: "testdata_bool")
+    let fileURL = try loadArrowResource(name: "testdata_bool")
     let arrowReader = ArrowReader()
     let fileRBs = try checkBoolRecordBatch(arrowReader.fromFile(fileURL))
     let arrowWriter = ArrowWriter()
@@ -356,15 +368,15 @@ final class IPCFileReaderTests: XCTestCase {
     }
   }
 
-  func testFileReader_struct() throws {
-    let fileURL = loadArrowResource(name: "testdata_struct")
+  @Test func fileReader_struct() throws {
+    let fileURL = try loadArrowResource(name: "testdata_struct")
     let arrowReader = ArrowReader()
     try checkStructRecordBatch(arrowReader.fromFile(fileURL))
   }
 
-  func testFileWriter_struct() throws {
+  @Test func fileWriter_struct() throws {
     // read existing file
-    let fileURL = loadArrowResource(name: "testdata_struct")
+    let fileURL = try loadArrowResource(name: "testdata_struct")
     let arrowReader = ArrowReader()
     let fileRBs = try checkStructRecordBatch(arrowReader.fromFile(fileURL))
     let arrowWriter = ArrowWriter()
@@ -389,7 +401,7 @@ final class IPCFileReaderTests: XCTestCase {
     }
   }
 
-  func testRBInMemoryToFromStream() throws {
+  @Test func recordBatchInMemoryToFromStream() throws {
     // read existing file
     let schema = makeSchema()
     let recordBatch = try makeRecordBatch()
@@ -402,38 +414,33 @@ final class IPCFileReaderTests: XCTestCase {
       switch arrowReader.readFile(writeData) {
       case .success(let result):
         let recordBatches = result.batches
-        XCTAssertEqual(recordBatches.count, 1)
+        #expect(recordBatches.count == 1)
         for recordBatch in recordBatches {
-          XCTAssertEqual(recordBatch.length, 4)
-          XCTAssertEqual(recordBatch.columns.count, 5)
-          XCTAssertEqual(recordBatch.schema.fields.count, 5)
-          XCTAssertEqual(recordBatch.schema.fields[0].name, "col1")
-          XCTAssertEqual(recordBatch.schema.fields[0].type, .int8)
-          XCTAssertEqual(recordBatch.schema.fields[1].name, "col2")
-          XCTAssertEqual(recordBatch.schema.fields[1].type, .utf8)
-          XCTAssertEqual(recordBatch.schema.fields[2].name, "col3")
-          XCTAssertEqual(recordBatch.schema.fields[2].type, .date32)
-          XCTAssertEqual(recordBatch.schema.fields[3].name, "col4")
-          XCTAssertEqual(recordBatch.schema.fields[3].type, .int32)
-          XCTAssertEqual(recordBatch.schema.fields[4].name, "col5")
-          XCTAssertEqual(recordBatch.schema.fields[4].type, .float32)
+          #expect(recordBatch.length == 4)
+          #expect(recordBatch.columns.count == 5)
+          #expect(recordBatch.schema.fields.count == 5)
+          #expect(recordBatch.schema.fields[0].name == "col1")
+          #expect(recordBatch.schema.fields[0].type == .int8)
+          #expect(recordBatch.schema.fields[1].name == "col2")
+          #expect(recordBatch.schema.fields[1].type == .utf8)
+          #expect(recordBatch.schema.fields[2].name == "col3")
+          #expect(recordBatch.schema.fields[2].type == .date32)
+          #expect(recordBatch.schema.fields[3].name == "col4")
+          #expect(recordBatch.schema.fields[3].type == .int32)
+          #expect(recordBatch.schema.fields[4].name == "col5")
+          #expect(recordBatch.schema.fields[4].type == .float32)
           let columns = recordBatch.columns
-          XCTAssertEqual(columns[0].nullCount, 2)
-          let dateVal =
-            "\((columns[2].array as! AsString).asString(0))"
-          XCTAssertEqual(dateVal, "2014-09-10 00:00:00 +0000")
-          let stringVal =
-            "\((columns[1].array as! AsString).asString(1))"
-          XCTAssertEqual(stringVal, "test22")
-          let uintVal =
-            "\((columns[0].array as! AsString).asString(0))"
-          XCTAssertEqual(uintVal, "10")
-          let stringVal2 =
-            "\((columns[1].array as! AsString).asString(3))"
-          XCTAssertEqual(stringVal2, "test44")
-          let uintVal2 =
-            "\((columns[0].array as! AsString).asString(3))"
-          XCTAssertEqual(uintVal2, "44")
+          #expect(columns[0].nullCount == 2)
+          let dateVal = "\((columns[2].array as! AsString).asString(0))"
+          #expect(dateVal == "2014-09-10 00:00:00 +0000")
+          let stringVal = "\((columns[1].array as! AsString).asString(1))"
+          #expect(stringVal == "test22")
+          let uintVal = "\((columns[0].array as! AsString).asString(0))"
+          #expect(uintVal == "10")
+          let stringVal2 = "\((columns[1].array as! AsString).asString(3))"
+          #expect(stringVal2 == "test44")
+          let uintVal2 = "\((columns[0].array as! AsString).asString(3))"
+          #expect(uintVal2 == "44")
         }
       case .failure(let error):
         throw error
@@ -443,7 +450,7 @@ final class IPCFileReaderTests: XCTestCase {
     }
   }
 
-  func testSchemaInMemoryToFromStream() throws {
+  @Test func schemaInMemoryToFromStream() throws {
     // read existing file
     let schema = makeSchema()
     let arrowWriter = ArrowWriter()
@@ -453,19 +460,19 @@ final class IPCFileReaderTests: XCTestCase {
       let arrowReader = ArrowReader()
       switch arrowReader.readFile(writeData) {
       case .success(let result):
-        XCTAssertNotNil(result.schema)
+        #expect(result.schema != nil)
         let schema = result.schema!
-        XCTAssertEqual(schema.fields.count, 5)
-        XCTAssertEqual(schema.fields[0].name, "col1")
-        XCTAssertEqual(schema.fields[0].type, .int8)
-        XCTAssertEqual(schema.fields[1].name, "col2")
-        XCTAssertEqual(schema.fields[1].type, .utf8)
-        XCTAssertEqual(schema.fields[2].name, "col3")
-        XCTAssertEqual(schema.fields[2].type, .date32)
-        XCTAssertEqual(schema.fields[3].name, "col4")
-        XCTAssertEqual(schema.fields[3].type, .int32)
-        XCTAssertEqual(schema.fields[4].name, "col5")
-        XCTAssertEqual(schema.fields[4].type, .float32)
+        #expect(schema.fields.count == 5)
+        #expect(schema.fields[0].name == "col1")
+        #expect(schema.fields[0].type == .int8)
+        #expect(schema.fields[1].name == "col2")
+        #expect(schema.fields[1].type == .utf8)
+        #expect(schema.fields[2].name == "col3")
+        #expect(schema.fields[2].type == .date32)
+        #expect(schema.fields[3].name == "col4")
+        #expect(schema.fields[3].type == .int32)
+        #expect(schema.fields[4].name == "col5")
+        #expect(schema.fields[4].type == .float32)
       case .failure(let error):
         throw error
       }
@@ -535,7 +542,7 @@ final class IPCFileReaderTests: XCTestCase {
     }
   }
 
-  func testStructRBInMemoryToFromStream() throws {
+  @Test func structRecordBatchInMemoryToFromStream() throws {
     // read existing file
     let schema = try makeStructSchema()
     let recordBatch = try makeStructRecordBatch()
@@ -551,42 +558,42 @@ final class IPCFileReaderTests: XCTestCase {
       switch arrowReader.readStreaming(writeData) {
       case .success(let result):
         let recordBatches = result.batches
-        XCTAssertEqual(recordBatches.count, 1)
+        #expect(recordBatches.count == 1)
         for recordBatch in recordBatches {
-          XCTAssertEqual(recordBatch.length, 3)
-          XCTAssertEqual(recordBatch.columns.count, 1)
-          XCTAssertEqual(recordBatch.schema.fields.count, 1)
-          XCTAssertEqual(recordBatch.schema.fields[0].name, "struct1")
+          #expect(recordBatch.length == 3)
+          #expect(recordBatch.columns.count == 1)
+          #expect(recordBatch.schema.fields.count == 1)
+          #expect(recordBatch.schema.fields[0].name == "struct1")
           guard case .strct(let fields) = recordBatch.schema.fields[0].type
           else {
-            XCTFail("Expected Struct")
+            Issue.record("Expected Struct")
             return
           }
-          XCTAssertEqual(fields.count, 14)
+          #expect(fields.count == 14)
           let columns = recordBatch.columns
-          XCTAssertEqual(columns[0].nullCount, 1)
-          XCTAssertNil(columns[0].array.asAny(1))
+          #expect(columns[0].nullCount == 1)
+          #expect(columns[0].array.asAny(1) == nil)
           let structVal = "\((columns[0].array as? AsString)!.asString(0))"
-          XCTAssertEqual(
-            structVal, "{true,1,2,3,4,5,6,7,8,9.9,10.1,11,12,\(currentDate)}")
+          #expect(
+            structVal == "{true,1,2,3,4,5,6,7,8,9.9,10.1,11,12,\(currentDate)}")
           let nestedArray = (recordBatch.columns[0].array as? NestedArray)!
-          XCTAssertEqual(nestedArray.length, 3)
-          XCTAssertNotNil(nestedArray.fields)
-          XCTAssertEqual(nestedArray.fields!.count, 14)
-          XCTAssertEqual(nestedArray.fields![0].type, .boolean)
-          XCTAssertEqual(nestedArray.fields![1].type, .int8)
-          XCTAssertEqual(nestedArray.fields![2].type, .int16)
-          XCTAssertEqual(nestedArray.fields![3].type, .int32)
-          XCTAssertEqual(nestedArray.fields![4].type, .int64)
-          XCTAssertEqual(nestedArray.fields![5].type, .uint8)
-          XCTAssertEqual(nestedArray.fields![6].type, .uint16)
-          XCTAssertEqual(nestedArray.fields![7].type, .uint32)
-          XCTAssertEqual(nestedArray.fields![8].type, .uint64)
-          XCTAssertEqual(nestedArray.fields![9].type, .float64)
-          XCTAssertEqual(nestedArray.fields![10].type, .float32)
-          XCTAssertEqual(nestedArray.fields![11].type, .utf8)
-          XCTAssertEqual(nestedArray.fields![12].type, .binary)
-          XCTAssertEqual(nestedArray.fields![13].type, .date64)
+          #expect(nestedArray.length == 3)
+          #expect(nestedArray.fields != nil)
+          #expect(nestedArray.fields!.count == 14)
+          #expect(nestedArray.fields![0].type == .boolean)
+          #expect(nestedArray.fields![1].type == .int8)
+          #expect(nestedArray.fields![2].type == .int16)
+          #expect(nestedArray.fields![3].type == .int32)
+          #expect(nestedArray.fields![4].type == .int64)
+          #expect(nestedArray.fields![5].type == .uint8)
+          #expect(nestedArray.fields![6].type == .uint16)
+          #expect(nestedArray.fields![7].type == .uint32)
+          #expect(nestedArray.fields![8].type == .uint64)
+          #expect(nestedArray.fields![9].type == .float64)
+          #expect(nestedArray.fields![10].type == .float32)
+          #expect(nestedArray.fields![11].type == .utf8)
+          #expect(nestedArray.fields![12].type == .binary)
+          #expect(nestedArray.fields![13].type == .date64)
         }
       case .failure(let error):
         throw error
@@ -596,7 +603,7 @@ final class IPCFileReaderTests: XCTestCase {
     }
   }
 
-  func testBinaryInMemoryToFromStream() throws {
+  @Test func binaryInMemoryToFromStream() throws {
     let dataset = try makeBinaryDataset()
     let writerInfo = ArrowWriter.Info(
       .recordbatch,
@@ -609,18 +616,18 @@ final class IPCFileReaderTests: XCTestCase {
       let arrowReader = ArrowReader()
       switch arrowReader.readFile(writeData) {
       case .success(let result):
-        XCTAssertNotNil(result.schema)
+        #expect(result.schema != nil)
         let schema = result.schema!
-        XCTAssertEqual(schema.fields.count, 1)
-        XCTAssertEqual(schema.fields[0].name, "binary")
-        XCTAssertEqual(schema.fields[0].type, .binary)
-        XCTAssertEqual(result.batches.count, 1)
+        #expect(schema.fields.count == 1)
+        #expect(schema.fields[0].name == "binary")
+        #expect(schema.fields[0].type == .binary)
+        #expect(result.batches.count == 1)
         let recordBatch = result.batches[0]
-        XCTAssertEqual(recordBatch.length, 4)
+        #expect(recordBatch.length == 4)
         let columns = recordBatch.columns
         let stringVal =
           "\((columns[0].array as! AsString).asString(1))"
-        XCTAssertEqual(stringVal, "test22")
+        #expect(stringVal == "test22")
       case .failure(let error):
         throw error
       }
@@ -629,7 +636,7 @@ final class IPCFileReaderTests: XCTestCase {
     }
   }
 
-  func testTimeInMemoryToFromStream() throws {
+  @Test func timeInMemoryToFromStream() throws {
     let dataset = try makeTimeDataset()
     let writerInfo = ArrowWriter.Info(
       .recordbatch,
@@ -642,23 +649,23 @@ final class IPCFileReaderTests: XCTestCase {
       let arrowReader = ArrowReader()
       switch arrowReader.readFile(writeData) {
       case .success(let result):
-        XCTAssertNotNil(result.schema)
+        #expect(result.schema != nil)
         let schema = result.schema!
-        XCTAssertEqual(schema.fields.count, 2)
-        XCTAssertEqual(schema.fields[0].name, "time64")
-        XCTAssertEqual(schema.fields[0].type, .time64(.microsecond))
-        XCTAssertEqual(schema.fields[1].name, "time32")
-        XCTAssertEqual(schema.fields[1].type, .time32(.millisecond))
-        XCTAssertEqual(result.batches.count, 1)
+        #expect(schema.fields.count == 2)
+        #expect(schema.fields[0].name == "time64")
+        #expect(schema.fields[0].type == .time64(.microsecond))
+        #expect(schema.fields[1].name == "time32")
+        #expect(schema.fields[1].type == .time32(.millisecond))
+        #expect(result.batches.count == 1)
         let recordBatch = result.batches[0]
-        XCTAssertEqual(recordBatch.length, 4)
+        #expect(recordBatch.length == 4)
         let columns = recordBatch.columns
         let stringVal =
           "\((columns[0].array as! AsString).asString(0))"
-        XCTAssertEqual(stringVal, "12345678")
+        #expect(stringVal == "12345678")
         let stringVal2 =
           "\((columns[1].array as! AsString).asString(3))"
-        XCTAssertEqual(stringVal2, "3")
+        #expect(stringVal2 == "3")
       case .failure(let error):
         throw error
       }

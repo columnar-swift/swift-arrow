@@ -12,12 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import XCTest
+import Arrow
+import Testing
 
-@testable import Arrow
+struct RecordBatchTests {
 
-final class RecordBatchTests: XCTestCase {
-  func testRecordBatch() throws {
+  @Test func recordBatch() throws {
     let uint8Builder: NumberArrayBuilder<UInt8> =
       try ArrowArrayBuilders.loadNumberArrayBuilder()
     uint8Builder.append(10)
@@ -37,19 +37,19 @@ final class RecordBatchTests: XCTestCase {
     switch result {
     case .success(let recordBatch):
       let schema = recordBatch.schema
-      XCTAssertEqual(schema.fields.count, 2)
-      XCTAssertEqual(schema.fields[0].name, "col1")
-      XCTAssertEqual(schema.fields[0].type, .uint8)
-      XCTAssertEqual(schema.fields[0].isNullable, true)
-      XCTAssertEqual(schema.fields[1].name, "col2")
-      XCTAssertEqual(schema.fields[1].type, .utf8)
-      XCTAssertEqual(schema.fields[1].isNullable, false)
-      XCTAssertEqual(recordBatch.columns.count, 2)
+      #expect(schema.fields.count == 2)
+      #expect(schema.fields[0].name == "col1")
+      #expect(schema.fields[0].type == .uint8)
+      #expect(schema.fields[0].isNullable == true)
+      #expect(schema.fields[1].name == "col2")
+      #expect(schema.fields[1].type == .utf8)
+      #expect(schema.fields[1].isNullable == false)
+      #expect(recordBatch.columns.count == 2)
       let col1: ArrowArray<UInt8> = try recordBatch.data(for: 0)
       let col2: ArrowArray<String> = try recordBatch.data(for: 1)
-      XCTAssertEqual(col1.length, 3)
-      XCTAssertEqual(col2.length, 3)
-      XCTAssertEqual(col1.nullCount, 1)
+      #expect(col1.length == 3)
+      #expect(col2.length == 3)
+      #expect(col1.nullCount == 1)
     case .failure(let error):
       throw error
     }

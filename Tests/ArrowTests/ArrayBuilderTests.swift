@@ -13,12 +13,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import Testing
-import Foundation
 import Arrow
+import Foundation
+import Testing
 
 struct ArrayBuilderTests {
-  
+
   @Test func isValidTypeForBuilder() throws {
     #expect(ArrowArrayBuilders.isValidBuilderType(Int8.self))
     #expect(ArrowArrayBuilders.isValidBuilderType(UInt8.self))
@@ -44,7 +44,7 @@ struct ArrayBuilderTests {
     #expect(ArrowArrayBuilders.isValidBuilderType(Double?.self))
     #expect(ArrowArrayBuilders.isValidBuilderType(Date?.self))
     #expect(ArrowArrayBuilders.isValidBuilderType(Bool?.self))
-    
+
     #expect(ArrowArrayBuilders.isValidBuilderType(Int.self) == false)
     #expect(ArrowArrayBuilders.isValidBuilderType(UInt.self) == false)
     #expect(ArrowArrayBuilders.isValidBuilderType(Int?.self) == false)
