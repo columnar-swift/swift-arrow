@@ -14,3 +14,4 @@ Changes made since forking Arrow-Swift:
 * Tests have been migrated to Swift Testing.
 * A migration from reference to value types, where appropriate, has begun.
 * A DockerFile for compiling ArrowFlight protocol buffers and grpc classes is provided.
+* CData support has been temporarily removed. Please open an issue if this is a problem.
