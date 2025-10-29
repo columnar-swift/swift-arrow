@@ -54,8 +54,7 @@ public class ArrowBuffer {
   static func createBuffer(_ data: [UInt8], length: UInt) -> ArrowBuffer {
     let byteCount = UInt(data.count)
     let capacity = alignTo64(byteCount)
-    let memory = MemoryAllocator()
-    let rawPointer = memory.allocateArray(Int(capacity))
+    let rawPointer = allocateArray(byteCount: Int(capacity))
     rawPointer.copyMemory(from: data, byteCount: data.count)
     return ArrowBuffer(
       length: length, capacity: capacity, rawPointer: rawPointer)
@@ -83,7 +82,7 @@ public class ArrowBuffer {
     to.rawPointer.copyMemory(from: from.rawPointer, byteCount: Int(len))
   }
 
-  // Note this adds 8 bytes used by CData to identify the buffer.
+  // Note this adds space to encode a pointer that CData to identify the buffer.
   static func alignTo64(_ length: UInt) -> UInt {
     let aligned = (length + 63) & ~63
     return aligned + UInt(MemoryLayout<UnsafeRawPointer>.size)
