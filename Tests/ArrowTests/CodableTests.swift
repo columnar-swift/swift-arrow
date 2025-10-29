@@ -12,11 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import XCTest
+import Foundation
+import Testing
 
 @testable import Arrow
 
-final class CodableTests: XCTestCase {
+struct CodableTests {
+
   public class TestClass: Codable {
     public var propBool: Bool
     public var propInt8: Int8
@@ -49,7 +51,7 @@ final class CodableTests: XCTestCase {
     }
   }
 
-  func testArrowKeyedDecoder() throws {
+  @Test func arrowKeyedDecoder() throws {
     let date1 = Date(timeIntervalSinceReferenceDate: 86400 * 5000 + 352)
     let boolBuilder = try ArrowArrayBuilders.loadBoolArrayBuilder()
     let int8Builder: NumberArrayBuilder<Int8> =
@@ -109,30 +111,30 @@ final class CodableTests: XCTestCase {
       let testClasses = try decoder.decode(TestClass.self)
       for index in 0..<testClasses.count {
         let testClass = testClasses[index]
-        XCTAssertEqual(testClass.propBool, index % 2 == 0 ? false : true)
-        XCTAssertEqual(testClass.propInt8, Int8(index + 10))
-        XCTAssertEqual(testClass.propInt16, Int16(index + 20))
-        XCTAssertEqual(testClass.propInt32, Int32(index + 30))
-        XCTAssertEqual(testClass.propInt64, Int64(index + 40))
-        XCTAssertEqual(testClass.propUInt8, UInt8(index + 50))
-        XCTAssertEqual(testClass.propUInt16, UInt16(index + 60))
-        XCTAssertEqual(testClass.propUInt32, UInt32(index + 70))
-        XCTAssertEqual(testClass.propUInt64, UInt64(index + 80))
-        XCTAssertEqual(testClass.propFloat, Float(index) + 90.1)
+        #expect(testClass.propBool == (index % 2 == 0 ? false : true))
+        #expect(testClass.propInt8 == Int8(index + 10))
+        #expect(testClass.propInt16 == Int16(index + 20))
+        #expect(testClass.propInt32 == Int32(index + 30))
+        #expect(testClass.propInt64 == Int64(index + 40))
+        #expect(testClass.propUInt8 == UInt8(index + 50))
+        #expect(testClass.propUInt16 == UInt16(index + 60))
+        #expect(testClass.propUInt32 == UInt32(index + 70))
+        #expect(testClass.propUInt64 == UInt64(index + 80))
+        #expect(testClass.propFloat == Float(index) + 90.1)
         if index == 0 {
-          XCTAssertEqual(testClass.propDouble, 101.1)
+          #expect(testClass.propDouble == 101.1)
         } else {
-          XCTAssertEqual(testClass.propDouble, nil)
+          #expect(testClass.propDouble == nil)
         }
-        XCTAssertEqual(testClass.propString, "test\(index)")
-        XCTAssertEqual(testClass.propDate, date1)
+        #expect(testClass.propString == "test\(index)")
+        #expect(testClass.propDate == date1)
       }
     case .failure(let err):
       throw err
     }
   }
 
-  func testArrowSingleDecoderWithoutNull() throws {
+  @Test func arrowSingleDecoderWithoutNull() throws {
     let int8Builder: NumberArrayBuilder<Int8> =
       try ArrowArrayBuilders.loadNumberArrayBuilder()
     int8Builder.append(10, 11, 12)
@@ -145,14 +147,14 @@ final class CodableTests: XCTestCase {
       let testData = try decoder.decode(Int8?.self)
       for index in 0..<testData.count {
         let val: Int8? = testData[index]
-        XCTAssertEqual(val!, Int8(index + 10))
+        #expect(val! == Int8(index + 10))
       }
     case .failure(let err):
       throw err
     }
   }
 
-  func testArrowSingleDecoderWithNull() throws {
+  @Test func arrowSingleDecoderWithNull() throws {
     let int8WNilBuilder: NumberArrayBuilder<Int8> =
       try ArrowArrayBuilders.loadNumberArrayBuilder()
     int8WNilBuilder.append(10, nil, 12, nil)
@@ -166,9 +168,9 @@ final class CodableTests: XCTestCase {
       for index in 0..<testData.count {
         let val: Int8? = testData[index]
         if index % 2 == 1 {
-          XCTAssertNil(val)
+          #expect(val == nil)
         } else {
-          XCTAssertEqual(val!, Int8(index + 10))
+          #expect(val! == Int8(index + 10))
         }
       }
     case .failure(let err):
@@ -176,7 +178,7 @@ final class CodableTests: XCTestCase {
     }
   }
 
-  func testArrowMapDecoderWithoutNull() throws {
+  @Test func arrowMapDecoderWithoutNull() throws {
     let int8Builder: NumberArrayBuilder<Int8> =
       try ArrowArrayBuilders.loadNumberArrayBuilder()
     let stringBuilder = try ArrowArrayBuilders.loadStringArrayBuilder()
@@ -191,7 +193,7 @@ final class CodableTests: XCTestCase {
       let decoder = ArrowDecoder(rb)
       let testData = try decoder.decode([Int8: String].self)
       for data in testData {
-        XCTAssertEqual("test\(data.key)", data.value)
+        #expect("test\(data.key)" == data.value)
       }
     case .failure(let err):
       throw err
@@ -206,14 +208,14 @@ final class CodableTests: XCTestCase {
       let decoder = ArrowDecoder(rb)
       let testData = try decoder.decode([String: Int8].self)
       for data in testData {
-        XCTAssertEqual("test\(data.value)", data.key)
+        #expect("test\(data.value)" == data.key)
       }
     case .failure(let err):
       throw err
     }
   }
 
-  func testArrowMapDecoderWithNull() throws {
+  @Test func arrowMapDecoderWithNull() throws {
     let int8Builder: NumberArrayBuilder<Int8> =
       try ArrowArrayBuilders.loadNumberArrayBuilder()
     let stringWNilBuilder = try ArrowArrayBuilders.loadStringArrayBuilder()
@@ -230,9 +232,9 @@ final class CodableTests: XCTestCase {
       for data in testData {
         let str = data.value
         if data.key % 2 == 0 {
-          XCTAssertNil(str)
+          #expect(str == nil)
         } else {
-          XCTAssertEqual(str, "test\(data.key)")
+          #expect(str == "test\(data.key)")
         }
       }
     case .failure(let err):
@@ -246,7 +248,7 @@ final class CodableTests: XCTestCase {
     return anyArray.asAny(UInt(rowIndex)) as? T
   }
 
-  func testArrowKeyedEncoder() throws {
+  @Test func arrowKeyedEncoder() throws {
     var infos: [TestClass] = []
     for index in 0..<10 {
       let tClass = TestClass()
@@ -268,84 +270,92 @@ final class CodableTests: XCTestCase {
     }
 
     let rb = try ArrowEncoder.encode(infos)!
-    XCTAssertEqual(Int(rb.length), infos.count)
-    XCTAssertEqual(rb.columns.count, 13)
-    XCTAssertEqual(rb.columns[0].type, .boolean)
-    XCTAssertEqual(rb.columns[1].type, .int8)
-    XCTAssertEqual(rb.columns[2].type, .int16)
-    XCTAssertEqual(rb.columns[3].type, .int32)
-    XCTAssertEqual(rb.columns[4].type, .int64)
-    XCTAssertEqual(rb.columns[5].type, .uint8)
-    XCTAssertEqual(rb.columns[6].type, .uint16)
-    XCTAssertEqual(rb.columns[7].type, .uint32)
-    XCTAssertEqual(rb.columns[8].type, .uint64)
-    XCTAssertEqual(rb.columns[9].type, .float32)
-    XCTAssertEqual(rb.columns[10].type, .float64)
-    XCTAssertEqual(rb.columns[11].type, .utf8)
-    XCTAssertEqual(rb.columns[12].type, .date64)
+    #expect(Int(rb.length) == infos.count)
+    #expect(rb.columns.count == 13)
+    #expect(rb.columns[0].type == .boolean)
+    #expect(rb.columns[1].type == .int8)
+    #expect(rb.columns[2].type == .int16)
+    #expect(rb.columns[3].type == .int32)
+    #expect(rb.columns[4].type == .int64)
+    #expect(rb.columns[5].type == .uint8)
+    #expect(rb.columns[6].type == .uint16)
+    #expect(rb.columns[7].type == .uint32)
+    #expect(rb.columns[8].type == .uint64)
+    #expect(rb.columns[9].type == .float32)
+    #expect(rb.columns[10].type == .float64)
+    #expect(rb.columns[11].type == .utf8)
+    #expect(rb.columns[12].type == .date64)
     for index in 0..<10 {
       let offset = index * 12
-      XCTAssertEqual(
-        getArrayValue(rb, colIndex: 0, rowIndex: UInt(index)), index % 2 == 0)
-      XCTAssertEqual(
-        getArrayValue(rb, colIndex: 1, rowIndex: UInt(index)), Int8(offset + 1))
-      XCTAssertEqual(
-        getArrayValue(rb, colIndex: 2, rowIndex: UInt(index)), Int16(offset + 2)
+      #expect(
+        getArrayValue(rb, colIndex: 0, rowIndex: UInt(index))
+          == (index % 2 == 0))
+      #expect(
+        getArrayValue(rb, colIndex: 1, rowIndex: UInt(index))
+          == Int8(offset + 1))
+      #expect(
+        getArrayValue(rb, colIndex: 2, rowIndex: UInt(index))
+          == Int16(offset + 2)
       )
-      XCTAssertEqual(
-        getArrayValue(rb, colIndex: 3, rowIndex: UInt(index)), Int32(offset + 3)
+      #expect(
+        getArrayValue(rb, colIndex: 3, rowIndex: UInt(index))
+          == Int32(offset + 3)
       )
-      XCTAssertEqual(
-        getArrayValue(rb, colIndex: 4, rowIndex: UInt(index)), Int64(offset + 4)
+      #expect(
+        getArrayValue(rb, colIndex: 4, rowIndex: UInt(index))
+          == Int64(offset + 4)
       )
-      XCTAssertEqual(
-        getArrayValue(rb, colIndex: 5, rowIndex: UInt(index)), UInt8(offset + 5)
+      #expect(
+        getArrayValue(rb, colIndex: 5, rowIndex: UInt(index))
+          == UInt8(offset + 5)
       )
-      XCTAssertEqual(
-        getArrayValue(rb, colIndex: 6, rowIndex: UInt(index)),
-        UInt16(offset + 6))
-      XCTAssertEqual(
-        getArrayValue(rb, colIndex: 7, rowIndex: UInt(index)),
-        UInt32(offset + 7))
-      XCTAssertEqual(
-        getArrayValue(rb, colIndex: 8, rowIndex: UInt(index)),
-        UInt64(offset + 8))
-      XCTAssertEqual(
-        getArrayValue(rb, colIndex: 9, rowIndex: UInt(index)), Float(offset + 9)
+      #expect(
+        getArrayValue(rb, colIndex: 6, rowIndex: UInt(index))
+          == UInt16(offset + 6))
+      #expect(
+        getArrayValue(rb, colIndex: 7, rowIndex: UInt(index))
+          == UInt32(offset + 7))
+      #expect(
+        getArrayValue(rb, colIndex: 8, rowIndex: UInt(index))
+          == UInt64(offset + 8))
+      #expect(
+        getArrayValue(rb, colIndex: 9, rowIndex: UInt(index))
+          == Float(offset + 9)
       )
       if index % 2 == 0 {
-        XCTAssertEqual(
-          getArrayValue(rb, colIndex: 10, rowIndex: UInt(index)),
-          Double(offset + 10))
+        #expect(
+          getArrayValue(rb, colIndex: 10, rowIndex: UInt(index))
+            == Double(offset + 10))
       } else {
-        XCTAssertEqual(
-          getArrayValue(rb, colIndex: 10, rowIndex: UInt(index)), Double?(nil))
+        #expect(
+          getArrayValue(rb, colIndex: 10, rowIndex: UInt(index)) == Double?(nil)
+        )
       }
-      XCTAssertEqual(
-        getArrayValue(rb, colIndex: 11, rowIndex: UInt(index)),
-        String(offset + 11))
+      #expect(
+        getArrayValue(rb, colIndex: 11, rowIndex: UInt(index))
+          == String(offset + 11))
     }
   }
 
-  func testArrowUnkeyedEncoder() throws {
+  @Test func arrowUnkeyedEncoder() throws {
     var testMap: [Int8: String?] = [:]
     for index in 0..<10 {
       testMap[Int8(index)] = "test\(index)"
     }
 
     let rb = try ArrowEncoder.encode(testMap)
-    XCTAssertEqual(Int(rb.length), testMap.count)
-    XCTAssertEqual(rb.columns.count, 2)
-    XCTAssertEqual(rb.columns[0].type, .int8)
-    XCTAssertEqual(rb.columns[1].type, .utf8)
+    #expect(Int(rb.length) == testMap.count)
+    #expect(rb.columns.count == 2)
+    #expect(rb.columns[0].type == .int8)
+    #expect(rb.columns[1].type == .utf8)
     for index in 0..<10 {
       let key: Int8 = getArrayValue(rb, colIndex: 0, rowIndex: UInt(index))!
       let value: String = getArrayValue(rb, colIndex: 1, rowIndex: UInt(index))!
-      XCTAssertEqual("test\(key)", value)
+      #expect("test\(key)" == value)
     }
   }
 
-  func testArrowSingleEncoder() throws {
+  @Test func arrowSingleEncoder() throws {
     var intArray: [Int32?] = []
     for index in 0..<100 {
       if index == 10 {
@@ -356,16 +366,16 @@ final class CodableTests: XCTestCase {
     }
 
     let rb = try ArrowEncoder.encode(intArray)!
-    XCTAssertEqual(Int(rb.length), intArray.count)
-    XCTAssertEqual(rb.columns.count, 1)
-    XCTAssertEqual(rb.columns[0].type, .int32)
+    #expect(Int(rb.length) == intArray.count)
+    #expect(rb.columns.count == 1)
+    #expect(rb.columns[0].type == .int32)
     for index in 0..<100 {
       if index == 10 {
         let anyArray = rb.columns[0].array
-        XCTAssertNil(anyArray.asAny(UInt(index)))
+        #expect(anyArray.asAny(UInt(index)) == nil)
       } else {
-        XCTAssertEqual(
-          getArrayValue(rb, colIndex: 0, rowIndex: UInt(index)), Int32(index))
+        #expect(
+          getArrayValue(rb, colIndex: 0, rowIndex: UInt(index)) == Int32(index))
       }
     }
   }

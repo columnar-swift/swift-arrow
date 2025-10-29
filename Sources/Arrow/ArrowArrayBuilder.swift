@@ -447,35 +447,34 @@ public class ArrowArrayBuilders {
     try BinaryArrayBuilder()
   }
 
-  public static func loadTime32ArrayBuilder(_ unit: TimeUnit)
-    throws(ArrowError) -> Time32ArrayBuilder
-  {
+  public static func loadTime32ArrayBuilder(
+    _ unit: TimeUnit
+  ) throws(ArrowError) -> Time32ArrayBuilder {
     try Time32ArrayBuilder(unit)
   }
 
-  public static func loadTime64ArrayBuilder(_ unit: TimeUnit)
-    throws(ArrowError) -> Time64ArrayBuilder
-  {
+  public static func loadTime64ArrayBuilder(
+    _ unit: TimeUnit
+  ) throws(ArrowError) -> Time64ArrayBuilder {
     try Time64ArrayBuilder(unit)
   }
 
   public static func loadTimestampArrayBuilder(
-    _ unit: TimeUnit, timezone: String? = nil
-  )
-    throws -> TimestampArrayBuilder
-  {
+    _ unit: TimeUnit,
+    timezone: String? = nil
+  ) throws -> TimestampArrayBuilder {
     try TimestampArrayBuilder(unit, timezone: timezone)
   }
 
-  public static func loadStructArrayBuilder(_ fields: [ArrowField])
-    throws(ArrowError) -> StructArrayBuilder
-  {
+  public static func loadStructArrayBuilder(
+    _ fields: [ArrowField]
+  ) throws(ArrowError) -> StructArrayBuilder {
     try StructArrayBuilder(fields)
   }
 
-  public static func loadListArrayBuilder(_ elementType: ArrowType)
-    throws(ArrowError) -> ListArrayBuilder
-  {
+  public static func loadListArrayBuilder(
+    _ elementType: ArrowType
+  ) throws(ArrowError) -> ListArrayBuilder {
     try ListArrayBuilder(elementType)
   }
 }

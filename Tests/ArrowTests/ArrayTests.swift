@@ -1,4 +1,5 @@
 // Copyright 2025 The Apache Software Foundation
+// Copyright 2025 The Columnar Swift Contributors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,44 +13,45 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import XCTest
+import Foundation
+import Testing
 
 @testable import Arrow
 
-final class ArrayTests: XCTestCase {
+struct ArrayTests {
 
-  func testPrimitiveArray() throws {
+  @Test func primitiveArray() throws {
     let arrayBuilder: NumberArrayBuilder<UInt8> =
       try ArrowArrayBuilders.loadNumberArrayBuilder()
     for index in 0..<100 {
       arrayBuilder.append(UInt8(index))
     }
 
-    XCTAssertEqual(arrayBuilder.nullCount, 0)
+    #expect(arrayBuilder.nullCount == 0)
     arrayBuilder.append(nil)
-    XCTAssertEqual(arrayBuilder.length, 101)
-    XCTAssertEqual(arrayBuilder.capacity, 136)
-    XCTAssertEqual(arrayBuilder.nullCount, 1)
+    #expect(arrayBuilder.length == 101)
+    #expect(arrayBuilder.capacity == 136)
+    #expect(arrayBuilder.nullCount == 1)
     let array = try arrayBuilder.finish()
-    XCTAssertEqual(array.length, 101)
-    XCTAssertEqual(array[1]!, 1)
-    XCTAssertEqual(array[10]!, 10)
-    XCTAssertEqual(try array.isNull(at: 100), true)
+    #expect(array.length == 101)
+    #expect(array[1]! == 1)
+    #expect(array[10]! == 10)
+    #expect(try array.isNull(at: 100) == true)
 
     let doubleBuilder: NumberArrayBuilder<Double> =
       try ArrowArrayBuilders.loadNumberArrayBuilder()
     doubleBuilder.append(14)
     doubleBuilder.append(40.4)
-    XCTAssertEqual(doubleBuilder.nullCount, 0)
-    XCTAssertEqual(doubleBuilder.length, 2)
-    XCTAssertEqual(doubleBuilder.capacity, 264)
+    #expect(doubleBuilder.nullCount == 0)
+    #expect(doubleBuilder.length == 2)
+    #expect(doubleBuilder.capacity == 264)
     let doubleArray = try doubleBuilder.finish()
-    XCTAssertEqual(doubleArray.length, 2)
-    XCTAssertEqual(doubleArray[0]!, 14)
-    XCTAssertEqual(doubleArray[1]!, 40.4)
+    #expect(doubleArray.length == 2)
+    #expect(doubleArray[0]! == 14)
+    #expect(doubleArray[1]! == 40.4)
   }
 
-  func testStringArray() throws {
+  @Test func stringArray() throws {
     let stringBuilder = try ArrowArrayBuilders.loadStringArrayBuilder()
     for index in 0..<100 {
       if index % 10 == 9 {
@@ -59,40 +61,40 @@ final class ArrayTests: XCTestCase {
       }
     }
 
-    XCTAssertEqual(stringBuilder.nullCount, 10)
-    XCTAssertEqual(stringBuilder.length, 100)
-    XCTAssertEqual(stringBuilder.capacity, 648)
+    #expect(stringBuilder.nullCount == 10)
+    #expect(stringBuilder.length == 100)
+    #expect(stringBuilder.capacity == 648)
     let stringArray = try stringBuilder.finish()
-    XCTAssertEqual(stringArray.length, 100)
+    #expect(stringArray.length == 100)
     for index in 0..<stringArray.length {
       if index % 10 == 9 {
-        XCTAssertEqual(try stringArray.isNull(at: index), true)
+        #expect(try stringArray.isNull(at: index) == true)
       } else {
-        XCTAssertEqual(stringArray[index]!, "test" + String(index))
+        #expect(stringArray[index]! == "test" + String(index))
       }
     }
 
-    XCTAssertEqual(stringArray[1]!, "test1")
-    XCTAssertEqual(stringArray[0]!, "test0")
+    #expect(stringArray[1]! == "test1")
+    #expect(stringArray[0]! == "test0")
   }
 
-  func testBoolArray() throws {
+  @Test func boolArray() throws {
     let boolBuilder = try ArrowArrayBuilders.loadBoolArrayBuilder()
     boolBuilder.append(true)
     boolBuilder.append(nil)
     boolBuilder.append(false)
     boolBuilder.append(false)
-    XCTAssertEqual(boolBuilder.nullCount, 1)
-    XCTAssertEqual(boolBuilder.length, 4)
-    XCTAssertEqual(boolBuilder.capacity, 72)
+    #expect(boolBuilder.nullCount == 1)
+    #expect(boolBuilder.length == 4)
+    #expect(boolBuilder.capacity == 72)
     let boolArray = try boolBuilder.finish()
-    XCTAssertEqual(boolArray.length, 4)
-    XCTAssertEqual(boolArray[1], nil)
-    XCTAssertEqual(boolArray[0]!, true)
-    XCTAssertEqual(boolArray[2]!, false)
+    #expect(boolArray.length == 4)
+    #expect(boolArray[1] == nil)
+    #expect(boolArray[0]! == true)
+    #expect(boolArray[2]! == false)
   }
 
-  func testDate32Array() throws {
+  @Test func date32Array() throws {
     let date32Builder: Date32ArrayBuilder =
       try ArrowArrayBuilders.loadDate32ArrayBuilder()
     let date2 = Date(timeIntervalSinceReferenceDate: 86400 * 1)
@@ -100,18 +102,18 @@ final class ArrayTests: XCTestCase {
     date32Builder.append(date1)
     date32Builder.append(date2)
     date32Builder.append(nil)
-    XCTAssertEqual(date32Builder.nullCount, 1)
-    XCTAssertEqual(date32Builder.length, 3)
-    XCTAssertEqual(date32Builder.capacity, 136)
+    #expect(date32Builder.nullCount == 1)
+    #expect(date32Builder.length == 3)
+    #expect(date32Builder.capacity == 136)
     let date32Array = try date32Builder.finish()
-    XCTAssertEqual(date32Array.length, 3)
-    XCTAssertEqual(date32Array[1], date2)
+    #expect(date32Array.length == 3)
+    #expect(date32Array[1] == date2)
     let adjustedDate1 = Date(
       timeIntervalSince1970: date1.timeIntervalSince1970 - 352)
-    XCTAssertEqual(date32Array[0]!, adjustedDate1)
+    #expect(date32Array[0]! == adjustedDate1)
   }
 
-  func testDate64Array() throws {
+  @Test func date64Array() throws {
     let date64Builder: Date64ArrayBuilder =
       try ArrowArrayBuilders.loadDate64ArrayBuilder()
     let date2 = Date(timeIntervalSinceReferenceDate: 86400 * 1)
@@ -119,16 +121,16 @@ final class ArrayTests: XCTestCase {
     date64Builder.append(date1)
     date64Builder.append(date2)
     date64Builder.append(nil)
-    XCTAssertEqual(date64Builder.nullCount, 1)
-    XCTAssertEqual(date64Builder.length, 3)
-    XCTAssertEqual(date64Builder.capacity, 264)
+    #expect(date64Builder.nullCount == 1)
+    #expect(date64Builder.length == 3)
+    #expect(date64Builder.capacity == 264)
     let date64Array = try date64Builder.finish()
-    XCTAssertEqual(date64Array.length, 3)
-    XCTAssertEqual(date64Array[1], date2)
-    XCTAssertEqual(date64Array[0]!, date1)
+    #expect(date64Array.length == 3)
+    #expect(date64Array[1] == date2)
+    #expect(date64Array[0]! == date1)
   }
 
-  func testBinaryArray() throws {
+  @Test func binaryArray() throws {
     let binaryBuilder = try ArrowArrayBuilders.loadBinaryArrayBuilder()
     for index in 0..<100 {
       if index % 10 == 9 {
@@ -138,76 +140,76 @@ final class ArrayTests: XCTestCase {
       }
     }
 
-    XCTAssertEqual(binaryBuilder.nullCount, 10)
-    XCTAssertEqual(binaryBuilder.length, 100)
-    XCTAssertEqual(binaryBuilder.capacity, 648)
+    #expect(binaryBuilder.nullCount == 10)
+    #expect(binaryBuilder.length == 100)
+    #expect(binaryBuilder.capacity == 648)
     let binaryArray = try binaryBuilder.finish()
-    XCTAssertEqual(binaryArray.length, 100)
+    #expect(binaryArray.length == 100)
     for index in 0..<binaryArray.length {
       if index % 10 == 9 {
-        XCTAssertEqual(try binaryArray.isNull(at: index), true)
+        #expect(try binaryArray.isNull(at: index) == true)
       } else {
         let stringData = String(bytes: binaryArray[index]!, encoding: .utf8)
-        XCTAssertEqual(stringData, "test" + String(index))
+        #expect(stringData == "test" + String(index))
       }
     }
   }
 
-  func testTime32Array() throws {
+  @Test func time32Array() throws {
     let milliBuilder = try ArrowArrayBuilders.loadTime32ArrayBuilder(
       .millisecond)
     milliBuilder.append(100)
     milliBuilder.append(1_000_000)
     milliBuilder.append(nil)
-    XCTAssertEqual(milliBuilder.nullCount, 1)
-    XCTAssertEqual(milliBuilder.length, 3)
-    XCTAssertEqual(milliBuilder.capacity, 136)
+    #expect(milliBuilder.nullCount == 1)
+    #expect(milliBuilder.length == 3)
+    #expect(milliBuilder.capacity == 136)
     let milliArray = try milliBuilder.finish()
     guard case .time32(let milliType) = milliArray.arrowData.type else {
-      XCTFail("Expected time32")
+      Issue.record("Expected time32")
       return
     }
-    XCTAssertEqual(milliType, .millisecond)
-    XCTAssertEqual(milliArray.length, 3)
-    XCTAssertEqual(milliArray[1], 1_000_000)
-    XCTAssertEqual(milliArray[2], nil)
+    #expect(milliType == .millisecond)
+    #expect(milliArray.length == 3)
+    #expect(milliArray[1] == 1_000_000)
+    #expect(milliArray[2] == nil)
 
     let secBuilder = try ArrowArrayBuilders.loadTime32ArrayBuilder(.second)
     secBuilder.append(200)
     secBuilder.append(nil)
     secBuilder.append(2_000_011)
-    XCTAssertEqual(secBuilder.nullCount, 1)
-    XCTAssertEqual(secBuilder.length, 3)
-    XCTAssertEqual(secBuilder.capacity, 136)
+    #expect(secBuilder.nullCount == 1)
+    #expect(secBuilder.length == 3)
+    #expect(secBuilder.capacity == 136)
     let secArray = try secBuilder.finish()
     guard case .time32(let secType) = secArray.arrowData.type else {
-      XCTFail("Expected time32")
+      Issue.record("Expected time32")
       return
     }
-    XCTAssertEqual(secType, .second)
-    XCTAssertEqual(secArray.length, 3)
-    XCTAssertEqual(secArray[1], nil)
-    XCTAssertEqual(secArray[2], 2_000_011)
+    #expect(secType == .second)
+    #expect(secArray.length == 3)
+    #expect(secArray[1] == nil)
+    #expect(secArray[2] == 2_000_011)
   }
 
-  func testTime64Array() throws {
+  @Test func time64Array() throws {
     let nanoBuilder = try ArrowArrayBuilders.loadTime64ArrayBuilder(
       .nanosecond)
     nanoBuilder.append(10000)
     nanoBuilder.append(nil)
     nanoBuilder.append(123_456_789)
-    XCTAssertEqual(nanoBuilder.nullCount, 1)
-    XCTAssertEqual(nanoBuilder.length, 3)
-    XCTAssertEqual(nanoBuilder.capacity, 264)
+    #expect(nanoBuilder.nullCount == 1)
+    #expect(nanoBuilder.length == 3)
+    #expect(nanoBuilder.capacity == 264)
     let nanoArray = try nanoBuilder.finish()
     guard case .time64(let nanoType) = nanoArray.arrowData.type else {
-      XCTFail("Expected time64")
+      Issue.record("Expected time64")
       return
     }
-    XCTAssertEqual(nanoType, .nanosecond)
-    XCTAssertEqual(nanoArray.length, 3)
-    XCTAssertEqual(nanoArray[1], nil)
-    XCTAssertEqual(nanoArray[2], 123_456_789)
+    #expect(nanoType == .nanosecond)
+    #expect(nanoArray.length == 3)
+    #expect(nanoArray[1] == nil)
+    #expect(nanoArray[2] == 123_456_789)
 
     let microBuilder = try ArrowArrayBuilders.loadTime64ArrayBuilder(
       .microsecond
@@ -215,21 +217,21 @@ final class ArrayTests: XCTestCase {
     microBuilder.append(nil)
     microBuilder.append(20000)
     microBuilder.append(987_654_321)
-    XCTAssertEqual(microBuilder.nullCount, 1)
-    XCTAssertEqual(microBuilder.length, 3)
-    XCTAssertEqual(microBuilder.capacity, 264)
+    #expect(microBuilder.nullCount == 1)
+    #expect(microBuilder.length == 3)
+    #expect(microBuilder.capacity == 264)
     let microArray = try microBuilder.finish()
     guard case .time64(let microType) = microArray.arrowData.type else {
-      XCTFail("Expected time64")
+      Issue.record("Expected time64")
       return
     }
-    XCTAssertEqual(microType, .microsecond)
-    XCTAssertEqual(microArray.length, 3)
-    XCTAssertEqual(microArray[1], 20000)
-    XCTAssertEqual(microArray[2], 987_654_321)
+    #expect(microType == .microsecond)
+    #expect(microArray.length == 3)
+    #expect(microArray[1] == 20000)
+    #expect(microArray[2] == 987_654_321)
   }
 
-  func testTimestampArray() throws {
+  @Test func timestampArray() throws {
     // Test timestamp with seconds unit
     let secBuilder = try ArrowArrayBuilders.loadTimestampArrayBuilder(
       .second,
@@ -238,21 +240,21 @@ final class ArrayTests: XCTestCase {
     secBuilder.append(1_609_459_200)  // 2021-01-01 00:00:00
     secBuilder.append(1_609_545_600)  // 2021-01-02 00:00:00
     secBuilder.append(nil)
-    XCTAssertEqual(secBuilder.nullCount, 1)
-    XCTAssertEqual(secBuilder.length, 3)
-    XCTAssertEqual(secBuilder.capacity, 264)
+    #expect(secBuilder.nullCount == 1)
+    #expect(secBuilder.length == 3)
+    #expect(secBuilder.capacity == 264)
     let secArray = try secBuilder.finish()
     guard case .timestamp(let secType, let timezone) = secArray.arrowData.type
     else {
-      XCTFail("Expected timestamp")
+      Issue.record("Expected timestamp")
       return
     }
-    XCTAssertEqual(secType, .second)
-    XCTAssertNil(timezone)
-    XCTAssertEqual(secArray.length, 3)
-    XCTAssertEqual(secArray[0], 1_609_459_200)
-    XCTAssertEqual(secArray[1], 1_609_545_600)
-    XCTAssertNil(secArray[2])
+    #expect(secType == .second)
+    #expect(timezone == nil)
+    #expect(secArray.length == 3)
+    #expect(secArray[0] == 1_609_459_200)
+    #expect(secArray[1] == 1_609_545_600)
+    #expect(secArray[2] == nil)
 
     // Test timestamp with milliseconds unit and timezone America/New_York
     let msBuilder = try ArrowArrayBuilders.loadTimestampArrayBuilder(
@@ -262,21 +264,21 @@ final class ArrayTests: XCTestCase {
     msBuilder.append(1_609_459_200_000)  // 2021-01-01 00:00:00.000
     msBuilder.append(nil)
     msBuilder.append(1_609_545_600_000)  // 2021-01-02 00:00:00.000
-    XCTAssertEqual(msBuilder.nullCount, 1)
-    XCTAssertEqual(msBuilder.length, 3)
-    XCTAssertEqual(msBuilder.capacity, 264)
+    #expect(msBuilder.nullCount == 1)
+    #expect(msBuilder.length == 3)
+    #expect(msBuilder.capacity == 264)
     let msArray = try msBuilder.finish()
     guard case .timestamp(let msType, let timezone) = msArray.arrowData.type
     else {
-      XCTFail("Expected timestamp")
+      Issue.record("Expected timestamp")
       return
     }
-    XCTAssertEqual(msType, .millisecond)
-    XCTAssertEqual(timezone, "America/New_York")
-    XCTAssertEqual(msArray.length, 3)
-    XCTAssertEqual(msArray[0], 1_609_459_200_000)
-    XCTAssertNil(msArray[1])
-    XCTAssertEqual(msArray[2], 1_609_545_600_000)
+    #expect(msType == .millisecond)
+    #expect(timezone == "America/New_York")
+    #expect(msArray.length == 3)
+    #expect(msArray[0] == 1_609_459_200_000)
+    #expect(msArray[1] == nil)
+    #expect(msArray[2] == 1_609_545_600_000)
 
     // Test timestamp with microseconds unit and timezone UTC
     let usBuilder = try ArrowArrayBuilders.loadTimestampArrayBuilder(
@@ -284,21 +286,21 @@ final class ArrayTests: XCTestCase {
     usBuilder.append(1_609_459_200_000_000)  // 2021-01-01 00:00:00.000000
     usBuilder.append(1_609_545_600_000_000)  // 2021-01-02 00:00:00.000000
     usBuilder.append(1_609_632_000_000_000)  // 2021-01-03 00:00:00.000000
-    XCTAssertEqual(usBuilder.nullCount, 0)
-    XCTAssertEqual(usBuilder.length, 3)
-    XCTAssertEqual(usBuilder.capacity, 264)
+    #expect(usBuilder.nullCount == 0)
+    #expect(usBuilder.length == 3)
+    #expect(usBuilder.capacity == 264)
     let usArray = try usBuilder.finish()
     guard case .timestamp(let usType, let timezone) = usArray.arrowData.type
     else {
-      XCTFail("Expected timestamp")
+      Issue.record("Expected timestamp")
       return
     }
-    XCTAssertEqual(usType, .microsecond)
-    XCTAssertEqual(timezone, "UTC")
-    XCTAssertEqual(usArray.length, 3)
-    XCTAssertEqual(usArray[0], 1_609_459_200_000_000)
-    XCTAssertEqual(usArray[1], 1_609_545_600_000_000)
-    XCTAssertEqual(usArray[2], 1_609_632_000_000_000)
+    #expect(usType == .microsecond)
+    #expect(timezone == "UTC")
+    #expect(usArray.length == 3)
+    #expect(usArray[0] == 1_609_459_200_000_000)
+    #expect(usArray[1] == 1_609_545_600_000_000)
+    #expect(usArray[2] == 1_609_632_000_000_000)
 
     // Test timestamp with nanoseconds unit
     let nsBuilder = try ArrowArrayBuilders.loadTimestampArrayBuilder(
@@ -308,24 +310,24 @@ final class ArrayTests: XCTestCase {
     nsBuilder.append(1_609_459_200_000_000_000)
     // 2021-01-02 00:00:00.000000000
     nsBuilder.append(1_609_545_600_000_000_000)
-    XCTAssertEqual(nsBuilder.nullCount, 1)
-    XCTAssertEqual(nsBuilder.length, 3)
-    XCTAssertEqual(nsBuilder.capacity, 264)
+    #expect(nsBuilder.nullCount == 1)
+    #expect(nsBuilder.length == 3)
+    #expect(nsBuilder.capacity == 264)
     let nsArray = try nsBuilder.finish()
     guard case .timestamp(let nsType, let timezone) = nsArray.arrowData.type
     else {
-      XCTFail("Expected timestamp")
+      Issue.record("Expected timestamp")
       return
     }
-    XCTAssertEqual(nsType, .nanosecond)
-    XCTAssertNil(timezone)
-    XCTAssertEqual(nsArray.length, 3)
-    XCTAssertNil(nsArray[0])
-    XCTAssertEqual(nsArray[1], 1_609_459_200_000_000_000)
-    XCTAssertEqual(nsArray[2], 1_609_545_600_000_000_000)
+    #expect(nsType == .nanosecond)
+    #expect(timezone == nil)
+    #expect(nsArray.length == 3)
+    #expect(nsArray[0] == nil)
+    #expect(nsArray[1] == 1_609_459_200_000_000_000)
+    #expect(nsArray[2] == 1_609_545_600_000_000_000)
   }
 
-  func testStructArray() throws {
+  @Test func structArray() throws {
     class StructTest {
       var fieldBool: Bool = false
       var fieldInt8: Int8 = 0
@@ -364,31 +366,31 @@ final class ArrayTests: XCTestCase {
       UInt8(17), UInt16(18), UInt32(19), UInt64(20), Double(21.21),
       Float(22.22), "23", Data("24".utf8), dateNow,
     ])
-    XCTAssertEqual(structBuilder.length, 3)
+    #expect(structBuilder.length == 3)
     let structArray = try structBuilder.finish()
-    XCTAssertEqual(structArray.length, 3)
-    XCTAssertNil(structArray[1])
-    XCTAssertEqual(structArray.fields![0].length, 3)
-    XCTAssertNil(structArray.fields![0].array.asAny(1))
-    XCTAssertEqual(structArray[0]![STIndex.bool.rawValue] as? Bool, true)
-    XCTAssertEqual(structArray[0]![STIndex.int8.rawValue] as? Int8, 1)
-    XCTAssertEqual(structArray[0]![STIndex.int16.rawValue] as? Int16, 2)
-    XCTAssertEqual(structArray[0]![STIndex.int32.rawValue] as? Int32, 3)
-    XCTAssertEqual(structArray[0]![STIndex.int64.rawValue] as? Int64, 4)
-    XCTAssertEqual(structArray[0]![STIndex.uint8.rawValue] as? UInt8, 5)
-    XCTAssertEqual(structArray[0]![STIndex.uint16.rawValue] as? UInt16, 6)
-    XCTAssertEqual(structArray[0]![STIndex.uint32.rawValue] as? UInt32, 7)
-    XCTAssertEqual(structArray[0]![STIndex.uint64.rawValue] as? UInt64, 8)
-    XCTAssertEqual(structArray[0]![STIndex.double.rawValue] as? Double, 9.9)
-    XCTAssertEqual(structArray[0]![STIndex.float.rawValue] as? Float, 10.10)
-    XCTAssertEqual(structArray[2]![STIndex.string.rawValue] as? String, "23")
-    XCTAssertEqual(
+    #expect(structArray.length == 3)
+    #expect(structArray[1] == nil)
+    #expect(structArray.fields![0].length == 3)
+    #expect(structArray.fields![0].array.asAny(1) == nil)
+    #expect(structArray[0]![STIndex.bool.rawValue] as? Bool == true)
+    #expect(structArray[0]![STIndex.int8.rawValue] as? Int8 == 1)
+    #expect(structArray[0]![STIndex.int16.rawValue] as? Int16 == 2)
+    #expect(structArray[0]![STIndex.int32.rawValue] as? Int32 == 3)
+    #expect(structArray[0]![STIndex.int64.rawValue] as? Int64 == 4)
+    #expect(structArray[0]![STIndex.uint8.rawValue] as? UInt8 == 5)
+    #expect(structArray[0]![STIndex.uint16.rawValue] as? UInt16 == 6)
+    #expect(structArray[0]![STIndex.uint32.rawValue] as? UInt32 == 7)
+    #expect(structArray[0]![STIndex.uint64.rawValue] as? UInt64 == 8)
+    #expect(structArray[0]![STIndex.double.rawValue] as? Double == 9.9)
+    #expect(structArray[0]![STIndex.float.rawValue] as? Float == 10.10)
+    #expect(structArray[2]![STIndex.string.rawValue] as? String == "23")
+    #expect(
       String(
         decoding: (structArray[0]![STIndex.data.rawValue] as? Data)!,
-        as: UTF8.self), "12")
+        as: UTF8.self) == "12")
     let dateFormatter = DateFormatter()
     dateFormatter.timeStyle = .full
-    XCTAssertTrue(
+    #expect(
       dateFormatter.string(
         from: (structArray[0]![STIndex.date.rawValue] as? Date)!)
         == dateFormatter.string(from: dateNow))
@@ -410,13 +412,13 @@ final class ArrayTests: XCTestCase {
       field, buffers: buffers, nullCount: 0, children: nil, rbLength: 0)
     {
     case .success(let holder):
-      XCTAssertEqual(holder.type, checkType)
+      #expect(holder.type == checkType)
     case .failure(let err):
       throw err
     }
   }
 
-  func testArrayHolders() throws {
+  @Test func arrayHolders() throws {
     try checkHolderForType(.int8)
     try checkHolderForType(.uint8)
     try checkHolderForType(.int16)
@@ -436,7 +438,7 @@ final class ArrayTests: XCTestCase {
     try checkHolderForType(.utf8)
   }
 
-  func testArrowArrayHolderBuilder() throws {
+  @Test func arrowArrayHolderBuilder() throws {
     let uint8HBuilder: ArrowArrayHolderBuilder =
       (try ArrowArrayBuilders.loadNumberArrayBuilder()
         as NumberArrayBuilder<UInt8>)
@@ -445,8 +447,8 @@ final class ArrayTests: XCTestCase {
     }
 
     let uint8Holder = try uint8HBuilder.toHolder()
-    XCTAssertEqual(uint8Holder.nullCount, 0)
-    XCTAssertEqual(uint8Holder.length, 100)
+    #expect(uint8Holder.nullCount == 0)
+    #expect(uint8Holder.length == 100)
 
     let stringHBuilder: ArrowArrayHolderBuilder =
       (try ArrowArrayBuilders.loadStringArrayBuilder())
@@ -459,51 +461,51 @@ final class ArrayTests: XCTestCase {
     }
 
     let stringHolder = try stringHBuilder.toHolder()
-    XCTAssertEqual(stringHolder.nullCount, 10)
-    XCTAssertEqual(stringHolder.length, 100)
+    #expect(stringHolder.nullCount == 10)
+    #expect(stringHolder.length == 100)
   }
 
-  func testAddVArgs() throws {
+  @Test func addVArgs() throws {
     let arrayBuilder: NumberArrayBuilder<UInt8> =
       try ArrowArrayBuilders.loadNumberArrayBuilder()
     arrayBuilder.append(0, 1, 2, 3, 4, 5, 6, 7, 8, 9)
-    XCTAssertEqual(arrayBuilder.length, 10)
-    XCTAssertEqual(try arrayBuilder.finish()[2], 2)
+    #expect(arrayBuilder.length == 10)
+    #expect(try arrayBuilder.finish()[2] == 2)
     let doubleBuilder: NumberArrayBuilder<Double> =
       try ArrowArrayBuilders.loadNumberArrayBuilder()
     doubleBuilder.append(0, 1.1, 2.2, 3.3, 4.4, 5.5, 6.6, 7.7, 8.8)
-    XCTAssertEqual(doubleBuilder.length, 9)
-    XCTAssertEqual(try doubleBuilder.finish()[4], 4.4)
+    #expect(doubleBuilder.length == 9)
+    #expect(try doubleBuilder.finish()[4] == 4.4)
     let stringBuilder = try ArrowArrayBuilders.loadStringArrayBuilder()
     stringBuilder.append("0", "1", "2", "3", "4", "5", "6")
-    XCTAssertEqual(stringBuilder.length, 7)
-    XCTAssertEqual(try stringBuilder.finish()[4], "4")
+    #expect(stringBuilder.length == 7)
+    #expect(try stringBuilder.finish()[4] == "4")
     let boolBuilder = try ArrowArrayBuilders.loadBoolArrayBuilder()
     boolBuilder.append(true, false, true, false)
-    XCTAssertEqual(try boolBuilder.finish()[2], true)
+    #expect(try boolBuilder.finish()[2] == true)
   }
 
-  func testAddArray() throws {
+  @Test func addArray() throws {
     let arrayBuilder: NumberArrayBuilder<UInt8> =
       try ArrowArrayBuilders.loadNumberArrayBuilder()
     arrayBuilder.append([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
-    XCTAssertEqual(arrayBuilder.length, 10)
-    XCTAssertEqual(try arrayBuilder.finish()[2], 2)
+    #expect(arrayBuilder.length == 10)
+    #expect(try arrayBuilder.finish()[2] == 2)
     let doubleBuilder: NumberArrayBuilder<Double> =
       try ArrowArrayBuilders.loadNumberArrayBuilder()
     doubleBuilder.append([0, 1.1, 2.2, 3.3, 4.4, 5.5, 6.6, 7.7, 8.8])
-    XCTAssertEqual(doubleBuilder.length, 9)
-    XCTAssertEqual(try doubleBuilder.finish()[4], 4.4)
+    #expect(doubleBuilder.length == 9)
+    #expect(try doubleBuilder.finish()[4] == 4.4)
     let stringBuilder = try ArrowArrayBuilders.loadStringArrayBuilder()
     stringBuilder.append(["0", "1", "2", "3", "4", "5", "6"])
-    XCTAssertEqual(stringBuilder.length, 7)
-    XCTAssertEqual(try stringBuilder.finish()[4], "4")
+    #expect(stringBuilder.length == 7)
+    #expect(try stringBuilder.finish()[4] == "4")
     let boolBuilder = try ArrowArrayBuilders.loadBoolArrayBuilder()
     boolBuilder.append([true, false, true, false])
-    XCTAssertEqual(try boolBuilder.finish()[2], true)
+    #expect(try boolBuilder.finish()[2] == true)
   }
 
-  func testListArrayPrimitive() throws {
+  @Test func listArrayPrimitive() throws {
     let field = ArrowField(listFieldWith: .int32, isNullable: false)
     let listBuilder = try ListArrayBuilder(.list(field))
 
@@ -512,33 +514,33 @@ final class ArrayTests: XCTestCase {
     listBuilder.append(nil)
     listBuilder.append([Int32(6), Int32(7), Int32(8), Int32(9)])
 
-    XCTAssertEqual(listBuilder.length, 4)
-    XCTAssertEqual(listBuilder.nullCount, 1)
+    #expect(listBuilder.length == 4)
+    #expect(listBuilder.nullCount == 1)
 
     let listArray = try listBuilder.finish()
-    XCTAssertEqual(listArray.length, 4)
+    #expect(listArray.length == 4)
 
     let firstList = listArray[0]
-    XCTAssertNotNil(firstList, "First list should not be nil")
-    XCTAssertEqual(firstList!.count, 3, "First list should have 3 elements")
-    XCTAssertEqual(firstList![0] as? Int32, 1)
-    XCTAssertEqual(firstList![1] as? Int32, 2)
-    XCTAssertEqual(firstList![2] as? Int32, 3)
+    #expect(firstList != nil, "First list should not be nil")
+    #expect(firstList!.count == 3, "First list should have 3 elements")
+    #expect(firstList![0] as? Int32 == 1)
+    #expect(firstList![1] as? Int32 == 2)
+    #expect(firstList![2] as? Int32 == 3)
 
     let secondList = listArray[1]
-    XCTAssertEqual(secondList!.count, 2)
-    XCTAssertEqual(secondList![0] as? Int32, 4)
-    XCTAssertEqual(secondList![1] as? Int32, 5)
+    #expect(secondList!.count == 2)
+    #expect(secondList![0] as? Int32 == 4)
+    #expect(secondList![1] as? Int32 == 5)
 
-    XCTAssertNil(listArray[2])
+    #expect(listArray[2] == nil)
 
     let fourthList = listArray[3]
-    XCTAssertEqual(fourthList!.count, 4)
-    XCTAssertEqual(fourthList![0] as? Int32, 6)
-    XCTAssertEqual(fourthList![3] as? Int32, 9)
+    #expect(fourthList!.count == 4)
+    #expect(fourthList![0] as? Int32 == 6)
+    #expect(fourthList![3] as? Int32 == 9)
   }
 
-  func testListArrayNested() throws {
+  @Test func listArrayNested() throws {
     let field = ArrowField(listFieldWith: .int32, isNullable: false)
     let innerListType: ArrowType = .list(field)
 
@@ -548,7 +550,7 @@ final class ArrayTests: XCTestCase {
     guard
       let innerListBuilder = outerListBuilder.valueBuilder as? ListArrayBuilder
     else {
-      XCTFail("Failed to cast valueBuilder to ListArrayBuilder")
+      Issue.record("Failed to cast valueBuilder to ListArrayBuilder")
       return
     }
 
@@ -564,33 +566,33 @@ final class ArrayTests: XCTestCase {
     outerListBuilder.bufferBuilder.append([])
 
     let nestedArray = try outerListBuilder.finish()
-    XCTAssertEqual(nestedArray.length, 4)
-    XCTAssertEqual(nestedArray.nullCount, 1)
+    #expect(nestedArray.length == 4)
+    #expect(nestedArray.nullCount == 1)
 
     let firstOuterList = nestedArray[0]!
-    XCTAssertEqual(firstOuterList.count, 2)
+    #expect(firstOuterList.count == 2)
 
     let firstInnerList = firstOuterList[0] as! [Any?]
-    XCTAssertEqual(firstInnerList.count, 2)
-    XCTAssertEqual(firstInnerList[0] as? Int32, 1)
-    XCTAssertEqual(firstInnerList[1] as? Int32, 2)
+    #expect(firstInnerList.count == 2)
+    #expect(firstInnerList[0] as? Int32 == 1)
+    #expect(firstInnerList[1] as? Int32 == 2)
 
     let secondInnerList = firstOuterList[1] as! [Any?]
-    XCTAssertEqual(secondInnerList.count, 3)
-    XCTAssertEqual(secondInnerList[0] as? Int32, 3)
-    XCTAssertEqual(secondInnerList[1] as? Int32, 4)
-    XCTAssertEqual(secondInnerList[2] as? Int32, 5)
+    #expect(secondInnerList.count == 3)
+    #expect(secondInnerList[0] as? Int32 == 3)
+    #expect(secondInnerList[1] as? Int32 == 4)
+    #expect(secondInnerList[2] as? Int32 == 5)
 
     let secondOuterList = nestedArray[1]!
-    XCTAssertEqual(secondOuterList.count, 1)
+    #expect(secondOuterList.count == 1)
 
     let thirdInnerList = secondOuterList[0] as! [Any?]
-    XCTAssertEqual(thirdInnerList.count, 1)
-    XCTAssertEqual(thirdInnerList[0] as? Int32, 6)
+    #expect(thirdInnerList.count == 1)
+    #expect(thirdInnerList[0] as? Int32 == 6)
 
-    XCTAssertNil(nestedArray[2])
+    #expect(nestedArray[2] == nil)
 
     let emptyList = nestedArray[3]!
-    XCTAssertEqual(emptyList.count, 0)
+    #expect(emptyList.count == 0)
   }
 }

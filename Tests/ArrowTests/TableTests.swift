@@ -12,12 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import XCTest
+import Foundation
+import Testing
 
 @testable import Arrow
 
-final class TableTests: XCTestCase {
-  func testSchema() throws {
+struct TableTests {
+
+  @Test func schema() throws {
     let schemaBuilder = ArrowSchema.Builder()
     let schema = schemaBuilder.addField(
       "col1",
@@ -26,17 +28,17 @@ final class TableTests: XCTestCase {
     )
     .addField("col2", type: .boolean, isNullable: false)
     .finish()
-    XCTAssertEqual(schema.fields.count, 2)
-    XCTAssertEqual(schema.fields[0].name, "col1")
-    XCTAssertEqual(schema.fields[0].type, .int8)
-    XCTAssertEqual(schema.fields[0].isNullable, true)
-    XCTAssertEqual(schema.fields[1].name, "col2")
-    XCTAssertEqual(schema.fields[1].type, .boolean)
-    XCTAssertEqual(schema.fields[1].isNullable, false)
+    #expect(schema.fields.count == 2)
+    #expect(schema.fields[0].name == "col1")
+    #expect(schema.fields[0].type == .int8)
+    #expect(schema.fields[0].isNullable == true)
+    #expect(schema.fields[1].name == "col2")
+    #expect(schema.fields[1].type == .boolean)
+    #expect(schema.fields[1].isNullable == false)
   }
 
-  func testSchemaNested() throws {
-    class StructTest {
+  @Test func schemaNested() throws {
+    struct StructTest {
       var field0: Bool = false
       var field1: Int8 = 0
       var field2: Int16 = 0
@@ -73,27 +75,27 @@ final class TableTests: XCTestCase {
 
     let structType = try buildStructType()
     guard case .strct(let fields) = structType else {
-      XCTFail("Expected a struct")
+      Issue.record("Expected a struct")
       return
     }
-    XCTAssertEqual(fields.count, 14)
-    XCTAssertEqual(fields[0].type, .boolean)
-    XCTAssertEqual(fields[1].type, .int8)
-    XCTAssertEqual(fields[2].type, .int16)
-    XCTAssertEqual(fields[3].type, .int32)
-    XCTAssertEqual(fields[4].type, .int64)
-    XCTAssertEqual(fields[5].type, .uint8)
-    XCTAssertEqual(fields[6].type, .uint16)
-    XCTAssertEqual(fields[7].type, .uint32)
-    XCTAssertEqual(fields[8].type, .uint64)
-    XCTAssertEqual(fields[9].type, .float64)
-    XCTAssertEqual(fields[10].type, .float32)
-    XCTAssertEqual(fields[11].type, .utf8)
-    XCTAssertEqual(fields[12].type, .binary)
-    XCTAssertEqual(fields[13].type, .date64)
+    #expect(fields.count == 14)
+    #expect(fields[0].type == .boolean)
+    #expect(fields[1].type == .int8)
+    #expect(fields[2].type == .int16)
+    #expect(fields[3].type == .int32)
+    #expect(fields[4].type == .int64)
+    #expect(fields[5].type == .uint8)
+    #expect(fields[6].type == .uint16)
+    #expect(fields[7].type == .uint32)
+    #expect(fields[8].type == .uint64)
+    #expect(fields[9].type == .float64)
+    #expect(fields[10].type == .float32)
+    #expect(fields[11].type == .utf8)
+    #expect(fields[12].type == .binary)
+    #expect(fields[13].type == .date64)
   }
 
-  func testTable() throws {
+  @Test func table() throws {
     let doubleBuilder: NumberArrayBuilder<Double> =
       try ArrowArrayBuilders.loadNumberArrayBuilder()
     doubleBuilder.append(11.11)
@@ -113,28 +115,28 @@ final class TableTests: XCTestCase {
       .addColumn("col3", arrowArray: date32Builder.finish())
       .finish()
     let schema = table.schema
-    XCTAssertEqual(schema.fields.count, 3)
-    XCTAssertEqual(schema.fields[0].name, "col1")
-    XCTAssertEqual(schema.fields[0].type, .float64)
-    XCTAssertEqual(schema.fields[0].isNullable, false)
-    XCTAssertEqual(schema.fields[1].name, "col2")
-    XCTAssertEqual(schema.fields[1].type, .utf8)
-    XCTAssertEqual(schema.fields[1].isNullable, false)
-    XCTAssertEqual(schema.fields[1].name, "col2")
-    XCTAssertEqual(schema.fields[1].type, .utf8)
-    XCTAssertEqual(schema.fields[1].isNullable, false)
-    XCTAssertEqual(table.columns.count, 3)
+    #expect(schema.fields.count == 3)
+    #expect(schema.fields[0].name == "col1")
+    #expect(schema.fields[0].type == .float64)
+    #expect(schema.fields[0].isNullable == false)
+    #expect(schema.fields[1].name == "col2")
+    #expect(schema.fields[1].type == .utf8)
+    #expect(schema.fields[1].isNullable == false)
+    #expect(schema.fields[1].name == "col2")
+    #expect(schema.fields[1].type == .utf8)
+    #expect(schema.fields[1].isNullable == false)
+    #expect(table.columns.count == 3)
     let col1: ChunkedArray<Double> = try table.columns[0].data()
     let col2: ChunkedArray<String> = try table.columns[1].data()
     let col3: ChunkedArray<Date> = try table.columns[2].data()
-    XCTAssertEqual(col1.length, 2)
-    XCTAssertEqual(col2.length, 2)
-    XCTAssertEqual(col3.length, 2)
-    XCTAssertEqual(col1[0], 11.11)
-    XCTAssertEqual(col2[1], "test22")
+    #expect(col1.length == 2)
+    #expect(col2.length == 2)
+    #expect(col3.length == 2)
+    #expect(col1[0] == 11.11)
+    #expect(col2[1] == "test22")
   }
 
-  func testTableWithChunkedData() throws {
+  @Test func tableWithChunkedData() throws {
     let uint8Builder: NumberArrayBuilder<UInt8> =
       try ArrowArrayBuilders.loadNumberArrayBuilder()
     uint8Builder.append(10)
@@ -172,30 +174,30 @@ final class TableTests: XCTestCase {
       .addColumn("col3", chunked: dateArray)
       .finish()
     let schema = table.schema
-    XCTAssertEqual(schema.fields.count, 3)
-    XCTAssertEqual(schema.fields[0].name, "col1")
-    XCTAssertEqual(schema.fields[0].type, .uint8)
-    XCTAssertEqual(schema.fields[0].isNullable, false)
-    XCTAssertEqual(schema.fields[1].name, "col2")
-    XCTAssertEqual(schema.fields[1].type, .utf8)
-    XCTAssertEqual(schema.fields[1].isNullable, false)
-    XCTAssertEqual(schema.fields[1].name, "col2")
-    XCTAssertEqual(schema.fields[1].type, .utf8)
-    XCTAssertEqual(schema.fields[1].isNullable, false)
-    XCTAssertEqual(table.columns.count, 3)
+    #expect(schema.fields.count == 3)
+    #expect(schema.fields[0].name == "col1")
+    #expect(schema.fields[0].type == .uint8)
+    #expect(schema.fields[0].isNullable == false)
+    #expect(schema.fields[1].name == "col2")
+    #expect(schema.fields[1].type == .utf8)
+    #expect(schema.fields[1].isNullable == false)
+    #expect(schema.fields[1].name == "col2")
+    #expect(schema.fields[1].type == .utf8)
+    #expect(schema.fields[1].isNullable == false)
+    #expect(table.columns.count == 3)
     let col1: ChunkedArray<UInt8> = try table.columns[0].data()
     let col2: ChunkedArray<String> = try table.columns[1].data()
     let col3: ChunkedArray<Date> = try table.columns[2].data()
-    XCTAssertEqual(col1.length, 4)
-    XCTAssertEqual(col2.length, 4)
-    XCTAssertEqual(col3.length, 4)
-    XCTAssertEqual(col1.asString(0), "10")
-    XCTAssertEqual(col1.asString(3), "44")
-    XCTAssertEqual(col2.asString(0), "test10")
-    XCTAssertEqual(col2.asString(2), "test33")
+    #expect(col1.length == 4)
+    #expect(col2.length == 4)
+    #expect(col3.length == 4)
+    #expect(col1.asString(0) == "10")
+    #expect(col1.asString(3) == "44")
+    #expect(col2.asString(0) == "test10")
+    #expect(col2.asString(2) == "test33")
   }
 
-  func testTableToRecordBatch() throws {
+  @Test func tableToRecordBatch() throws {
     let uint8Builder: NumberArrayBuilder<UInt8> =
       try ArrowArrayBuilders.loadNumberArrayBuilder()
     uint8Builder.append(10)
@@ -214,18 +216,18 @@ final class TableTests: XCTestCase {
     switch result {
     case .success(let table):
       let schema = table.schema
-      XCTAssertEqual(schema.fields.count, 2)
-      XCTAssertEqual(schema.fields[0].name, "col1")
-      XCTAssertEqual(schema.fields[0].type, .uint8)
-      XCTAssertEqual(schema.fields[0].isNullable, false)
-      XCTAssertEqual(schema.fields[1].name, "col2")
-      XCTAssertEqual(schema.fields[1].type, .utf8)
-      XCTAssertEqual(schema.fields[1].isNullable, false)
-      XCTAssertEqual(table.columns.count, 2)
+      #expect(schema.fields.count == 2)
+      #expect(schema.fields[0].name == "col1")
+      #expect(schema.fields[0].type == .uint8)
+      #expect(schema.fields[0].isNullable == false)
+      #expect(schema.fields[1].name == "col2")
+      #expect(schema.fields[1].type == .utf8)
+      #expect(schema.fields[1].isNullable == false)
+      #expect(table.columns.count == 2)
       let col1: ChunkedArray<UInt8> = try table.columns[0].data()
       let col2: ChunkedArray<String> = try table.columns[1].data()
-      XCTAssertEqual(col1.length, 2)
-      XCTAssertEqual(col2.length, 2)
+      #expect(col1.length == 2)
+      #expect(col2.length == 2)
     case .failure(let error):
       throw error
     }
