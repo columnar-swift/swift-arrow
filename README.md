@@ -9,7 +9,8 @@ This project is based on Arrow-Swift, the official Swift implementation of Apach
 Original source: https://github.com/apache/arrow-swift
 
 Changes made since forking Arrow-Swift:
-* Moved to the swiftlang workflows: https://github.com/swiftlang/github-workflows
+* CI uses the swiftlang workflows: https://github.com/swiftlang/github-workflows
 * `ArrowType` has been moved from a class hierarchy to an enum to improve concurrency support.
-* A gradual migration from classes to structs, where appropriate, has begun.
-* A DockerFile for  
+* Tests have been migrated to Swift Testing.
+* A migration from reference to value types, where appropriate, has begun.
+* A DockerFile for compiling ArrowFlight protocol buffers and grpc classes is provided.
