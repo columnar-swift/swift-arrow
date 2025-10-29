@@ -54,7 +54,7 @@ public class ArrowBuffer {
   static func createBuffer(_ data: [UInt8], length: UInt) -> ArrowBuffer {
     let byteCount = UInt(data.count)
     let capacity = alignTo64(byteCount)
-    let memory = MemoryAllocator(64)
+    let memory = MemoryAllocator()
     let rawPointer = memory.allocateArray(Int(capacity))
     rawPointer.copyMemory(from: data, byteCount: data.count)
     return ArrowBuffer(
@@ -71,8 +71,7 @@ public class ArrowBuffer {
       capacity = alignTo64(byteCount)
     }
 
-    let memory = MemoryAllocator(64)
-    let rawPointer = memory.allocateArray(Int(capacity))
+    let rawPointer = allocateArray(byteCount: Int(capacity))
     rawPointer.initializeMemory(
       as: UInt8.self, repeating: 0, count: Int(capacity))
     return ArrowBuffer(
@@ -84,12 +83,27 @@ public class ArrowBuffer {
     to.rawPointer.copyMemory(from: from.rawPointer, byteCount: Int(len))
   }
 
-  private static func alignTo64(_ length: UInt) -> UInt {
-    let bufAlignment = length % 64
-    if bufAlignment != 0 {
-      return length + (64 - bufAlignment) + 8
-    }
-
-    return length + 8
+  // Note this adds 8 bytes used by CData to identify the buffer.
+  static func alignTo64(_ length: UInt) -> UInt {
+    let aligned = (length + 63) & ~63
+    return aligned + UInt(MemoryLayout<UnsafeRawPointer>.size)
+  }
+  
+  /// Allocates uninitialized memory, defaulting to 64 byte alignment.
+  ///
+  /// This memory must be de-allocated manually. It is not bound to a specific type.
+  ///
+  /// - Parameters:
+  ///   - byteCount: A positive number of bytes to allocate.
+  ///   - alignment: An integer power of two, to which this memory must be aligned.
+  /// - Returns: A pointer to a newly allocated but uninitialized region of memory.
+  private static func allocateArray(
+    byteCount: Int,
+    alignment: Int = 64
+  ) -> UnsafeMutableRawPointer {
+    UnsafeMutableRawPointer.allocate(
+      byteCount: byteCount,
+      alignment: alignment
+    )
   }
 }
