@@ -22,11 +22,6 @@ public protocol ArrowArrayHolder {
   var data: ArrowData { get }
   var getBufferData: () -> [Data] { get }
   var getBufferDataSizes: () -> [Int] { get }
-  var getArrowColumn:
-    (ArrowField, [ArrowArrayHolder]) throws(ArrowError) -> ArrowColumn
-  {
-    get
-  }
 }
 
 public struct ArrowArrayHolderImpl: ArrowArrayHolder {
@@ -37,8 +32,6 @@ public struct ArrowArrayHolderImpl: ArrowArrayHolder {
   public let array: AnyArray
   public let getBufferData: () -> [Data]
   public let getBufferDataSizes: () -> [Int]
-  public let getArrowColumn:
-    (ArrowField, [ArrowArrayHolder]) throws(ArrowError) -> ArrowColumn
   public init<T>(_ arrowArray: ArrowArray<T>) {
     self.array = arrowArray
     self.data = arrowArray.arrowData
@@ -60,19 +53,6 @@ public struct ArrowArrayHolderImpl: ArrowArrayHolder {
         bufferDataSizes.append(Int(buffer.capacity))
       }
       return bufferDataSizes
-    }
-
-    self.getArrowColumn = {
-      (field: ArrowField, arrayHolders: [ArrowArrayHolder]) throws(ArrowError)
-        -> ArrowColumn in
-      var arrays: [ArrowArray<T>] = []
-      for arrayHolder in arrayHolders {
-        if let array = arrayHolder.array as? ArrowArray<T> {
-          arrays.append(array)
-        }
-      }
-      return ArrowColumn(
-        field, chunked: ChunkedArrayHolder(try ChunkedArray<T>(arrays)))
     }
   }
 
@@ -128,7 +108,7 @@ public struct ArrowArrayHolderImpl: ArrowArrayHolder {
 }
 
 public class ArrowArray<T>: AsString, AnyArray {
-  public typealias ItemType = T
+  //  public typealias ItemType = T
   public let arrowData: ArrowData
   public var nullCount: UInt { self.arrowData.nullCount }
   public var length: UInt { self.arrowData.length }
