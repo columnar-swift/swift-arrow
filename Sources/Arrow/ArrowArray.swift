@@ -128,7 +128,7 @@ public struct ArrowArrayHolderImpl: ArrowArrayHolder {
 }
 
 public class ArrowArray<T>: AsString, AnyArray {
-  public typealias ItemType = T
+//  public typealias ItemType = T
   public let arrowData: ArrowData
   public var nullCount: UInt { self.arrowData.nullCount }
   public var length: UInt { self.arrowData.length }
