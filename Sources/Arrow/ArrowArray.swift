@@ -24,6 +24,18 @@ public protocol ArrowArrayHolder {
   var getBufferDataSizes: () -> [Int] { get }
 }
 
+/// A type-erased ArrowArray.
+public protocol AnyArrowArray {
+  associatedtype ItemType
+  var type: ArrowType { get }
+  var length: UInt { get }
+  var nullCount: UInt { get }
+  var array: AnyArray { get }
+  var data: ArrowData { get }
+  var bufferData: [Data] { get }
+  var bufferDataSizes: [Int] { get }
+}
+
 public struct ArrowArrayHolderImpl: ArrowArrayHolder {
   public let data: ArrowData
   public let type: ArrowType
@@ -107,14 +119,35 @@ public struct ArrowArrayHolderImpl: ArrowArrayHolder {
   }
 }
 
-public class ArrowArray<T>: AsString, AnyArray {
-  //  public typealias ItemType = T
+public class ArrowArray<T>: AsString, AnyArray, AnyArrowArray {
+  public typealias ItemType = T
   public let arrowData: ArrowData
   public var nullCount: UInt { self.arrowData.nullCount }
   public var length: UInt { self.arrowData.length }
 
   public required init(_ arrowData: ArrowData) throws(ArrowError) {
     self.arrowData = arrowData
+  }
+
+  public var type: ArrowType {
+    arrowData.type
+  }
+
+  // FIXME: Temporary to mimic ArrowArrayHolder protocol.
+  public var array: any AnyArray { self }
+
+  public var data: ArrowData { self.arrowData }
+
+  public var bufferData: [Data] {
+    self.arrowData.buffers.map { buffer in
+      var data = Data()
+      buffer.append(to: &data)
+      return data
+    }
+  }
+
+  public var bufferDataSizes: [Int] {
+    self.arrowData.buffers.map { Int($0.capacity) }
   }
 
   public func isNull(at index: UInt) throws -> Bool {
