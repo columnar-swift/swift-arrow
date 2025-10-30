@@ -69,25 +69,75 @@ public class ArrowTable {
     }
     let builder = ArrowTable.Builder()
     for index in 0..<schema.fields.count {
-      switch makeArrowColumn(schema.fields[index], holders: holders[index]) {
-      case .success(let column):
+      do {
+        let column = try makeArrowColumn(
+          for: schema.fields[index],
+          holders: holders[index]
+        )
         builder.addColumn(column)
-      case .failure(let error):
+      } catch {
         return .failure(error)
       }
     }
     return .success(builder.finish())
   }
-
+  
   private static func makeArrowColumn(
-    _ field: ArrowField,
+    for field: ArrowField,
     holders: [ArrowArrayHolder]
-  ) -> Result<ArrowColumn, ArrowError> {
-    do {
-      return .success(try holders[0].getArrowColumn(field, holders))
-    } catch {
-      return .failure(.runtimeError("\(error)"))
+  ) throws(ArrowError) -> ArrowColumn {
+      // Dispatch based on the field's type, not the first holder
+      switch field.type {
+      case .int8:
+        return try makeTypedColumn(field, holders, type: Int8.self)
+      case .int16:
+        return try makeTypedColumn(field, holders, type: Int16.self)
+      case .int32:
+        return try makeTypedColumn(field, holders, type: Int32.self)
+      case .int64:
+        return try makeTypedColumn(field, holders, type: Int64.self)
+      case .uint8:
+        return try makeTypedColumn(field, holders, type: UInt8.self)
+      case .uint16:
+        return try makeTypedColumn(field, holders, type: UInt16.self)
+      case .uint32:
+        return try makeTypedColumn(field, holders, type: UInt32.self)
+      case .uint64:
+        return try makeTypedColumn(field, holders, type: UInt64.self)
+      case .float32:
+        return try makeTypedColumn(field, holders, type: Float.self)
+      case .float64:
+        return try makeTypedColumn(field, holders, type: Double.self)
+      case .utf8, .binary:
+        return try makeTypedColumn(field, holders, type: String.self)
+      case .boolean:
+        return try makeTypedColumn(field, holders, type: Bool.self)
+      case .date32, .date64:
+        return try makeTypedColumn(field, holders, type: Date.self)
+        // TODO: make a fuzzer to make sure all types are hit
+      default:
+        throw ArrowError.unknownType("Unsupported type: \(field.type)")
+      }
+  }
+
+  private static func makeTypedColumn<T>(
+    _ field: ArrowField,
+    _ holders: [ArrowArrayHolder],
+    type: T.Type
+  ) throws(ArrowError) -> ArrowColumn {
+    var arrays: [ArrowArray<T>] = []
+    for holder in holders {
+      guard let array = holder.array as? ArrowArray<T> else {
+        throw .runtimeError(
+          "Array type mismatch: expected \(T.self) for field \(field.name)"
+        )
+      }
+      arrays.append(array)
     }
+    return ArrowColumn(
+      field,
+      chunked: ChunkedArrayHolder(try ChunkedArray<T>(arrays))
+    )
   }
 
   public class Builder {
