@@ -81,43 +81,43 @@ public class ArrowTable {
     }
     return .success(builder.finish())
   }
-  
+
   private static func makeArrowColumn(
     for field: ArrowField,
     holders: [ArrowArrayHolder]
   ) throws(ArrowError) -> ArrowColumn {
-      // Dispatch based on the field's type, not the first holder
-      switch field.type {
-      case .int8:
-        return try makeTypedColumn(field, holders, type: Int8.self)
-      case .int16:
-        return try makeTypedColumn(field, holders, type: Int16.self)
-      case .int32:
-        return try makeTypedColumn(field, holders, type: Int32.self)
-      case .int64:
-        return try makeTypedColumn(field, holders, type: Int64.self)
-      case .uint8:
-        return try makeTypedColumn(field, holders, type: UInt8.self)
-      case .uint16:
-        return try makeTypedColumn(field, holders, type: UInt16.self)
-      case .uint32:
-        return try makeTypedColumn(field, holders, type: UInt32.self)
-      case .uint64:
-        return try makeTypedColumn(field, holders, type: UInt64.self)
-      case .float32:
-        return try makeTypedColumn(field, holders, type: Float.self)
-      case .float64:
-        return try makeTypedColumn(field, holders, type: Double.self)
-      case .utf8, .binary:
-        return try makeTypedColumn(field, holders, type: String.self)
-      case .boolean:
-        return try makeTypedColumn(field, holders, type: Bool.self)
-      case .date32, .date64:
-        return try makeTypedColumn(field, holders, type: Date.self)
-        // TODO: make a fuzzer to make sure all types are hit
-      default:
-        throw ArrowError.unknownType("Unsupported type: \(field.type)")
-      }
+    // Dispatch based on the field's type, not the first holder
+    switch field.type {
+    case .int8:
+      return try makeTypedColumn(field, holders, type: Int8.self)
+    case .int16:
+      return try makeTypedColumn(field, holders, type: Int16.self)
+    case .int32:
+      return try makeTypedColumn(field, holders, type: Int32.self)
+    case .int64:
+      return try makeTypedColumn(field, holders, type: Int64.self)
+    case .uint8:
+      return try makeTypedColumn(field, holders, type: UInt8.self)
+    case .uint16:
+      return try makeTypedColumn(field, holders, type: UInt16.self)
+    case .uint32:
+      return try makeTypedColumn(field, holders, type: UInt32.self)
+    case .uint64:
+      return try makeTypedColumn(field, holders, type: UInt64.self)
+    case .float32:
+      return try makeTypedColumn(field, holders, type: Float.self)
+    case .float64:
+      return try makeTypedColumn(field, holders, type: Double.self)
+    case .utf8, .binary:
+      return try makeTypedColumn(field, holders, type: String.self)
+    case .boolean:
+      return try makeTypedColumn(field, holders, type: Bool.self)
+    case .date32, .date64:
+      return try makeTypedColumn(field, holders, type: Date.self)
+    // TODO: make a fuzzer to make sure all types are hit
+    default:
+      throw ArrowError.unknownType("Unsupported type: \(field.type)")
+    }
   }
 
   private static func makeTypedColumn<T>(
