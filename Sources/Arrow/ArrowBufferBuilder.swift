@@ -37,7 +37,7 @@ public protocol ArrowBufferBuilder {
   var length: UInt { get }
   var nullCount: UInt { get }
   var offset: UInt { get }
-  init() throws(ArrowError)
+  init()
   func append(_ newValue: ItemType?)
   func isNull(_ index: UInt) -> Bool
   func resize(_ length: UInt)
@@ -93,7 +93,7 @@ where T: Numeric {
   public typealias ItemType = T
   private let defaultVal: ItemType = 0
 
-  public required init() throws(ArrowError) {
+  public required init() {
     let values = ArrowBuffer.createBuffer(0, size: UInt(MemoryLayout<T>.stride))
     let nulls = ArrowBuffer.createBuffer(
       0, size: UInt(MemoryLayout<UInt8>.stride))
@@ -149,7 +149,7 @@ where T: Numeric {
 
 public class BoolBufferBuilder: ValuesBufferBuilder<Bool>, ArrowBufferBuilder {
   public typealias ItemType = Bool
-  public required init() throws(ArrowError) {
+  public required init() {
     let values = ArrowBuffer.createBuffer(
       0, size: UInt(MemoryLayout<UInt8>.stride))
     let nulls = ArrowBuffer.createBuffer(
@@ -213,7 +213,7 @@ where T: ByteConvertible {
   var offsets: ArrowBuffer
   let binaryStride = MemoryLayout<UInt8>.stride
 
-  public required init() throws(ArrowError) {
+  public required init() {
     let values = ArrowBuffer.createBuffer(0, size: UInt(binaryStride))
     let nulls = ArrowBuffer.createBuffer(0, size: UInt(binaryStride))
     self.offsets = ArrowBuffer.createBuffer(
@@ -314,8 +314,8 @@ where U: Numeric {
   public var nullCount: UInt { self.bufferBuilder.nullCount }
   public var offset: UInt { self.bufferBuilder.offset }
   let bufferBuilder: FixedBufferBuilder<U>
-  public required init() throws(ArrowError) {
-    self.bufferBuilder = try FixedBufferBuilder()
+  public required init() {
+    self.bufferBuilder = FixedBufferBuilder()
   }
 
   public func append(_ newValue: ItemType?) {
@@ -360,7 +360,7 @@ public class Date64BufferBuilder: AbstractWrapperBufferBuilder<Date, Int64> {
 public final class StructBufferBuilder: BaseBufferBuilder, ArrowBufferBuilder {
   public typealias ItemType = [Any?]
   var info: ArrowType?
-  public init() throws(ArrowError) {
+  public init() {
     let nulls = ArrowBuffer.createBuffer(
       0, size: UInt(MemoryLayout<UInt8>.stride))
     super.init(nulls)
@@ -410,7 +410,7 @@ public class ListBufferBuilder: BaseBufferBuilder, ArrowBufferBuilder {
   public typealias ItemType = [Any?]
   var offsets: ArrowBuffer
 
-  public required init() throws(ArrowError) {
+  public required init() {
     self.offsets = ArrowBuffer.createBuffer(
       1,
       size: UInt(MemoryLayout<Int32>.stride)

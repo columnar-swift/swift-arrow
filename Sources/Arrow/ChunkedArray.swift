@@ -86,13 +86,13 @@ public class ChunkedArrayHolder {
 }
 
 public class ChunkedArray<T>: AsString {
-  public let arrays: [ArrowArray<T>]
+  public let arrays: [any ArrowArray<T>]
   public let type: ArrowType
   public let nullCount: UInt
   public let length: UInt
   public var arrayCount: UInt { UInt(self.arrays.count) }
 
-  public init(_ arrays: [ArrowArray<T>]) throws(ArrowError) {
+  public init(_ arrays: [any ArrowArray<T>]) throws(ArrowError) {
     if arrays.count == 0 {
       throw ArrowError.arrayHasNoElements
     }

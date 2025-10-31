@@ -125,9 +125,9 @@ public class ArrowTable {
     _ holders: [AnyArrowArray],
     type: T.Type
   ) throws(ArrowError) -> ArrowColumn {
-    var arrays: [ArrowArray<T>] = []
+    var arrays: [any ArrowArray<T>] = []
     for holder in holders {
-      guard let array = holder as? ArrowArray<T> else {
+      guard let array = holder as? (any ArrowArray<T>) else {
         throw .runtimeError(
           "Array type mismatch: expected \(T.self) for field \(field.name)"
         )
@@ -149,7 +149,7 @@ public class ArrowTable {
     @discardableResult
     public func addColumn<T>(
       _ fieldName: String,
-      arrowArray: ArrowArray<T>
+      arrowArray: any ArrowArray<T>
     ) throws -> Builder {
       self.addColumn(fieldName, chunked: try ChunkedArray([arrowArray]))
     }
@@ -173,7 +173,7 @@ public class ArrowTable {
     @discardableResult
     public func addColumn<T>(
       _ field: ArrowField,
-      arrowArray: ArrowArray<T>
+      arrowArray: any ArrowArray<T>
     ) throws -> Builder {
       self.schemaBuilder.addField(field)
       let holder = ChunkedArrayHolder(try ChunkedArray([arrowArray]))
@@ -264,9 +264,9 @@ public class RecordBatch {
 
   public func data<T>(
     for columnIndex: Int
-  ) throws(ArrowError) -> ArrowArray<T> {
+  ) throws(ArrowError) -> any ArrowArray<T> {
     let arrayHolder = column(columnIndex)
-    if let array = arrayHolder as? ArrowArray<T> {
+    if let array = arrayHolder as? any ArrowArray<T> {
       return array
     } else {
       throw .invalid(
