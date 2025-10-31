@@ -26,7 +26,7 @@ public struct ArrowData {
     _ arrowType: ArrowType,
     buffers: [ArrowBuffer],
     nullCount: UInt
-  )  {
+  ) {
     self.init(
       arrowType, buffers: buffers,
       children: [ArrowData](),
@@ -40,7 +40,7 @@ public struct ArrowData {
     children: [ArrowData],
     nullCount: UInt,
     length: UInt
-  )  {
+  ) {
     self.type = arrowType
     self.buffers = buffers
     self.children = children
