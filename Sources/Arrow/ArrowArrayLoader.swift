@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// FIXME: Temporary to support holder refactor
 struct ArrowArrayLoader {
   public static func loadArray(
     _ arrowType: ArrowType,

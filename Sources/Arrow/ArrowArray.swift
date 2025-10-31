@@ -38,6 +38,7 @@ public protocol ArrowArray<ItemType>: AnyArrowArray {
 }
 
 // MARK: - Default Implementations
+
 extension ArrowArray {
 
   public var nullCount: UInt {
@@ -189,8 +190,7 @@ public struct Date32Array: ArrowArray {
     let byteOffset = self.arrowData.stride * Int(index)
     let milliseconds = self.arrowData.buffers[1].rawPointer.advanced(
       by: byteOffset
-    ).load(
-      as: UInt32.self)
+    ).load(as: UInt32.self)
     return Date(timeIntervalSince1970: TimeInterval(milliseconds * 86400))
   }
 }
@@ -210,8 +210,7 @@ public struct Date64Array: ArrowArray {
     let byteOffset = self.arrowData.stride * Int(index)
     let milliseconds = self.arrowData.buffers[1].rawPointer.advanced(
       by: byteOffset
-    ).load(
-      as: UInt64.self)
+    ).load(as: UInt64.self)
     return Date(timeIntervalSince1970: TimeInterval(milliseconds / 1000))
   }
 }
