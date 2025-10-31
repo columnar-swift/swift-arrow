@@ -378,6 +378,11 @@ struct ArrayTests {
     let structArray = try structBuilder.finish()
     #expect(structArray.length == 3)
     #expect(structArray[1] == nil)
+
+    guard let structArray = structArray as? NestedArray else {
+      Issue.record("Failure casting to nested array")
+      return
+    }
     #expect(structArray.fields![0].length == 3)
     #expect(structArray.fields![0].asAny(1) == nil)
     #expect(structArray[0]![STIndex.bool.rawValue] as? Bool == true)
@@ -551,7 +556,6 @@ struct ArrayTests {
   @Test func listArrayNested() throws {
     let field = ArrowField(listFieldWith: .int32, isNullable: false)
     let innerListType: ArrowType = .list(field)
-
     let outerField = ArrowField(listFieldWith: innerListType, isNullable: false)
     let outerListBuilder = try ListArrayBuilder(.list(outerField))
 

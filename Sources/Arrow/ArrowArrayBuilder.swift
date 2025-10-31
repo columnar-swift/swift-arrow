@@ -35,7 +35,7 @@ public class ArrowArrayBuilder<
 
   fileprivate init(_ type: ArrowType) throws(ArrowError) {
     self.type = type
-    self.bufferBuilder = try T()
+    self.bufferBuilder = T()
   }
 
   public func append(_ vals: T.ItemType?...) {
@@ -58,9 +58,9 @@ public class ArrowArrayBuilder<
     self.bufferBuilder.append(val as? T.ItemType)
   }
 
-  public func finish() throws(ArrowError) -> ArrowArray<T.ItemType> {
+  public func finish() throws(ArrowError) -> any ArrowArray<T.ItemType> {
     let buffers = self.bufferBuilder.finish()
-    let arrowData = try ArrowData(
+    let arrowData = ArrowData(
       self.type,
       buffers: buffers,
       nullCount: self.nullCount
@@ -81,7 +81,7 @@ public class ArrowArrayBuilder<
 public class NumberArrayBuilder<T>: ArrowArrayBuilder<
   FixedBufferBuilder<T>, FixedArray<T>
 >
-where T: Numeric {
+where T: Numeric, T: BitwiseCopyable {
   fileprivate convenience init() throws(ArrowError) {
     try self.init(try ArrowTypeConverter.infoForNumericType(T.self))
   }
@@ -197,16 +197,16 @@ public class StructArrayBuilder: ArrowArrayBuilder<
     }
   }
 
-  public override func finish() throws(ArrowError) -> NestedArray {
+  public override func finish() throws(ArrowError) -> any ArrowArray<[Any?]> {
     let buffers = self.bufferBuilder.finish()
     var childData: [ArrowData] = []
     for builder in self.builders {
       childData.append(try builder.toHolder().arrowData)
     }
-
-    let arrowData = try ArrowData(
+    let arrowData = ArrowData(
       self.type, buffers: buffers,
-      children: childData, nullCount: self.nullCount,
+      children: childData,
+      nullCount: self.nullCount,
       length: self.length)
     let structArray = try NestedArray(arrowData)
     return structArray
@@ -238,10 +238,10 @@ public class ListArrayBuilder: ArrowArrayBuilder<ListBufferBuilder, NestedArray>
     }
   }
 
-  public override func finish() throws(ArrowError) -> NestedArray {
+  public override func finish() throws(ArrowError) -> any ArrowArray<[Any?]> {
     let buffers = self.bufferBuilder.finish()
     let childData = try valueBuilder.toHolder().arrowData
-    let arrowData = try ArrowData(
+    let arrowData = ArrowData(
       self.type,
       buffers: buffers,
       children: [childData],

@@ -19,28 +19,23 @@ private func makeBinaryHolder(
   _ buffers: [ArrowBuffer],
   nullCount: UInt
 ) -> Result<AnyArrowArray, ArrowError> {
-  do {
     let arrowType: ArrowType = .binary
-    let arrowData = try ArrowData(
-      arrowType, buffers: buffers, nullCount: nullCount)
-    return .success(try BinaryArray(arrowData))
-  } catch {
-    return .failure(error)
-  }
+    let arrowData = ArrowData(
+      arrowType,
+      buffers: buffers,
+      nullCount: nullCount
+    )
+    return .success(BinaryArray(arrowData))
 }
 
 private func makeStringHolder(
   _ buffers: [ArrowBuffer],
   nullCount: UInt
 ) -> Result<AnyArrowArray, ArrowError> {
-  do {
     let arrowType: ArrowType = .utf8
-    let arrowData = try ArrowData(
+    let arrowData = ArrowData(
       arrowType, buffers: buffers, nullCount: nullCount)
-    return .success(try StringArray(arrowData))
-  } catch {
-    return .failure(error)
-  }
+    return .success(StringArray(arrowData))
 }
 
 private func makeDateHolder(
@@ -48,104 +43,47 @@ private func makeDateHolder(
   buffers: [ArrowBuffer],
   nullCount: UInt
 ) -> Result<AnyArrowArray, ArrowError> {
-  do {
     if field.type == .date32 {
-      let arrowData = try ArrowData(
+      let arrowData = ArrowData(
         field.type,
         buffers: buffers,
         nullCount: nullCount
       )
-      return .success(try Date32Array(arrowData))
+      return .success(Date32Array(arrowData))
     }
-    let arrowData = try ArrowData(
+    let arrowData = ArrowData(
       field.type,
       buffers: buffers,
       nullCount: nullCount
     )
-    return .success(try Date64Array(arrowData))
-  } catch {
-    return .failure(error)
-  }
+    return .success(Date64Array(arrowData))
 }
 
-private func makeTimeHolder(
-  _ field: ArrowField,
-  buffers: [ArrowBuffer],
-  nullCount: UInt
-) -> Result<AnyArrowArray, ArrowError> {
-  do {
-    switch field.type {
-    case .time32(_):
-      let arrowData = try ArrowData(
-        field.type, buffers: buffers, nullCount: nullCount)
-      return .success(try FixedArray<Time32>(arrowData))
-
-    case .time64(_):
-      let arrowData = try ArrowData(
-        field.type, buffers: buffers, nullCount: nullCount)
-      return .success(try FixedArray<Time64>(arrowData))
-    default:
-      return .failure(
-        .invalid("Incorrect field type for time: \(field.type)"))
-    }
-  } catch {
-    return .failure(error)
-  }
-}
-
-private func makeTimestampHolder(
-  _ field: ArrowField,
-  buffers: [ArrowBuffer],
-  nullCount: UInt
-) -> Result<AnyArrowArray, ArrowError> {
-  do {
-    switch field.type {
-    case .timestamp(_, _):
-      let arrowData = try ArrowData(
-        field.type, buffers: buffers, nullCount: nullCount)
-      let array = try TimestampArray(arrowData)
-      return .success(array)
-    default:
-      return .failure(
-        .invalid("Incorrect field type for timestamp: \(field.type)"))
-    }
-  } catch {
-    return .failure(error)
-  }
-}
 
 private func makeBoolHolder(
   _ buffers: [ArrowBuffer],
   nullCount: UInt
 ) -> Result<AnyArrowArray, ArrowError> {
-  do {
-    let arrowData = try ArrowData(
+    let arrowData = ArrowData(
       .boolean,
       buffers: buffers,
       nullCount: nullCount
     )
-    return .success(try BoolArray(arrowData))
-  } catch {
-    return .failure(error)
-  }
+    return .success(BoolArray(arrowData))
 }
 
-private func makeFixedHolder<T>(
+private func makeFixedHolder<T: BitwiseCopyable>(
   _: T.Type,
   field: ArrowField,
   buffers: [ArrowBuffer],
   nullCount: UInt
-) -> Result<AnyArrowArray, ArrowError> {
-  do {
-    let arrowData = try ArrowData(
+) -> FixedArray<T> {
+    let arrowData = ArrowData(
       field.type,
       buffers: buffers,
       nullCount: nullCount
     )
-    return .success(try FixedArray<T>(arrowData))
-  } catch {
-    return .failure(error)
-  }
+    return FixedArray<T>(arrowData)
 }
 
 func makeNestedHolder(
@@ -156,7 +94,7 @@ func makeNestedHolder(
   rbLength: UInt
 ) -> Result<AnyArrowArray, ArrowError> {
   do {
-    let arrowData = try ArrowData(
+    let arrowData = ArrowData(
       field.type,
       buffers: buffers,
       children: children,
@@ -166,8 +104,6 @@ func makeNestedHolder(
     return .success(try NestedArray(arrowData))
   } catch {
     return .failure(error)
-    //  } catch {
-    //    return .failure(.unknownError("\(error)"))
   }
 }
 
@@ -199,50 +135,66 @@ func makeArrayHolder(
   children: [ArrowData]?,
   rbLength: UInt
 ) -> Result<AnyArrowArray, ArrowError> {
+  
   let typeId = field.type
   switch typeId {
   case .int8:
-    return makeFixedHolder(
+    return .success(makeFixedHolder(
       Int8.self, field: field, buffers: buffers, nullCount: nullCount)
+    )
   case .int16:
-    return makeFixedHolder(
+    return .success(makeFixedHolder(
       Int16.self, field: field, buffers: buffers, nullCount: nullCount)
+    )
   case .int32:
-    return makeFixedHolder(
+    return .success(makeFixedHolder(
       Int32.self, field: field, buffers: buffers, nullCount: nullCount)
+    )
   case .int64:
-    return makeFixedHolder(
+    return .success(makeFixedHolder(
       Int64.self, field: field, buffers: buffers, nullCount: nullCount)
+    )
   case .uint8:
-    return makeFixedHolder(
+    return .success(makeFixedHolder(
       UInt8.self, field: field, buffers: buffers, nullCount: nullCount)
+    )
   case .uint16:
-    return makeFixedHolder(
+    return .success(makeFixedHolder(
       UInt16.self, field: field, buffers: buffers, nullCount: nullCount)
+    )
   case .uint32:
-    return makeFixedHolder(
+    return .success(makeFixedHolder(
       UInt32.self, field: field, buffers: buffers, nullCount: nullCount)
+    )
   case .uint64:
-    return makeFixedHolder(
+    return .success(makeFixedHolder(
       UInt64.self, field: field, buffers: buffers, nullCount: nullCount)
+    )
   case .boolean:
     return makeBoolHolder(buffers, nullCount: nullCount)
   case .float32:
-    return makeFixedHolder(
+    return .success(makeFixedHolder(
       Float.self, field: field, buffers: buffers, nullCount: nullCount)
+    )
   case .float64:
-    return makeFixedHolder(
+    return .success(makeFixedHolder(
       Double.self, field: field, buffers: buffers, nullCount: nullCount)
+    )
   case .utf8:
     return makeStringHolder(buffers, nullCount: nullCount)
   case .binary:
     return makeBinaryHolder(buffers, nullCount: nullCount)
   case .date32, .date64:
     return makeDateHolder(field, buffers: buffers, nullCount: nullCount)
-  case .time32, .time64:
-    return makeTimeHolder(field, buffers: buffers, nullCount: nullCount)
+  case .time32:
+    let arrowData = ArrowData(field.type, buffers: buffers, nullCount: nullCount)
+    return .success(FixedArray<Time32>(arrowData))
+  case  .time64:
+    let arrowData = ArrowData(field.type, buffers: buffers, nullCount: nullCount)
+    return .success(FixedArray<Time64>(arrowData))
   case .timestamp:
-    return makeTimestampHolder(field, buffers: buffers, nullCount: nullCount)
+    let arrowData = ArrowData( field.type, buffers: buffers, nullCount: nullCount)
+    return  .success(TimestampArray(arrowData))
   case .strct:
     guard let children else {
       return .failure(.invalid("Expected a struct field to have children"))
@@ -263,7 +215,7 @@ func makeArrayHolder(
 }
 
 func makeBuffer(
-  _ buffer: org_apache_arrow_flatbuf_Buffer, fileData: Data,
+  _ buffer: Buffer, fileData: Data,
   length: UInt, messageOffset: Int64
 ) -> ArrowBuffer {
   let startOffset = messageOffset + buffer.offset
@@ -272,7 +224,7 @@ func makeBuffer(
   return ArrowBuffer.createBuffer(bufferData, length: length)
 }
 
-func isFixedPrimitive(_ type: org_apache_arrow_flatbuf_Type_) -> Bool {
+func isFixedPrimitive(_ type: FlatType) -> Bool {
   switch type {
   case .int, .bool, .floatingpoint, .date, .time, .timestamp:
     return true

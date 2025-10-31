@@ -85,11 +85,6 @@ public struct ArrowReader: Sendable {
       } catch {
         return .failure(error)
       }
-      //      if fieldType.info == ArrowType.arrowUnknown {
-      //        return .failure(
-      //          .unknownType("Unsupported field type found: \(field.typeType)")
-      //        )
-      //      }
       guard let fieldName = field.name else {
         return .failure(.invalid("Field name not found"))
       }

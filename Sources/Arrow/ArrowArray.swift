@@ -1,5 +1,5 @@
 // Copyright 2025 The Apache Software Foundation
-// Copyright 2025 The Columnar-Swift Contributors
+// Copyright 2025 The Columnar Swift Contributors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -26,14 +26,25 @@ public protocol AnyArrowArray {
   func asAny(_ index: UInt) -> Any?
 }
 
-public class ArrowArray<T>: AsString, AnyArrowArray {
-  public typealias ItemType = T
-  public let arrowData: ArrowData
-  public var nullCount: UInt { self.arrowData.nullCount }
-  public var length: UInt { self.arrowData.length }
+// MARK: - Core Protocol
 
-  public required init(_ arrowData: ArrowData) throws(ArrowError) {
-    self.arrowData = arrowData
+/// The interface for Arrow array types.
+public protocol ArrowArray<ItemType>: AsString, AnyArrowArray {
+  associatedtype ItemType
+  var arrowData: ArrowData { get }
+  init(_ arrowData: ArrowData) throws(ArrowError)
+  subscript(_ index: UInt) -> ItemType? { get }
+}
+
+// MARK: - Default Implementations
+extension ArrowArray {
+
+  public var nullCount: UInt {
+    arrowData.nullCount
+  }
+
+  public var length: UInt {
+    arrowData.length
   }
 
   public var type: ArrowType {
@@ -41,7 +52,7 @@ public class ArrowArray<T>: AsString, AnyArrowArray {
   }
 
   public var bufferData: [Data] {
-    self.arrowData.buffers.map { buffer in
+    arrowData.buffers.map { buffer in
       var data = Data()
       buffer.append(to: &data)
       return data
@@ -49,18 +60,14 @@ public class ArrowArray<T>: AsString, AnyArrowArray {
   }
 
   public var bufferDataSizes: [Int] {
-    self.arrowData.buffers.map { Int($0.capacity) }
+    arrowData.buffers.map { Int($0.capacity) }
   }
 
   public func isNull(at index: UInt) throws -> Bool {
     if index >= self.length {
       throw ArrowError.outOfBounds(index: Int64(index))
     }
-    return self.arrowData.isNull(index)
-  }
-
-  public subscript(_ index: UInt) -> T? {
-    fatalError("subscript() has not been implemented")
+    return arrowData.isNull(index)
   }
 
   public func asString(_ index: UInt) -> String {
@@ -75,20 +82,52 @@ public class ArrowArray<T>: AsString, AnyArrowArray {
   }
 }
 
-public class FixedArray<T>: ArrowArray<T> {
-  public override subscript(_ index: UInt) -> T? {
-    if self.arrowData.isNull(index) {
+// MARK: Fixed Arrays
+
+public protocol FixedArrayProtocol: ArrowArray where ItemType: BitwiseCopyable {
+}
+
+extension FixedArrayProtocol {
+  public subscript(_ index: UInt) -> ItemType? {
+    if arrowData.isNull(index) {
       return nil
     }
+    let byteOffset = arrowData.stride * Int(index)
 
-    let byteOffset = self.arrowData.stride * Int(index)
-    return self.arrowData.buffers[1].rawPointer.advanced(by: byteOffset).load(
-      as: T.self)
+    // FIXME: Can probably do this and remove BitwiseCopyable constraint.
+    //    let buffer = UnsafeBufferPointer<ItemType>(
+    //      start: arrowData.buffers[1].rawPointer.assumingMemoryBound(to: ItemType.self),
+    //      count: Int(arrowData.length)
+    //    )
+    //    return buffer[Int(index)]
+    return arrowData.buffers[1].rawPointer
+      .advanced(by: byteOffset)
+      .load(as: ItemType.self)
   }
 }
 
-public class StringArray: ArrowArray<String> {
-  public override subscript(_ index: UInt) -> String? {
+public struct FixedArray<T>: FixedArrayProtocol where T: BitwiseCopyable {
+  public typealias ItemType = T
+  public let arrowData: ArrowData
+
+  public init(arrowData: ArrowData) {
+    self.arrowData = arrowData
+  }
+
+  public init(_ arrowData: ArrowData) {
+    self.arrowData = arrowData
+  }
+}
+
+public struct StringArray: ArrowArray {
+  public typealias ItemType = String
+  public let arrowData: ArrowData
+
+  public init(_ arrowData: ArrowData) {
+    self.arrowData = arrowData
+  }
+
+  public subscript(_ index: UInt) -> String? {
     let offsetIndex = MemoryLayout<Int32>.stride * Int(index)
     if self.arrowData.isNull(index) {
       return nil
@@ -117,8 +156,15 @@ public class StringArray: ArrowArray<String> {
   }
 }
 
-public class BoolArray: ArrowArray<Bool> {
-  public override subscript(_ index: UInt) -> Bool? {
+public struct BoolArray: ArrowArray {
+  public typealias ItemType = Bool
+  public let arrowData: ArrowData
+
+  public init(_ arrowData: ArrowData) {
+    self.arrowData = arrowData
+  }
+
+  public subscript(_ index: UInt) -> Bool? {
     if self.arrowData.isNull(index) {
       return nil
     }
@@ -127,8 +173,15 @@ public class BoolArray: ArrowArray<Bool> {
   }
 }
 
-public class Date32Array: ArrowArray<Date> {
-  public override subscript(_ index: UInt) -> Date? {
+public struct Date32Array: ArrowArray {
+  public typealias ItemType = Date
+  public let arrowData: ArrowData
+
+  public init(_ arrowData: ArrowData) {
+    self.arrowData = arrowData
+  }
+
+  public subscript(_ index: UInt) -> Date? {
     if self.arrowData.isNull(index) {
       return nil
     }
@@ -141,8 +194,15 @@ public class Date32Array: ArrowArray<Date> {
   }
 }
 
-public class Date64Array: ArrowArray<Date> {
-  public override subscript(_ index: UInt) -> Date? {
+public struct Date64Array: ArrowArray {
+  public typealias ItemType = Date
+  public let arrowData: ArrowData
+
+  public init(_ arrowData: ArrowData) {
+    self.arrowData = arrowData
+  }
+
+  public subscript(_ index: UInt) -> Date? {
     if self.arrowData.isNull(index) {
       return nil
     }
@@ -155,10 +215,17 @@ public class Date64Array: ArrowArray<Date> {
   }
 }
 
-public class Time32Array: FixedArray<Time32> {}
-public class Time64Array: FixedArray<Time64> {}
+public typealias Time64Array = FixedArray<Time64>
 
-public class TimestampArray: FixedArray<Timestamp> {
+public typealias Time32Array = FixedArray<Time32>
+
+public struct TimestampArray: FixedArrayProtocol {
+  public typealias ItemType = Timestamp
+  public let arrowData: ArrowData
+
+  public init(_ arrowData: ArrowData) {
+    self.arrowData = arrowData
+  }
 
   public struct FormattingOptions: Equatable {
     public var dateFormat: String = "yyyy-MM-dd HH:mm:ss.SSS"
@@ -191,7 +258,7 @@ public class TimestampArray: FixedArray<Timestamp> {
   private var cachedFormatter: DateFormatter?
   private var cachedOptions: FormattingOptions?
 
-  public func formattedDate(
+  public mutating func formattedDate(
     at index: UInt,
     options: FormattingOptions = FormattingOptions()
   ) -> String? {
@@ -235,15 +302,23 @@ public class TimestampArray: FixedArray<Timestamp> {
     return Date(timeIntervalSince1970: timeInterval)
   }
 
-  public override func asString(_ index: UInt) -> String {
+  // TODO: Mutating function to hack around cached formatter
+  public mutating func asString(_ index: UInt) -> String {
     if let formatted = formattedDate(at: index) {
       return formatted
+    } else {
+      return "\(self[index] ?? 0)"
     }
-    return super.asString(index)
   }
 }
 
-public class BinaryArray: ArrowArray<Data> {
+public struct BinaryArray: ArrowArray {
+  public typealias ItemType = Data
+  public let arrowData: ArrowData
+
+  public init(_ arrowData: ArrowData) {
+    self.arrowData = arrowData
+  }
 
   public struct Options {
     public var printAsHex = false
@@ -252,7 +327,7 @@ public class BinaryArray: ArrowArray<Data> {
 
   public var options = Options()
 
-  public override subscript(_ index: UInt) -> Data? {
+  public subscript(_ index: UInt) -> Data? {
     let offsetIndex = MemoryLayout<Int32>.stride * Int(index)
     if self.arrowData.isNull(index) {
       return nil
@@ -277,7 +352,7 @@ public class BinaryArray: ArrowArray<Data> {
     return Data(byteArray)
   }
 
-  public override func asString(_ index: UInt) -> String {
+  public func asString(_ index: UInt) -> String {
     guard let data = self[index] else { return "" }
     if options.printAsHex {
       return data.hexEncodedString()
@@ -291,11 +366,14 @@ public class BinaryArray: ArrowArray<Data> {
   }
 }
 
-public class NestedArray: ArrowArray<[Any?]> {
+public struct NestedArray: ArrowArray, AnyArrowArray {
+  public typealias ItemType = [Any?]
+  public let arrowData: ArrowData
   private var children: [AnyArrowArray]?
 
-  public required init(_ arrowData: ArrowData) throws(ArrowError) {
-    try super.init(arrowData)
+  public init(_ arrowData: ArrowData) throws(ArrowError) {
+    self.arrowData = arrowData
+
     switch arrowData.type {
     case .list(let field):
       guard arrowData.children.count == 1 else {
@@ -322,7 +400,7 @@ public class NestedArray: ArrowArray<[Any?]> {
     }
   }
 
-  public override subscript(_ index: UInt) -> [Any?]? {
+  public subscript(_ index: UInt) -> [Any?]? {
     if self.arrowData.isNull(index) {
       return nil
     }
@@ -356,7 +434,7 @@ public class NestedArray: ArrowArray<[Any?]> {
     }
   }
 
-  public override func asString(_ index: UInt) -> String {
+  public func asString(_ index: UInt) -> String {
     switch arrowData.type {
     case .list(let _):
       if self.arrowData.isNull(index) {
