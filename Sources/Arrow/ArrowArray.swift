@@ -24,12 +24,13 @@ public protocol AnyArrowArray {
   var bufferData: [Data] { get }
   var bufferDataSizes: [Int] { get }
   func asAny(_ index: UInt) -> Any?
+  func asString(_ index: UInt) -> String
 }
 
 // MARK: - Core Protocol
 
 /// The interface for Arrow array types.
-public protocol ArrowArray<ItemType>: AsString, AnyArrowArray {
+public protocol ArrowArray<ItemType>: AnyArrowArray {
   associatedtype ItemType
   var arrowData: ArrowData { get }
   init(_ arrowData: ArrowData) throws(ArrowError)
@@ -451,7 +452,7 @@ public struct NestedArray: ArrowArray, AnyArrowArray {
         switch item {
         case nil:
           output.append("null")
-        case let asStringItem as AsString:
+        case let asStringItem as AnyArrowArray:
           output.append(asStringItem.asString(0))
         case let someItem?:
           output.append("\(someItem)")
@@ -466,7 +467,7 @@ public struct NestedArray: ArrowArray, AnyArrowArray {
       var output = "{"
       if let children = self.children {
         let parts = children.compactMap { child in
-          (child as? AsString)?.asString(index)
+          child.asString(index)
         }
         output.append(parts.joined(separator: ","))
       }
