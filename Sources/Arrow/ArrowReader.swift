@@ -106,7 +106,7 @@ public struct ArrowReader: Sendable {
   private func loadStructData(
     _ loadInfo: DataLoadInfo,
     field: FlatField
-  ) -> Result<ArrowArrayHolder, ArrowError> {
+  ) -> Result<AnyArrowArray, ArrowError> {
     guard let node = loadInfo.batchData.nextNode() else {
       return .failure(.invalid("Node not found"))
     }
@@ -141,7 +141,7 @@ public struct ArrowReader: Sendable {
   }
 
   private func loadListData(_ loadInfo: DataLoadInfo, field: FlatField)
-    -> Result<ArrowArrayHolder, ArrowError>
+    -> Result<AnyArrowArray, ArrowError>
   {
     guard let node = loadInfo.batchData.nextNode() else {
       return .failure(.invalid("Node not found"))
@@ -184,7 +184,7 @@ public struct ArrowReader: Sendable {
     _ loadInfo: DataLoadInfo,
     field: FlatField
   )
-    -> Result<ArrowArrayHolder, ArrowError>
+    -> Result<AnyArrowArray, ArrowError>
   {
     guard let node = loadInfo.batchData.nextNode() else {
       return .failure(.invalid("Node not found"))
@@ -215,7 +215,7 @@ public struct ArrowReader: Sendable {
     _ loadInfo: DataLoadInfo,
     field: FlatField
   )
-    -> Result<ArrowArrayHolder, ArrowError>
+    -> Result<AnyArrowArray, ArrowError>
   {
     guard let node = loadInfo.batchData.nextNode() else {
       return .failure(.invalid("Node not found"))
@@ -253,7 +253,7 @@ public struct ArrowReader: Sendable {
     _ loadInfo: DataLoadInfo,
     field: FlatField
   )
-    -> Result<ArrowArrayHolder, ArrowError>
+    -> Result<AnyArrowArray, ArrowError>
   {
     switch field.typeType {
     case .struct_:
@@ -276,7 +276,7 @@ public struct ArrowReader: Sendable {
     data: Data,
     messageEndOffset: Int64
   ) -> Result<RecordBatch, ArrowError> {
-    var columns: [ArrowArrayHolder] = []
+    var columns: [AnyArrowArray] = []
     let batchData = RecordBatchData(recordBatch, schema: schema)
     let loadInfo = DataLoadInfo(
       fileData: data,

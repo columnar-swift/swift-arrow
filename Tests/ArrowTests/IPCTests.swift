@@ -183,9 +183,9 @@ func makeStructRecordBatch() throws -> RecordBatch {
     UInt8(17), UInt16(18), UInt32(19), UInt64(20), Double(21.21),
     Float(22.22), "23", Data("24".utf8), dateNow,
   ])
-  let structHolder = ArrowArrayHolderImpl(try structBuilder.finish())
+  let structArray = try structBuilder.finish()
   let result = RecordBatch.Builder()
-    .addColumn("struct1", arrowArray: structHolder)
+    .addColumn("struct1", arrowArray: structArray)
     .finish()
   switch result {
   case .success(let recordBatch):
@@ -227,17 +227,17 @@ func makeRecordBatch() throws -> RecordBatch {
   floatBuilder.append(433.334)
   floatBuilder.append(544.445)
 
-  let uint8Holder = ArrowArrayHolderImpl(try uint8Builder.finish())
-  let stringHolder = ArrowArrayHolderImpl(try stringBuilder.finish())
-  let date32Holder = ArrowArrayHolderImpl(try date32Builder.finish())
-  let int32Holder = ArrowArrayHolderImpl(try int32Builder.finish())
-  let floatHolder = ArrowArrayHolderImpl(try floatBuilder.finish())
+  let uint8Array = try uint8Builder.finish()
+  let stringArray = try stringBuilder.finish()
+  let date32Array = try date32Builder.finish()
+  let int32Array = try int32Builder.finish()
+  let floatArray = try floatBuilder.finish()
   let result = RecordBatch.Builder()
-    .addColumn("col1", arrowArray: uint8Holder)
-    .addColumn("col2", arrowArray: stringHolder)
-    .addColumn("col3", arrowArray: date32Holder)
-    .addColumn("col4", arrowArray: int32Holder)
-    .addColumn("col5", arrowArray: floatHolder)
+    .addColumn("col1", arrowArray: uint8Array)
+    .addColumn("col2", arrowArray: stringArray)
+    .addColumn("col3", arrowArray: date32Array)
+    .addColumn("col4", arrowArray: int32Array)
+    .addColumn("col5", arrowArray: floatArray)
     .finish()
   switch result {
   case .success(let recordBatch):
@@ -494,9 +494,9 @@ struct IPCFileReaderTests {
     binaryBuilder.append("test33".data(using: .utf8))
     binaryBuilder.append("test44".data(using: .utf8))
 
-    let binaryHolder = ArrowArrayHolderImpl(try binaryBuilder.finish())
+    let binaryArray = try binaryBuilder.finish()
     let result = RecordBatch.Builder()
-      .addColumn("binary", arrowArray: binaryHolder)
+      .addColumn("binary", arrowArray: binaryArray)
       .finish()
     switch result {
     case .success(let recordBatch):
@@ -528,11 +528,11 @@ struct IPCFileReaderTests {
     time32Builder.append(2)
     time32Builder.append(nil)
     time32Builder.append(3)
-    let time64Holder = ArrowArrayHolderImpl(try time64Builder.finish())
-    let time32Holder = ArrowArrayHolderImpl(try time32Builder.finish())
+    let time64Array = try time64Builder.finish()
+    let time32Array = try time32Builder.finish()
     let result = RecordBatch.Builder()
-      .addColumn("time64", arrowArray: time64Holder)
-      .addColumn("time32", arrowArray: time32Holder)
+      .addColumn("time64", arrowArray: time64Array)
+      .addColumn("time32", arrowArray: time32Array)
       .finish()
     switch result {
     case .success(let recordBatch):

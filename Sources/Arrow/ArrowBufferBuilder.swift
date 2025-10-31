@@ -1,4 +1,5 @@
 // Copyright 2025 The Apache Software Foundation
+// Copyright 2025 The Columnar-Swift Contributors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -85,7 +86,8 @@ public class ValuesBufferBuilder<T>: BaseBufferBuilder {
   }
 }
 
-/// A builder for fixed-width buffers.
+// TODO: look at potential for typed memory allocation
+/// Builds buffers of fixed-width types.
 public class FixedBufferBuilder<T>: ValuesBufferBuilder<T>, ArrowBufferBuilder
 where T: Numeric {
   public typealias ItemType = T

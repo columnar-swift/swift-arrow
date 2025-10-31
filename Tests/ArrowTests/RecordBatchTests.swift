@@ -28,11 +28,11 @@ struct RecordBatchTests {
     stringBuilder.append("test22")
     stringBuilder.append("test33")
 
-    let intHolder = ArrowArrayHolderImpl(try uint8Builder.finish())
-    let stringHolder = ArrowArrayHolderImpl(try stringBuilder.finish())
+    let intArray = try uint8Builder.finish()
+    let stringArray = try stringBuilder.finish()
     let result = RecordBatch.Builder()
-      .addColumn("col1", arrowArray: intHolder)
-      .addColumn("col2", arrowArray: stringHolder)
+      .addColumn("col1", arrowArray: intArray)
+      .addColumn("col2", arrowArray: stringArray)
       .finish()
     switch result {
     case .success(let recordBatch):
