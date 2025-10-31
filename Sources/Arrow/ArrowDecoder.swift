@@ -91,39 +91,39 @@ public class ArrowDecoder: Decoder {
     ArrowSingleValueDecoding(self, codingPath: codingPath)
   }
 
-  func getCol(_ name: String) throws -> AnyArray {
+  func getCol(_ name: String) throws -> AnyArrowArray {
     guard let col = self.nameToCol[name] else {
       throw ArrowError.invalid("Column for key \"\(name)\" not found")
     }
 
-    return col.array
+    return col
   }
 
-  func getCol(_ index: Int) throws -> AnyArray {
+  func getCol(_ index: Int) throws -> AnyArrowArray {
     if index >= self.columns.count {
       throw ArrowError.outOfBounds(index: Int64(index))
     }
 
-    return self.columns[index].array
+    return self.columns[index]
   }
 
   func doDecode<T>(_ key: CodingKey) throws -> T? {
-    let array: AnyArray = try self.getCol(key.stringValue)
+    let array: AnyArrowArray = try self.getCol(key.stringValue)
     return array.asAny(self.rbIndex) as? T
   }
 
   func doDecode<T>(_ col: Int) throws -> T? {
-    let array: AnyArray = try self.getCol(col)
+    let array: AnyArrowArray = try self.getCol(col)
     return array.asAny(self.rbIndex) as? T
   }
 
   func isNull(_ key: CodingKey) throws -> Bool {
-    let array: AnyArray = try self.getCol(key.stringValue)
+    let array: AnyArrowArray = try self.getCol(key.stringValue)
     return array.asAny(self.rbIndex) == nil
   }
 
   func isNull(_ col: Int) throws -> Bool {
-    let array: AnyArray = try self.getCol(col)
+    let array: AnyArrowArray = try self.getCol(col)
     return array.asAny(self.rbIndex) == nil
   }
 }

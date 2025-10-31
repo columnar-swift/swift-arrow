@@ -126,7 +126,7 @@ public struct ArrowReader: Sendable {
       }
       switch loadField(loadInfo, field: childField) {
       case .success(let holder):
-        children.append(holder.array.arrowData)
+        children.append(holder.arrowData)
       case .failure(let error):
         return .failure(error)
       }
@@ -173,7 +173,7 @@ public struct ArrowReader: Sendable {
       return makeArrayHolder(
         field, buffers: [arrowNullBuffer, arrowOffsetBuffer],
         nullCount: UInt(node.nullCount),
-        children: [childHolder.array.arrowData],
+        children: [childHolder.arrowData],
         rbLength: UInt(loadInfo.batchData.recordBatch.length))
     case .failure(let error):
       return .failure(error)

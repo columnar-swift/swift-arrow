@@ -71,7 +71,7 @@ func checkBoolRecordBatch(
     #expect(recordBatch.schema.fields[1].type == .utf8)
     for index in 0..<recordBatch.length {
       let column = recordBatch.columns[0]
-      guard let str = column.array as? AsString else {
+      guard let str = column as? AsString else {
         throw .invalid("Could not cast column to AsString")
       }
       let val = "\(str.asString(index))"
@@ -108,8 +108,7 @@ func checkStructRecordBatch(
       Issue.record("Expected field 0 to be a struct")
       return []
     }
-    let nestedArray = recordBatch.columns[0].array as? NestedArray
-    guard let nestedArray else {
+    guard let nestedArray = recordBatch.columns[0] as? NestedArray else {
       throw .runtimeError("Could not cast to NestedArray")
     }
     guard let fields = nestedArray.fields else {
@@ -119,12 +118,12 @@ func checkStructRecordBatch(
     #expect(fields[0].type == .utf8)
     #expect(fields[1].type == .boolean)
     let column = recordBatch.columns[0]
-    guard let str = column.array as? AsString else {
+    guard let str = column as? AsString else {
       throw .runtimeError("String array is nil")
     }
     #expect("\(str.asString(0))" == "{0,false}")
     #expect("\(str.asString(1))" == "{1,true}")
-    #expect(column.array.asAny(2) == nil)
+    #expect(column.asAny(2) == nil)
   }
   return recordBatches
 }
@@ -278,15 +277,15 @@ struct IPCStreamReaderTests {
           #expect(recordBatch.schema.fields[4].type == .float32)
           let columns = recordBatch.columns
           #expect(columns[0].nullCount == 2)
-          let dateVal = "\((columns[2].array as! AsString).asString(0))"
+          let dateVal = "\((columns[2]  as! AsString).asString(0))"
           #expect(dateVal == "2014-09-10 00:00:00 +0000")
-          let stringVal = "\((columns[1].array as! AsString).asString(1))"
+          let stringVal = "\((columns[1]  as! AsString).asString(1))"
           #expect(stringVal == "test22")
-          let uintVal = "\((columns[0].array as! AsString).asString(0))"
+          let uintVal = "\((columns[0]  as! AsString).asString(0))"
           #expect(uintVal == "10")
-          let stringVal2 = "\((columns[1].array as! AsString).asString(3))"
+          let stringVal2 = "\((columns[1]  as! AsString).asString(3))"
           #expect(stringVal2 == "test44")
-          let uintVal2 = "\((columns[0].array as! AsString).asString(3))"
+          let uintVal2 = "\((columns[0]  as! AsString).asString(3))"
           #expect(uintVal2 == "44")
         }
       case .failure(let error):
@@ -324,7 +323,7 @@ struct IPCFileReaderTests {
         recordBatch.schema.fields[1].type == .utf8)
       for index in 0..<recordBatch.length {
         let column = recordBatch.columns[1]
-        let str = column.array as! AsString
+        let str = column as! AsString
         let val = "\(str.asString(index))"
         if index != 1 {
           #expect(!val.isEmpty)
@@ -431,15 +430,15 @@ struct IPCFileReaderTests {
           #expect(recordBatch.schema.fields[4].type == .float32)
           let columns = recordBatch.columns
           #expect(columns[0].nullCount == 2)
-          let dateVal = "\((columns[2].array as! AsString).asString(0))"
+          let dateVal = "\((columns[2]  as! AsString).asString(0))"
           #expect(dateVal == "2014-09-10 00:00:00 +0000")
-          let stringVal = "\((columns[1].array as! AsString).asString(1))"
+          let stringVal = "\((columns[1]  as! AsString).asString(1))"
           #expect(stringVal == "test22")
-          let uintVal = "\((columns[0].array as! AsString).asString(0))"
+          let uintVal = "\((columns[0]  as! AsString).asString(0))"
           #expect(uintVal == "10")
-          let stringVal2 = "\((columns[1].array as! AsString).asString(3))"
+          let stringVal2 = "\((columns[1]  as! AsString).asString(3))"
           #expect(stringVal2 == "test44")
-          let uintVal2 = "\((columns[0].array as! AsString).asString(3))"
+          let uintVal2 = "\((columns[0]  as! AsString).asString(3))"
           #expect(uintVal2 == "44")
         }
       case .failure(let error):
@@ -572,11 +571,11 @@ struct IPCFileReaderTests {
           #expect(fields.count == 14)
           let columns = recordBatch.columns
           #expect(columns[0].nullCount == 1)
-          #expect(columns[0].array.asAny(1) == nil)
-          let structVal = "\((columns[0].array as? AsString)!.asString(0))"
+          #expect(columns[0].asAny(1) == nil)
+          let structVal = "\((columns[0]  as? AsString)!.asString(0))"
           #expect(
             structVal == "{true,1,2,3,4,5,6,7,8,9.9,10.1,11,12,\(currentDate)}")
-          let nestedArray = (recordBatch.columns[0].array as? NestedArray)!
+          let nestedArray = (recordBatch.columns[0] as? NestedArray)!
           #expect(nestedArray.length == 3)
           #expect(nestedArray.fields != nil)
           #expect(nestedArray.fields!.count == 14)
@@ -626,7 +625,7 @@ struct IPCFileReaderTests {
         #expect(recordBatch.length == 4)
         let columns = recordBatch.columns
         let stringVal =
-          "\((columns[0].array as! AsString).asString(1))"
+          "\((columns[0]  as! AsString).asString(1))"
         #expect(stringVal == "test22")
       case .failure(let error):
         throw error
@@ -661,10 +660,10 @@ struct IPCFileReaderTests {
         #expect(recordBatch.length == 4)
         let columns = recordBatch.columns
         let stringVal =
-          "\((columns[0].array as! AsString).asString(0))"
+          "\((columns[0]  as! AsString).asString(0))"
         #expect(stringVal == "12345678")
         let stringVal2 =
-          "\((columns[1].array as! AsString).asString(3))"
+          "\((columns[1]  as! AsString).asString(3))"
         #expect(stringVal2 == "3")
       case .failure(let error):
         throw error

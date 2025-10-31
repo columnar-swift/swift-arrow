@@ -379,7 +379,7 @@ struct ArrayTests {
     #expect(structArray.length == 3)
     #expect(structArray[1] == nil)
     #expect(structArray.fields![0].length == 3)
-    #expect(structArray.fields![0].array.asAny(1) == nil)
+    #expect(structArray.fields![0].asAny(1) == nil)
     #expect(structArray[0]![STIndex.bool.rawValue] as? Bool == true)
     #expect(structArray[0]![STIndex.int8.rawValue] as? Int8 == 1)
     #expect(structArray[0]![STIndex.int16.rawValue] as? Int16 == 2)
