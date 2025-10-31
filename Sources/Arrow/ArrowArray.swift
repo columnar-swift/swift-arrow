@@ -20,13 +20,13 @@ public protocol AnyArrowArray {
   var type: ArrowType { get }
   var length: UInt { get }
   var nullCount: UInt { get }
-  var array: AnyArray { get }
-  var data: ArrowData { get }
+  var arrowData: ArrowData { get }
   var bufferData: [Data] { get }
   var bufferDataSizes: [Int] { get }
+  func asAny(_ index: UInt) -> Any?
 }
 
-public class ArrowArray<T>: AsString, AnyArray, AnyArrowArray {
+public class ArrowArray<T>: AsString, AnyArrowArray {
   public typealias ItemType = T
   public let arrowData: ArrowData
   public var nullCount: UInt { self.arrowData.nullCount }
@@ -39,11 +39,6 @@ public class ArrowArray<T>: AsString, AnyArray, AnyArrowArray {
   public var type: ArrowType {
     arrowData.type
   }
-
-  // FIXME: Temporary to mimic ArrowArrayHolder protocol.
-  public var array: any AnyArray { self }
-
-  public var data: ArrowData { self.arrowData }
 
   public var bufferData: [Data] {
     self.arrowData.buffers.map { buffer in
@@ -347,13 +342,13 @@ public class NestedArray: ArrowArray<[Any?]> {
       .load(as: Int32.self)
       var items: [Any?] = []
       for i in startOffset..<endOffset {
-        items.append(values.array.asAny(UInt(i)))
+        items.append(values.asAny(UInt(i)))
       }
       return items
     case .strct(let _):
       var result: [Any?] = []
       for field in children {
-        result.append(field.array.asAny(index))
+        result.append(field.asAny(index))
       }
       return result
     default:
@@ -393,7 +388,7 @@ public class NestedArray: ArrowArray<[Any?]> {
       var output = "{"
       if let children = self.children {
         let parts = children.compactMap { child in
-          (child.array as? AsString)?.asString(index)
+          (child as? AsString)?.asString(index)
         }
         output.append(parts.joined(separator: ","))
       }

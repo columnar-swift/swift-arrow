@@ -244,7 +244,7 @@ struct CodableTests {
 
   func getArrayValue<T>(_ rb: RecordBatch, colIndex: Int, rowIndex: UInt) -> T?
   {
-    let anyArray = rb.columns[colIndex].array
+    let anyArray = rb.columns[colIndex]
     return anyArray.asAny(UInt(rowIndex)) as? T
   }
 
@@ -371,7 +371,7 @@ struct CodableTests {
     #expect(rb.columns[0].type == .int32)
     for index in 0..<100 {
       if index == 10 {
-        let anyArray = rb.columns[0].array
+        let anyArray = rb.columns[0]
         #expect(anyArray.asAny(UInt(index)) == nil)
       } else {
         #expect(

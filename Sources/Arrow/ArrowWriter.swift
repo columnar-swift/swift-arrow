@@ -209,7 +209,7 @@ public class ArrowWriter {
       offsets.append(fbb.create(struct: fieldNode))
       if case .strct(let fields) = column.type {
 
-        let nestedArray = column.array as? NestedArray
+        let nestedArray = column as? NestedArray
         if let nestedFields = nestedArray?.fields {
           writeFieldNodes(
             fields,
@@ -239,7 +239,7 @@ public class ArrowWriter {
         bufferOffset += bufferDataSize
 
         if case .strct(let fields) = column.type {
-          let nestedArray = column.array as? NestedArray
+          let nestedArray = column as? NestedArray
           if let nestedFields = nestedArray?.fields {
             writeBufferInfo(
               fields, columns: nestedFields,
@@ -312,7 +312,7 @@ public class ArrowWriter {
         addPadForAlignment(&bufferData)
         writer.append(bufferData)
         if case .strct(let fields) = column.type {
-          guard let nestedArray = column.array as? NestedArray,
+          guard let nestedArray = column as? NestedArray,
             let nestedFields = nestedArray.fields
           else {
             return .failure(

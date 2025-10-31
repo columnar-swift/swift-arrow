@@ -127,7 +127,7 @@ public class ArrowTable {
   ) throws(ArrowError) -> ArrowColumn {
     var arrays: [ArrowArray<T>] = []
     for holder in holders {
-      guard let array = holder.array as? ArrowArray<T> else {
+      guard let array = holder as? ArrowArray<T> else {
         throw .runtimeError(
           "Array type mismatch: expected \(T.self) for field \(field.name)"
         )
@@ -266,18 +266,13 @@ public class RecordBatch {
     for columnIndex: Int
   ) throws(ArrowError) -> ArrowArray<T> {
     let arrayHolder = column(columnIndex)
-    if let array = arrayHolder.array as? ArrowArray<T> {
+    if let array = arrayHolder as? ArrowArray<T> {
       return array
     } else {
       throw .invalid(
-        "Could not convert \(arrayHolder.array) for \(columnIndex)"
+        "Could not convert \(arrayHolder) for \(columnIndex)"
       )
     }
-  }
-
-  public func anyData(for columnIndex: Int) -> AnyArray {
-    let arrayHolder = column(columnIndex)
-    return arrayHolder.array
   }
 
   public func column(_ index: Int) -> AnyArrowArray {

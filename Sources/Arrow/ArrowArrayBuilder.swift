@@ -201,7 +201,7 @@ public class StructArrayBuilder: ArrowArrayBuilder<
     let buffers = self.bufferBuilder.finish()
     var childData: [ArrowData] = []
     for builder in self.builders {
-      childData.append(try builder.toHolder().array.arrowData)
+      childData.append(try builder.toHolder().arrowData)
     }
 
     let arrowData = try ArrowData(
@@ -240,7 +240,7 @@ public class ListArrayBuilder: ArrowArrayBuilder<ListBufferBuilder, NestedArray>
 
   public override func finish() throws(ArrowError) -> NestedArray {
     let buffers = self.bufferBuilder.finish()
-    let childData = try valueBuilder.toHolder().array.arrowData
+    let childData = try valueBuilder.toHolder().arrowData
     let arrowData = try ArrowData(
       self.type,
       buffers: buffers,
