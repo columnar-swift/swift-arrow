@@ -196,7 +196,7 @@ public class ArrowWriter {
 
   private func writeFieldNodes(
     _ fields: [ArrowField],
-    columns: [ArrowArrayHolder],
+    columns: [AnyArrowArray],
     offsets: inout [Offset],
     fbb: inout FlatBufferBuilder
   ) {
@@ -224,15 +224,14 @@ public class ArrowWriter {
 
   private func writeBufferInfo(
     _ fields: [ArrowField],
-    columns: [ArrowArrayHolder],
+    columns: [AnyArrowArray],
     bufferOffset: inout Int,
     buffers: inout [Buffer],
     fbb: inout FlatBufferBuilder
   ) {
     for index in 0..<fields.count {
       let column = columns[index]
-      let colBufferDataSizes = column.getBufferDataSizes()
-      for var bufferDataSize in colBufferDataSizes {
+      for var bufferDataSize in column.bufferDataSizes {
         bufferDataSize = getPadForAlignment(bufferDataSize)
         let buffer = Buffer(
           offset: Int64(bufferOffset), length: Int64(bufferDataSize))
@@ -304,11 +303,11 @@ public class ArrowWriter {
 
   private func writeRecordBatchData(
     _ writer: inout DataWriter, fields: [ArrowField],
-    columns: [ArrowArrayHolder]
+    columns: [AnyArrowArray]
   ) -> Result<Bool, ArrowError> {
     for index in 0..<fields.count {
       let column = columns[index]
-      let colBufferData = column.getBufferData()
+      let colBufferData = column.bufferData
       for var bufferData in colBufferData {
         addPadForAlignment(&bufferData)
         writer.append(bufferData)

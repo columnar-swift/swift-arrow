@@ -57,12 +57,12 @@ public class ArrowTable {
     if recordBatches.isEmpty {
       return .failure(.arrayHasNoElements)
     }
-    var holders: [[ArrowArrayHolder]] = []
+    var holders: [[AnyArrowArray]] = []
     let schema = recordBatches[0].schema
     for recordBatch in recordBatches {
       for index in 0..<schema.fields.count {
         if holders.count <= index {
-          holders.append([ArrowArrayHolder]())
+          holders.append([AnyArrowArray]())
         }
         holders[index].append(recordBatch.columns[index])
       }
@@ -84,7 +84,7 @@ public class ArrowTable {
 
   private static func makeArrowColumn(
     for field: ArrowField,
-    holders: [ArrowArrayHolder]
+    holders: [AnyArrowArray]
   ) throws(ArrowError) -> ArrowColumn {
     // Dispatch based on the field's type, not the first holder
     switch field.type {
@@ -122,7 +122,7 @@ public class ArrowTable {
 
   private static func makeTypedColumn<T>(
     _ field: ArrowField,
-    _ holders: [ArrowArrayHolder],
+    _ holders: [AnyArrowArray],
     type: T.Type
   ) throws(ArrowError) -> ArrowColumn {
     var arrays: [ArrowArray<T>] = []
@@ -208,9 +208,9 @@ public class ArrowTable {
 public class RecordBatch {
   public let schema: ArrowSchema
   public var columnCount: UInt { UInt(self.columns.count) }
-  public let columns: [ArrowArrayHolder]
+  public let columns: [AnyArrowArray]
   public let length: UInt
-  public init(_ schema: ArrowSchema, columns: [ArrowArrayHolder]) {
+  public init(_ schema: ArrowSchema, columns: [AnyArrowArray]) {
     self.schema = schema
     self.columns = columns
     self.length = columns[0].length
@@ -218,14 +218,14 @@ public class RecordBatch {
 
   public class Builder {
     let schemaBuilder = ArrowSchema.Builder()
-    var columns: [ArrowArrayHolder] = []
+    var columns: [AnyArrowArray] = []
 
     public init() {}
 
     @discardableResult
     public func addColumn(
       _ fieldName: String,
-      arrowArray: ArrowArrayHolder
+      arrowArray: AnyArrowArray
     ) -> Builder {
       let field = ArrowField(
         name: fieldName,
@@ -240,7 +240,7 @@ public class RecordBatch {
     @discardableResult
     public func addColumn(
       _ field: ArrowField,
-      arrowArray: ArrowArrayHolder
+      arrowArray: AnyArrowArray
     ) -> Builder {
       self.schemaBuilder.addField(field)
       self.columns.append(arrowArray)
@@ -280,11 +280,11 @@ public class RecordBatch {
     return arrayHolder.array
   }
 
-  public func column(_ index: Int) -> ArrowArrayHolder {
+  public func column(_ index: Int) -> AnyArrowArray {
     self.columns[index]
   }
 
-  public func column(_ name: String) -> ArrowArrayHolder? {
+  public func column(_ name: String) -> AnyArrowArray? {
     if let index = self.schema.fieldIndex(name) {
       return self.columns[index]
     } else {

@@ -1,4 +1,5 @@
 // Copyright 2025 The Apache Software Foundation
+// Copyright 2025 The Columnar-Swift Contributors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,8 +15,9 @@
 
 import Foundation
 
+// FIXME: Rename or remove
 public protocol ArrowArrayHolderBuilder {
-  func toHolder() throws(ArrowError) -> ArrowArrayHolder
+  func toHolder() throws(ArrowError) -> AnyArrowArray
   func appendAny(_ val: Any?)
 }
 
@@ -71,8 +73,8 @@ public class ArrowArrayBuilder<
     self.type.getStride()
   }
 
-  public func toHolder() throws(ArrowError) -> ArrowArrayHolder {
-    try ArrowArrayHolderImpl(self.finish())
+  public func toHolder() throws(ArrowError) -> AnyArrowArray {
+    try self.finish()
   }
 }
 

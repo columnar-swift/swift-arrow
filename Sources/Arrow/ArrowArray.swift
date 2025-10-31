@@ -1,4 +1,5 @@
 // Copyright 2025 The Apache Software Foundation
+// Copyright 2025 The Columnar-Swift Contributors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,107 +15,46 @@
 
 import Foundation
 
-public protocol ArrowArrayHolder {
+/// A type-erased ArrowArray.
+public protocol AnyArrowArray {
   var type: ArrowType { get }
   var length: UInt { get }
   var nullCount: UInt { get }
   var array: AnyArray { get }
   var data: ArrowData { get }
-  var getBufferData: () -> [Data] { get }
-  var getBufferDataSizes: () -> [Int] { get }
+  var bufferData: [Data] { get }
+  var bufferDataSizes: [Int] { get }
 }
 
-public struct ArrowArrayHolderImpl: ArrowArrayHolder {
-  public let data: ArrowData
-  public let type: ArrowType
-  public let length: UInt
-  public let nullCount: UInt
-  public let array: AnyArray
-  public let getBufferData: () -> [Data]
-  public let getBufferDataSizes: () -> [Int]
-  public init<T>(_ arrowArray: ArrowArray<T>) {
-    self.array = arrowArray
-    self.data = arrowArray.arrowData
-    self.length = arrowArray.length
-    self.type = arrowArray.arrowData.type
-    self.nullCount = arrowArray.nullCount
-    self.getBufferData = { () -> [Data] in
-      var bufferData: [Data] = []
-      for buffer in arrowArray.arrowData.buffers {
-        bufferData.append(Data())
-        buffer.append(to: &bufferData[bufferData.count - 1])
-      }
-      return bufferData
-    }
-
-    self.getBufferDataSizes = { () -> [Int] in
-      var bufferDataSizes: [Int] = []
-      for buffer in arrowArray.arrowData.buffers {
-        bufferDataSizes.append(Int(buffer.capacity))
-      }
-      return bufferDataSizes
-    }
-  }
-
-  public static func loadArray(
-    _ arrowType: ArrowType,
-    with arrowData: ArrowData
-  ) throws(ArrowError) -> ArrowArrayHolder {
-    switch arrowType {
-    case .int8:
-      return try ArrowArrayHolderImpl(FixedArray<Int8>(arrowData))
-    case .int16:
-      return try ArrowArrayHolderImpl(FixedArray<Int16>(arrowData))
-    case .int32:
-      return try ArrowArrayHolderImpl(FixedArray<Int32>(arrowData))
-    case .int64:
-      return try ArrowArrayHolderImpl(FixedArray<Int64>(arrowData))
-    case .uint8:
-      return try ArrowArrayHolderImpl(FixedArray<UInt8>(arrowData))
-    case .uint16:
-      return try ArrowArrayHolderImpl(FixedArray<UInt16>(arrowData))
-    case .uint32:
-      return try ArrowArrayHolderImpl(FixedArray<UInt32>(arrowData))
-    case .uint64:
-      return try ArrowArrayHolderImpl(FixedArray<UInt64>(arrowData))
-    case .float64:
-      return try ArrowArrayHolderImpl(FixedArray<Double>(arrowData))
-    case .float32:
-      return try ArrowArrayHolderImpl(FixedArray<Float>(arrowData))
-    case .date32:
-      return try ArrowArrayHolderImpl(Date32Array(arrowData))
-    case .date64:
-      return try ArrowArrayHolderImpl(Date64Array(arrowData))
-    case .time32:
-      return try ArrowArrayHolderImpl(Time32Array(arrowData))
-    case .time64:
-      return try ArrowArrayHolderImpl(Time64Array(arrowData))
-    case .timestamp:
-      return try ArrowArrayHolderImpl(TimestampArray(arrowData))
-    case .utf8:
-      return try ArrowArrayHolderImpl(StringArray(arrowData))
-    case .boolean:
-      return try ArrowArrayHolderImpl(BoolArray(arrowData))
-    case .binary:
-      return try ArrowArrayHolderImpl(BinaryArray(arrowData))
-    case .strct(let _):
-      return try ArrowArrayHolderImpl(NestedArray(arrowData))
-    case .list(let _):
-      return try ArrowArrayHolderImpl(NestedArray(arrowData))
-    default:
-      throw ArrowError.invalid("Array not found for type: \(arrowType)")
-    }
-  }
-}
-
-public class ArrowArray<T>: AsString, AnyArray {
-  //  public typealias ItemType = T
+public class ArrowArray<T>: AsString, AnyArray, AnyArrowArray {
+  public typealias ItemType = T
   public let arrowData: ArrowData
   public var nullCount: UInt { self.arrowData.nullCount }
   public var length: UInt { self.arrowData.length }
 
   public required init(_ arrowData: ArrowData) throws(ArrowError) {
     self.arrowData = arrowData
+  }
+
+  public var type: ArrowType {
+    arrowData.type
+  }
+
+  // FIXME: Temporary to mimic ArrowArrayHolder protocol.
+  public var array: any AnyArray { self }
+
+  public var data: ArrowData { self.arrowData }
+
+  public var bufferData: [Data] {
+    self.arrowData.buffers.map { buffer in
+      var data = Data()
+      buffer.append(to: &data)
+      return data
+    }
+  }
+
+  public var bufferDataSizes: [Int] {
+    self.arrowData.buffers.map { Int($0.capacity) }
   }
 
   public func isNull(at index: UInt) throws -> Bool {
@@ -357,7 +297,7 @@ public class BinaryArray: ArrowArray<Data> {
 }
 
 public class NestedArray: ArrowArray<[Any?]> {
-  private var children: [ArrowArrayHolder]?
+  private var children: [AnyArrowArray]?
 
   public required init(_ arrowData: ArrowData) throws(ArrowError) {
     try super.init(arrowData)
@@ -367,16 +307,16 @@ public class NestedArray: ArrowArray<[Any?]> {
         throw ArrowError.invalid("List array must have exactly one child")
       }
       self.children = [
-        try ArrowArrayHolderImpl.loadArray(
+        try ArrowArrayLoader.loadArray(
           field.type,
           with: arrowData.children[0]
         )
       ]
     case .strct(let _):
-      var fields: [ArrowArrayHolder] = []
+      var fields: [AnyArrowArray] = []
       for child in arrowData.children {
         fields.append(
-          try ArrowArrayHolderImpl.loadArray(child.type, with: child)
+          try ArrowArrayLoader.loadArray(child.type, with: child)
         )
       }
       self.children = fields
@@ -464,7 +404,7 @@ public class NestedArray: ArrowArray<[Any?]> {
     }
   }
 
-  public var fields: [ArrowArrayHolder]? {
+  public var fields: [AnyArrowArray]? {
     if case .strct(_) = arrowData.type {
       return children
     } else {
@@ -472,7 +412,7 @@ public class NestedArray: ArrowArray<[Any?]> {
     }
   }
 
-  public var values: ArrowArrayHolder? {
+  public var values: AnyArrowArray? {
     if case .list(_) = arrowData.type {
       return children?.first
     } else {

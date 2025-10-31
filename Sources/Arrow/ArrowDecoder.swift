@@ -20,8 +20,8 @@ public class ArrowDecoder: Decoder {
   public var codingPath: [CodingKey] = []
   public var userInfo: [CodingUserInfoKey: Any] = [:]
   public let rb: RecordBatch
-  public let nameToCol: [String: ArrowArrayHolder]
-  public let columns: [ArrowArrayHolder]
+  public let nameToCol: [String: AnyArrowArray]
+  public let columns: [AnyArrowArray]
 
   public init(_ decoder: ArrowDecoder) {
     self.userInfo = decoder.userInfo
@@ -34,8 +34,8 @@ public class ArrowDecoder: Decoder {
 
   public init(_ rb: RecordBatch) {
     self.rb = rb
-    var colMapping: [String: ArrowArrayHolder] = [:]
-    var columns: [ArrowArrayHolder] = []
+    var colMapping: [String: AnyArrowArray] = [:]
+    var columns: [AnyArrowArray] = []
     for index in 0..<self.rb.schema.fields.count {
       let field = self.rb.schema.fields[index]
       columns.append(self.rb.column(index))

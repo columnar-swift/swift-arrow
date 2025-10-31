@@ -18,12 +18,12 @@ import Foundation
 private func makeBinaryHolder(
   _ buffers: [ArrowBuffer],
   nullCount: UInt
-) -> Result<ArrowArrayHolder, ArrowError> {
+) -> Result<AnyArrowArray, ArrowError> {
   do {
     let arrowType: ArrowType = .binary
     let arrowData = try ArrowData(
       arrowType, buffers: buffers, nullCount: nullCount)
-    return .success(ArrowArrayHolderImpl(try BinaryArray(arrowData)))
+    return .success(try BinaryArray(arrowData))
   } catch {
     return .failure(error)
   }
@@ -32,12 +32,12 @@ private func makeBinaryHolder(
 private func makeStringHolder(
   _ buffers: [ArrowBuffer],
   nullCount: UInt
-) -> Result<ArrowArrayHolder, ArrowError> {
+) -> Result<AnyArrowArray, ArrowError> {
   do {
     let arrowType: ArrowType = .utf8
     let arrowData = try ArrowData(
       arrowType, buffers: buffers, nullCount: nullCount)
-    return .success(ArrowArrayHolderImpl(try StringArray(arrowData)))
+    return .success(try StringArray(arrowData))
   } catch {
     return .failure(error)
   }
@@ -47,7 +47,7 @@ private func makeDateHolder(
   _ field: ArrowField,
   buffers: [ArrowBuffer],
   nullCount: UInt
-) -> Result<ArrowArrayHolder, ArrowError> {
+) -> Result<AnyArrowArray, ArrowError> {
   do {
     if field.type == .date32 {
       let arrowData = try ArrowData(
@@ -55,14 +55,14 @@ private func makeDateHolder(
         buffers: buffers,
         nullCount: nullCount
       )
-      return .success(ArrowArrayHolderImpl(try Date32Array(arrowData)))
+      return .success(try Date32Array(arrowData))
     }
     let arrowData = try ArrowData(
       field.type,
       buffers: buffers,
       nullCount: nullCount
     )
-    return .success(ArrowArrayHolderImpl(try Date64Array(arrowData)))
+    return .success(try Date64Array(arrowData))
   } catch {
     return .failure(error)
   }
@@ -72,18 +72,18 @@ private func makeTimeHolder(
   _ field: ArrowField,
   buffers: [ArrowBuffer],
   nullCount: UInt
-) -> Result<ArrowArrayHolder, ArrowError> {
+) -> Result<AnyArrowArray, ArrowError> {
   do {
     switch field.type {
     case .time32(_):
       let arrowData = try ArrowData(
         field.type, buffers: buffers, nullCount: nullCount)
-      return .success(ArrowArrayHolderImpl(try FixedArray<Time32>(arrowData)))
+      return .success(try FixedArray<Time32>(arrowData))
 
     case .time64(_):
       let arrowData = try ArrowData(
         field.type, buffers: buffers, nullCount: nullCount)
-      return .success(ArrowArrayHolderImpl(try FixedArray<Time64>(arrowData)))
+      return .success(try FixedArray<Time64>(arrowData))
     default:
       return .failure(
         .invalid("Incorrect field type for time: \(field.type)"))
@@ -97,14 +97,14 @@ private func makeTimestampHolder(
   _ field: ArrowField,
   buffers: [ArrowBuffer],
   nullCount: UInt
-) -> Result<ArrowArrayHolder, ArrowError> {
+) -> Result<AnyArrowArray, ArrowError> {
   do {
     switch field.type {
     case .timestamp(_, _):
       let arrowData = try ArrowData(
         field.type, buffers: buffers, nullCount: nullCount)
       let array = try TimestampArray(arrowData)
-      return .success(ArrowArrayHolderImpl(array))
+      return .success(array)
     default:
       return .failure(
         .invalid("Incorrect field type for timestamp: \(field.type)"))
@@ -117,14 +117,14 @@ private func makeTimestampHolder(
 private func makeBoolHolder(
   _ buffers: [ArrowBuffer],
   nullCount: UInt
-) -> Result<ArrowArrayHolder, ArrowError> {
+) -> Result<AnyArrowArray, ArrowError> {
   do {
     let arrowData = try ArrowData(
       .boolean,
       buffers: buffers,
       nullCount: nullCount
     )
-    return .success(ArrowArrayHolderImpl(try BoolArray(arrowData)))
+    return .success(try BoolArray(arrowData))
   } catch {
     return .failure(error)
   }
@@ -135,14 +135,14 @@ private func makeFixedHolder<T>(
   field: ArrowField,
   buffers: [ArrowBuffer],
   nullCount: UInt
-) -> Result<ArrowArrayHolder, ArrowError> {
+) -> Result<AnyArrowArray, ArrowError> {
   do {
     let arrowData = try ArrowData(
       field.type,
       buffers: buffers,
       nullCount: nullCount
     )
-    return .success(ArrowArrayHolderImpl(try FixedArray<T>(arrowData)))
+    return .success(try FixedArray<T>(arrowData))
   } catch {
     return .failure(error)
   }
@@ -154,7 +154,7 @@ func makeNestedHolder(
   nullCount: UInt,
   children: [ArrowData],
   rbLength: UInt
-) -> Result<ArrowArrayHolder, ArrowError> {
+) -> Result<AnyArrowArray, ArrowError> {
   do {
     let arrowData = try ArrowData(
       field.type,
@@ -163,7 +163,7 @@ func makeNestedHolder(
       nullCount: nullCount,
       length: rbLength
     )
-    return .success(ArrowArrayHolderImpl(try NestedArray(arrowData)))
+    return .success(try NestedArray(arrowData))
   } catch {
     return .failure(error)
     //  } catch {
@@ -177,7 +177,7 @@ func makeArrayHolder(
   nullCount: UInt,
   children: [ArrowData]?,
   rbLength: UInt
-) -> Result<ArrowArrayHolder, ArrowError> {
+) -> Result<AnyArrowArray, ArrowError> {
   do {
     let arrowField = try fromProto(field: field)
     return makeArrayHolder(
@@ -198,7 +198,7 @@ func makeArrayHolder(
   nullCount: UInt,
   children: [ArrowData]?,
   rbLength: UInt
-) -> Result<ArrowArrayHolder, ArrowError> {
+) -> Result<AnyArrowArray, ArrowError> {
   let typeId = field.type
   switch typeId {
   case .int8:
