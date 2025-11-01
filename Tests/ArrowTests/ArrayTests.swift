@@ -361,7 +361,7 @@ struct ArrayTests {
 
     let testData = StructTest()
     let dateNow = Date.now
-    let structBuilder = try ArrowArrayBuilders.loadStructArrayBuilderForType(
+    let structBuilder = try ArrowArrayBuilders.structArrayBuilderForType(
       testData)
     structBuilder.append([
       true, Int8(1), Int16(2), Int32(3), Int64(4),

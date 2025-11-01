@@ -168,7 +168,7 @@ func makeStructSchema() throws -> ArrowSchema {
 func makeStructRecordBatch() throws -> RecordBatch {
   let testData = StructTest()
   let dateNow = Date.now
-  let structBuilder = try ArrowArrayBuilders.loadStructArrayBuilderForType(
+  let structBuilder = try ArrowArrayBuilders.structArrayBuilderForType(
     testData
   )
   structBuilder.append([
