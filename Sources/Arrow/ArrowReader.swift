@@ -544,7 +544,7 @@ public struct ArrowReader: Sendable {
         .unknownError("Unhandled header type: \(message.headerType)"))
     }
   }
-  
+
   func validateFileData(_ data: Data) -> Bool {
     let markerLength = fileMarker.count
     let startString = data[..<markerLength]

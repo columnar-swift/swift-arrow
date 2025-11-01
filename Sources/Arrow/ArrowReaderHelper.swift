@@ -217,8 +217,6 @@ func makeArrayHolder(
   }
 }
 
-
-
 func getUInt32(_ data: Data, offset: Int) -> UInt32 {
   let token = data.withUnsafeBytes { rawBuffer in
     rawBuffer.loadUnaligned(fromByteOffset: offset, as: UInt32.self)

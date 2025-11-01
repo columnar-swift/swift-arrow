@@ -71,9 +71,9 @@ func checkBoolRecordBatch(
     #expect(recordBatch.schema.fields[1].type == .utf8)
     for index in 0..<recordBatch.length {
       let column = recordBatch.columns[0]
-//      guard let str = column as? AsString else {
-//        throw .invalid("Could not cast column to AsString")
-//      }
+      //      guard let str = column as? AsString else {
+      //        throw .invalid("Could not cast column to AsString")
+      //      }
       let val = "\(column.asString(index))"
       if index == 0 || index == 4 {
         #expect(val == "true")
@@ -118,9 +118,9 @@ func checkStructRecordBatch(
     #expect(fields[0].type == .utf8)
     #expect(fields[1].type == .boolean)
     let column = recordBatch.columns[0]
-//    guard let str = column else {
-//      throw .runtimeError("String array is nil")
-//    }
+    //    guard let str = column else {
+    //      throw .runtimeError("String array is nil")
+    //    }
     #expect("\(column.asString(0))" == "{0,false}")
     #expect("\(column.asString(1))" == "{1,true}")
     #expect(column.asAny(2) == nil)

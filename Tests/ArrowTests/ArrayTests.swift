@@ -452,18 +452,18 @@ struct ArrayTests {
   }
 
   @Test func arrowArrayHolderBuilder() throws {
-    let uint8HBuilder: ArrowArrayHolderBuilder =
+    let uint8HBuilder: AnyArrowArrayBuilder =
       (try ArrowArrayBuilders.loadNumberArrayBuilder()
         as NumberArrayBuilder<UInt8>)
     for index in 0..<100 {
       uint8HBuilder.appendAny(UInt8(index))
     }
 
-    let uint8Holder = try uint8HBuilder.toHolder()
+    let uint8Holder = try uint8HBuilder.toAnyArrowArray()
     #expect(uint8Holder.nullCount == 0)
     #expect(uint8Holder.length == 100)
 
-    let stringHBuilder: ArrowArrayHolderBuilder =
+    let stringHBuilder: AnyArrowArrayBuilder =
       (try ArrowArrayBuilders.loadStringArrayBuilder())
     for index in 0..<100 {
       if index % 10 == 9 {
@@ -473,7 +473,7 @@ struct ArrayTests {
       }
     }
 
-    let stringHolder = try stringHBuilder.toHolder()
+    let stringHolder = try stringHBuilder.toAnyArrowArray()
     #expect(stringHolder.nullCount == 10)
     #expect(stringHolder.length == 100)
   }

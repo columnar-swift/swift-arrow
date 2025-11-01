@@ -38,9 +38,7 @@ public protocol ArrowArray<ItemType>: AnyArrowArray {
 }
 
 // MARK: - Default Implementations
-
 extension ArrowArray {
-
   public var nullCount: UInt {
     arrowData.nullCount
   }
