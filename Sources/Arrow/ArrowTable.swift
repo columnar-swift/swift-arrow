@@ -210,6 +210,7 @@ public class RecordBatch {
   public var columnCount: UInt { UInt(self.columns.count) }
   public let columns: [AnyArrowArray]
   public let length: UInt
+
   public init(_ schema: ArrowSchema, columns: [AnyArrowArray]) {
     self.schema = schema
     self.columns = columns
@@ -222,6 +223,12 @@ public class RecordBatch {
 
     public init() {}
 
+    /// Add a column the `RecordBatch` builder.
+    /// - Parameters:
+    ///   - fieldName: The field name.
+    ///   - arrowArray: The array to add to the reocrd batch.
+    /// - Returns: The `RecordBatch.Builder` with the array appended and the field added to
+    /// the schema. If the array contains zero nulls, the field is defined as non-null.
     @discardableResult
     public func addColumn(
       _ fieldName: String,

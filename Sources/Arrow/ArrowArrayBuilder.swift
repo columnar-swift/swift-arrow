@@ -21,54 +21,56 @@ public protocol AnyArrowArrayBuilder {
 }
 
 public class ArrowArrayBuilder<
-  T: ArrowBufferBuilder,
-  U: ArrowArray<T.ItemType>
+  BufferBuilder: ArrowBufferBuilder,
+  ArrayType: ArrowArray<BufferBuilder.ItemType>
 >: AnyArrowArrayBuilder {
-  let type: ArrowType
-  let bufferBuilder: T
+  let arrowType: ArrowType
+  let bufferBuilder: BufferBuilder
   public var length: UInt { self.bufferBuilder.length }
   public var capacity: UInt { self.bufferBuilder.capacity }
   public var nullCount: UInt { self.bufferBuilder.nullCount }
   public var offset: UInt { self.bufferBuilder.offset }
 
   fileprivate init(_ type: ArrowType) throws(ArrowError) {
-    self.type = type
-    self.bufferBuilder = T()
+    self.arrowType = type
+    self.bufferBuilder = BufferBuilder()
   }
 
-  public func append(_ vals: T.ItemType?...) {
+  public func append(_ vals: BufferBuilder.ItemType?...) {
     for val in vals {
       self.bufferBuilder.append(val)
     }
   }
 
-  public func append(_ vals: [T.ItemType?]) {
+  public func append(_ vals: [BufferBuilder.ItemType?]) {
     for val in vals {
       self.bufferBuilder.append(val)
     }
   }
 
-  public func append(_ val: T.ItemType?) {
+  public func append(_ val: BufferBuilder.ItemType?) {
     self.bufferBuilder.append(val)
   }
 
   public func appendAny(_ val: Any?) {
-    self.bufferBuilder.append(val as? T.ItemType)
+    self.bufferBuilder.append(val as? BufferBuilder.ItemType)
   }
 
-  public func finish() throws(ArrowError) -> any ArrowArray<T.ItemType> {
+  public func finish() throws(ArrowError) -> any ArrowArray<
+    BufferBuilder.ItemType
+  > {
     let buffers = self.bufferBuilder.finish()
     let arrowData = ArrowData(
-      self.type,
+      self.arrowType,
       buffers: buffers,
       nullCount: self.nullCount
     )
-    let array = try U(arrowData)
+    let array = try ArrayType(arrowData)
     return array
   }
 
   public func getStride() -> Int {
-    self.type.getStride()
+    self.arrowType.getStride()
   }
 
   public func toAnyArrowArray() throws(ArrowError) -> AnyArrowArray {
@@ -78,7 +80,7 @@ public class ArrowArrayBuilder<
 
 public class NumberArrayBuilder<T>: ArrowArrayBuilder<
   FixedBufferBuilder<T>,
-FixedArray<T>
+  FixedArray<T>
 >
 where T: Numeric, T: BitwiseCopyable {
   fileprivate convenience init() throws(ArrowError) {
@@ -166,7 +168,7 @@ public class TimestampArrayBuilder: ArrowArrayBuilder<
 
 public class StructArrayBuilder: ArrowArrayBuilder<
   StructBufferBuilder,
-NestedArray
+  NestedArray
 >
 {
   let builders: [any AnyArrowArrayBuilder]
@@ -211,7 +213,7 @@ NestedArray
       childData.append(try builder.toAnyArrowArray().arrowData)
     }
     let arrowData = ArrowData(
-      self.type, buffers: buffers,
+      self.arrowType, buffers: buffers,
       children: childData,
       nullCount: self.nullCount,
       length: self.length)
@@ -249,7 +251,7 @@ public class ListArrayBuilder: ArrowArrayBuilder<ListBufferBuilder, NestedArray>
     let buffers = self.bufferBuilder.finish()
     let childData = try valueBuilder.toAnyArrowArray().arrowData
     let arrowData = ArrowData(
-      self.type,
+      self.arrowType,
       buffers: buffers,
       children: [childData],
       nullCount: self.nullCount,
