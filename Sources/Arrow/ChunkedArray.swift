@@ -14,10 +14,6 @@
 
 import Foundation
 
-public protocol AsString {
-  func asString(_ index: UInt) -> String
-}
-
 public class ChunkedArrayHolder {
   public let type: ArrowType
   public let length: UInt
@@ -85,7 +81,7 @@ public class ChunkedArrayHolder {
   }
 }
 
-public class ChunkedArray<T>: AsString {
+public class ChunkedArray<T> {
   public let arrays: [any ArrowArray<T>]
   public let type: ArrowType
   public let nullCount: UInt

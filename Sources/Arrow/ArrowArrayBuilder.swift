@@ -1,5 +1,5 @@
 // Copyright 2025 The Apache Software Foundation
-// Copyright 2025 The Columnar-Swift Contributors
+// Copyright 2025 The Columnar Swift Contributors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,80 +15,114 @@
 
 import Foundation
 
-// FIXME: Rename or remove
-public protocol ArrowArrayHolderBuilder {
-  func toHolder() throws(ArrowError) -> AnyArrowArray
+// MARK: Array builder interface.
+
+/// A type which builds a type-erased `ArrowArray`.
+public protocol AnyArrowArrayBuilder {
+  func toAnyArrowArray() throws(ArrowError) -> AnyArrowArray
   func appendAny(_ val: Any?)
 }
 
-public class ArrowArrayBuilder<
-  T: ArrowBufferBuilder, U: ArrowArray<T.ItemType>
->:
-  ArrowArrayHolderBuilder
-{
-  let type: ArrowType
-  let bufferBuilder: T
-  public var length: UInt { self.bufferBuilder.length }
-  public var capacity: UInt { self.bufferBuilder.capacity }
-  public var nullCount: UInt { self.bufferBuilder.nullCount }
-  public var offset: UInt { self.bufferBuilder.offset }
+/// A type which can build an `ArrowArray`of `ItemType`.
+public protocol ArrowArrayBuilder {
+  associatedtype BufferBuilder: ArrowBufferBuilder
+  associatedtype ArrayType: ArrowArray
+  where ArrayType.ItemType == BufferBuilder.ItemType
 
-  fileprivate init(_ type: ArrowType) throws(ArrowError) {
-    self.type = type
-    self.bufferBuilder = T()
-  }
+  func append(_ vals: BufferBuilder.ItemType?...)
+  func append(_ vals: [BufferBuilder.ItemType?])
+  func append(_ val: BufferBuilder.ItemType?)
+  func appendAny(_ val: Any?)
+  func finish() throws(ArrowError) -> ArrayType
+}
 
-  public func append(_ vals: T.ItemType?...) {
+internal protocol ArrowArrayBuilderInternal: ArrowArrayBuilder {
+  var arrowType: ArrowType { get }
+  var bufferBuilder: BufferBuilder { get }
+}
+
+extension ArrowArrayBuilderInternal {
+
+  var length: UInt { self.bufferBuilder.length }
+  var capacity: UInt { self.bufferBuilder.capacity }
+  var nullCount: UInt { self.bufferBuilder.nullCount }
+  var offset: UInt { self.bufferBuilder.offset }
+
+  public func append(_ vals: BufferBuilder.ItemType?...) {
     for val in vals {
       self.bufferBuilder.append(val)
     }
   }
 
-  public func append(_ vals: [T.ItemType?]) {
+  public func append(_ vals: [BufferBuilder.ItemType?]) {
     for val in vals {
       self.bufferBuilder.append(val)
     }
   }
 
-  public func append(_ val: T.ItemType?) {
+  public func append(_ val: BufferBuilder.ItemType?) {
     self.bufferBuilder.append(val)
   }
 
   public func appendAny(_ val: Any?) {
-    self.bufferBuilder.append(val as? T.ItemType)
+    self.bufferBuilder.append(val as? BufferBuilder.ItemType)
   }
 
-  public func finish() throws(ArrowError) -> any ArrowArray<T.ItemType> {
-    let buffers = self.bufferBuilder.finish()
-    let arrowData = ArrowData(
-      self.type,
-      buffers: buffers,
-      nullCount: self.nullCount
-    )
-    let array = try U(arrowData)
-    return array
+  /// Returns the byte width of this type if it is a primitive type.
+  public func stride() -> Int {
+    self.arrowType.getStride()
   }
 
-  public func getStride() -> Int {
-    self.type.getStride()
-  }
-
-  public func toHolder() throws(ArrowError) -> AnyArrowArray {
+  /// Returns an unparameterised `ArrowArray`.
+  /// - Returns: The type-erased Arrow array.
+  public func toAnyArrowArray() throws(ArrowError) -> AnyArrowArray {
     try self.finish()
   }
 }
 
-public class NumberArrayBuilder<T>: ArrowArrayBuilder<
-  FixedBufferBuilder<T>, FixedArray<T>
->
-where T: Numeric, T: BitwiseCopyable {
-  fileprivate convenience init() throws(ArrowError) {
-    try self.init(try ArrowTypeConverter.infoForNumericType(T.self))
+// MARK: Base implementation.
+
+// Note: It would be preferable to move all of this to a protocol, however
+// ListArrayBuilder overrides finish. This is delicate because protocol
+// extension method dispatching means the
+public class ArrowArrayBuilderBase<
+  BufferBuilder: ArrowBufferBuilder,
+  ArrayType: ArrowArray<BufferBuilder.ItemType>
+>: AnyArrowArrayBuilder, ArrowArrayBuilderInternal {
+  let arrowType: ArrowType
+  let bufferBuilder: BufferBuilder
+
+  fileprivate init(_ type: ArrowType) throws(ArrowError) {
+    self.arrowType = type
+    self.bufferBuilder = BufferBuilder()
+  }
+
+  public func finish() throws(ArrowError) -> ArrayType {
+    let buffers = self.bufferBuilder.finish()
+    let arrowData = ArrowData(
+      self.arrowType,
+      buffers: buffers,
+      nullCount: self.nullCount
+    )
+    let array = try ArrayType(arrowData)
+    return array
   }
 }
 
-public class StringArrayBuilder: ArrowArrayBuilder<
-  VariableBufferBuilder<String>, StringArray
+/// A type which builds an `ArrowArray` with a numeric `ItemType`.
+public class NumberArrayBuilder<ItemType>: ArrowArrayBuilderBase<
+  FixedBufferBuilder<ItemType>,
+  FixedArray<ItemType>
+>
+where ItemType: Numeric, ItemType: BitwiseCopyable {
+  fileprivate convenience init() throws(ArrowError) {
+    try self.init(try ArrowTypeConverter.infoForNumericType(ItemType.self))
+  }
+}
+
+public class StringArrayBuilder: ArrowArrayBuilderBase<
+  VariableBufferBuilder<String>,
+  StringArray
 >
 {
   fileprivate convenience init() throws(ArrowError) {
@@ -96,8 +130,9 @@ public class StringArrayBuilder: ArrowArrayBuilder<
   }
 }
 
-public class BinaryArrayBuilder: ArrowArrayBuilder<
-  VariableBufferBuilder<Data>, BinaryArray
+public class BinaryArrayBuilder: ArrowArrayBuilderBase<
+  VariableBufferBuilder<Data>,
+  BinaryArray
 >
 {
   fileprivate convenience init() throws(ArrowError) {
@@ -105,14 +140,18 @@ public class BinaryArrayBuilder: ArrowArrayBuilder<
   }
 }
 
-public class BoolArrayBuilder: ArrowArrayBuilder<BoolBufferBuilder, BoolArray> {
+public class BoolArrayBuilder: ArrowArrayBuilderBase<
+  BoolBufferBuilder, BoolArray
+>
+{
   fileprivate convenience init() throws(ArrowError) {
     try self.init(.boolean)
   }
 }
 
-public class Date32ArrayBuilder: ArrowArrayBuilder<
-  Date32BufferBuilder, Date32Array
+public class Date32ArrayBuilder: ArrowArrayBuilderBase<
+  Date32BufferBuilder,
+  Date32Array
 >
 {
   fileprivate convenience init() throws(ArrowError) {
@@ -120,8 +159,9 @@ public class Date32ArrayBuilder: ArrowArrayBuilder<
   }
 }
 
-public class Date64ArrayBuilder: ArrowArrayBuilder<
-  Date64BufferBuilder, Date64Array
+public class Date64ArrayBuilder: ArrowArrayBuilderBase<
+  Date64BufferBuilder,
+  Date64Array
 >
 {
   fileprivate convenience init() throws(ArrowError) {
@@ -129,8 +169,9 @@ public class Date64ArrayBuilder: ArrowArrayBuilder<
   }
 }
 
-public class Time32ArrayBuilder: ArrowArrayBuilder<
-  FixedBufferBuilder<Time32>, Time32Array
+public class Time32ArrayBuilder: ArrowArrayBuilderBase<
+  FixedBufferBuilder<Time32>,
+  Time32Array
 >
 {
   fileprivate convenience init(_ unit: TimeUnit) throws(ArrowError) {
@@ -138,8 +179,9 @@ public class Time32ArrayBuilder: ArrowArrayBuilder<
   }
 }
 
-public class Time64ArrayBuilder: ArrowArrayBuilder<
-  FixedBufferBuilder<Time64>, Time64Array
+public class Time64ArrayBuilder: ArrowArrayBuilderBase<
+  FixedBufferBuilder<Time64>,
+  Time64Array
 >
 {
   fileprivate convenience init(_ unit: TimeUnit) throws(ArrowError) {
@@ -147,8 +189,9 @@ public class Time64ArrayBuilder: ArrowArrayBuilder<
   }
 }
 
-public class TimestampArrayBuilder: ArrowArrayBuilder<
-  FixedBufferBuilder<Int64>, TimestampArray
+public class TimestampArrayBuilder: ArrowArrayBuilderBase<
+  FixedBufferBuilder<Int64>,
+  TimestampArray
 >
 {
   fileprivate convenience init(
@@ -158,15 +201,19 @@ public class TimestampArrayBuilder: ArrowArrayBuilder<
   }
 }
 
-public class StructArrayBuilder: ArrowArrayBuilder<
-  StructBufferBuilder, NestedArray
+// MARK: Struct array builder.
+
+public class StructArrayBuilder: ArrowArrayBuilderBase<
+  StructBufferBuilder,
+  NestedArray
 >
 {
-  let builders: [any ArrowArrayHolderBuilder]
+  let builders: [any AnyArrowArrayBuilder]
   let fields: [ArrowField]
-  public init(_ fields: [ArrowField], builders: [any ArrowArrayHolderBuilder])
-    throws(ArrowError)
-  {
+  public init(
+    _ fields: [ArrowField],
+    builders: [any AnyArrowArrayBuilder]
+  ) throws(ArrowError) {
     self.fields = fields
     self.builders = builders
     try super.init(.strct(fields))
@@ -175,7 +222,7 @@ public class StructArrayBuilder: ArrowArrayBuilder<
 
   public init(_ fields: [ArrowField]) throws(ArrowError) {
     self.fields = fields
-    var builders: [any ArrowArrayHolderBuilder] = []
+    var builders: [any AnyArrowArrayBuilder] = []
     for field in fields {
       builders.append(
         try ArrowArrayBuilders.loadBuilder(arrowType: field.type))
@@ -184,7 +231,7 @@ public class StructArrayBuilder: ArrowArrayBuilder<
     try super.init(.strct(fields))
   }
 
-  public override func append(_ values: [Any?]?) {
+  public func append(_ values: [Any?]?) {
     self.bufferBuilder.append(values)
     if let anyValues = values {
       for index in 0..<builders.count {
@@ -197,14 +244,14 @@ public class StructArrayBuilder: ArrowArrayBuilder<
     }
   }
 
-  public override func finish() throws(ArrowError) -> any ArrowArray<[Any?]> {
+  public override func finish() throws(ArrowError) -> ArrayType {
     let buffers = self.bufferBuilder.finish()
     var childData: [ArrowData] = []
     for builder in self.builders {
-      childData.append(try builder.toHolder().arrowData)
+      childData.append(try builder.toAnyArrowArray().arrowData)
     }
     let arrowData = ArrowData(
-      self.type, buffers: buffers,
+      self.arrowType, buffers: buffers,
       children: childData,
       nullCount: self.nullCount,
       length: self.length)
@@ -213,9 +260,15 @@ public class StructArrayBuilder: ArrowArrayBuilder<
   }
 }
 
-public class ListArrayBuilder: ArrowArrayBuilder<ListBufferBuilder, NestedArray>
+// MARK: List array builder.
+
+/// A type which can build an `NestedArray`containing exactly `ItemType`.
+public class ListArrayBuilder: ArrowArrayBuilderBase<
+  ListBufferBuilder,
+  NestedArray
+>
 {
-  let valueBuilder: any ArrowArrayHolderBuilder
+  let valueBuilder: any AnyArrowArrayBuilder
 
   public override init(_ elementType: ArrowType) throws(ArrowError) {
 
@@ -229,7 +282,8 @@ public class ListArrayBuilder: ArrowArrayBuilder<ListBufferBuilder, NestedArray>
     try super.init(elementType)
   }
 
-  public override func append(_ values: [Any?]?) {
+  // Overrides the default
+  public func append(_ values: [Any?]?) {
     self.bufferBuilder.append(values)
     if let vals = values {
       for val in vals {
@@ -238,11 +292,11 @@ public class ListArrayBuilder: ArrowArrayBuilder<ListBufferBuilder, NestedArray>
     }
   }
 
-  public override func finish() throws(ArrowError) -> any ArrowArray<[Any?]> {
+  public override func finish() throws(ArrowError) -> ArrayType {
     let buffers = self.bufferBuilder.finish()
-    let childData = try valueBuilder.toHolder().arrowData
+    let childData = try valueBuilder.toAnyArrowArray().arrowData
     let arrowData = ArrowData(
-      self.type,
+      self.arrowType,
       buffers: buffers,
       children: [childData],
       nullCount: self.nullCount,
@@ -252,10 +306,10 @@ public class ListArrayBuilder: ArrowArrayBuilder<ListBufferBuilder, NestedArray>
   }
 }
 
-public class ArrowArrayBuilders {
-  public static func loadBuilder(
-    _ builderType: Any.Type
-  ) throws(ArrowError) -> ArrowArrayHolderBuilder {
+public enum ArrowArrayBuilders {
+  public static func builder(
+    for builderType: Any.Type
+  ) throws(ArrowError) -> AnyArrowArrayBuilder {
     if builderType == Int8.self || builderType == Int8?.self {
       return try ArrowArrayBuilders.loadNumberArrayBuilder()
         as NumberArrayBuilder<Int8>
@@ -313,11 +367,11 @@ public class ArrowArrayBuilders {
       || type == Float.self || type == Date.self
   }
 
-  public static func loadStructArrayBuilderForType<T>(
+  public static func structArrayBuilderForType<T>(
     _ obj: T
   ) throws -> StructArrayBuilder {
     let mirror = Mirror(reflecting: obj)
-    var builders: [ArrowArrayHolderBuilder] = []
+    var builders: [AnyArrowArrayBuilder] = []
     var fields: [ArrowField] = []
     for (property, value) in mirror.children {
       guard let propertyName = property else {
@@ -339,7 +393,7 @@ public class ArrowArrayBuilders {
 
   public static func loadBuilder(
     arrowType: ArrowType
-  ) throws(ArrowError) -> ArrowArrayHolderBuilder {
+  ) throws(ArrowError) -> AnyArrowArrayBuilder {
     switch arrowType {
     case .uint8:
       return try loadNumberArrayBuilder() as NumberArrayBuilder<UInt8>

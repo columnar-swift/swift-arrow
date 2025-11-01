@@ -24,12 +24,13 @@ public protocol AnyArrowArray {
   var bufferData: [Data] { get }
   var bufferDataSizes: [Int] { get }
   func asAny(_ index: UInt) -> Any?
+  func asString(_ index: UInt) -> String
 }
 
 // MARK: - Core Protocol
 
 /// The interface for Arrow array types.
-public protocol ArrowArray<ItemType>: AsString, AnyArrowArray {
+public protocol ArrowArray<ItemType>: AnyArrowArray {
   associatedtype ItemType
   var arrowData: ArrowData { get }
   init(_ arrowData: ArrowData) throws(ArrowError)
@@ -38,7 +39,6 @@ public protocol ArrowArray<ItemType>: AsString, AnyArrowArray {
 
 // MARK: - Default Implementations
 extension ArrowArray {
-
   public var nullCount: UInt {
     arrowData.nullCount
   }
@@ -188,8 +188,7 @@ public struct Date32Array: ArrowArray {
     let byteOffset = self.arrowData.stride * Int(index)
     let milliseconds = self.arrowData.buffers[1].rawPointer.advanced(
       by: byteOffset
-    ).load(
-      as: UInt32.self)
+    ).load(as: UInt32.self)
     return Date(timeIntervalSince1970: TimeInterval(milliseconds * 86400))
   }
 }
@@ -209,8 +208,7 @@ public struct Date64Array: ArrowArray {
     let byteOffset = self.arrowData.stride * Int(index)
     let milliseconds = self.arrowData.buffers[1].rawPointer.advanced(
       by: byteOffset
-    ).load(
-      as: UInt64.self)
+    ).load(as: UInt64.self)
     return Date(timeIntervalSince1970: TimeInterval(milliseconds / 1000))
   }
 }
@@ -451,7 +449,7 @@ public struct NestedArray: ArrowArray, AnyArrowArray {
         switch item {
         case nil:
           output.append("null")
-        case let asStringItem as AsString:
+        case let asStringItem as AnyArrowArray:
           output.append(asStringItem.asString(0))
         case let someItem?:
           output.append("\(someItem)")
@@ -466,7 +464,7 @@ public struct NestedArray: ArrowArray, AnyArrowArray {
       var output = "{"
       if let children = self.children {
         let parts = children.compactMap { child in
-          (child as? AsString)?.asString(index)
+          child.asString(index)
         }
         output.append(parts.joined(separator: ","))
       }

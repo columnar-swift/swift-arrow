@@ -91,19 +91,19 @@ struct CodableTests {
     stringBuilder.append("test0", "test1", "test2")
     dateBuilder.append(date1, date1, date1)
     let result = RecordBatch.Builder()
-      .addColumn("propBool", arrowArray: try boolBuilder.toHolder())
-      .addColumn("propInt8", arrowArray: try int8Builder.toHolder())
-      .addColumn("propInt16", arrowArray: try int16Builder.toHolder())
-      .addColumn("propInt32", arrowArray: try int32Builder.toHolder())
-      .addColumn("propInt64", arrowArray: try int64Builder.toHolder())
-      .addColumn("propUInt8", arrowArray: try uint8Builder.toHolder())
-      .addColumn("propUInt16", arrowArray: try uint16Builder.toHolder())
-      .addColumn("propUInt32", arrowArray: try uint32Builder.toHolder())
-      .addColumn("propUInt64", arrowArray: try uint64Builder.toHolder())
-      .addColumn("propFloat", arrowArray: try floatBuilder.toHolder())
-      .addColumn("propDouble", arrowArray: try doubleBuilder.toHolder())
-      .addColumn("propString", arrowArray: try stringBuilder.toHolder())
-      .addColumn("propDate", arrowArray: try dateBuilder.toHolder())
+      .addColumn("propBool", arrowArray: try boolBuilder.finish())
+      .addColumn("propInt8", arrowArray: try int8Builder.finish())
+      .addColumn("propInt16", arrowArray: try int16Builder.finish())
+      .addColumn("propInt32", arrowArray: try int32Builder.finish())
+      .addColumn("propInt64", arrowArray: try int64Builder.finish())
+      .addColumn("propUInt8", arrowArray: try uint8Builder.finish())
+      .addColumn("propUInt16", arrowArray: try uint16Builder.finish())
+      .addColumn("propUInt32", arrowArray: try uint32Builder.finish())
+      .addColumn("propUInt64", arrowArray: try uint64Builder.finish())
+      .addColumn("propFloat", arrowArray: try floatBuilder.finish())
+      .addColumn("propDouble", arrowArray: try doubleBuilder.finish())
+      .addColumn("propString", arrowArray: try stringBuilder.finish())
+      .addColumn("propDate", arrowArray: try dateBuilder.finish())
       .finish()
     switch result {
     case .success(let rb):
@@ -139,7 +139,7 @@ struct CodableTests {
       try ArrowArrayBuilders.loadNumberArrayBuilder()
     int8Builder.append(10, 11, 12)
     let result = RecordBatch.Builder()
-      .addColumn("propInt8", arrowArray: try int8Builder.toHolder())
+      .addColumn("propInt8", arrowArray: try int8Builder.finish())
       .finish()
     switch result {
     case .success(let rb):
@@ -159,7 +159,10 @@ struct CodableTests {
       try ArrowArrayBuilders.loadNumberArrayBuilder()
     int8WNilBuilder.append(10, nil, 12, nil)
     let resultWNil = RecordBatch.Builder()
-      .addColumn("propInt8", arrowArray: try int8WNilBuilder.toHolder())
+      .addColumn(
+        "propInt8",
+        arrowArray: try int8WNilBuilder.finish()
+      )
       .finish()
     switch resultWNil {
     case .success(let rb):
@@ -185,8 +188,8 @@ struct CodableTests {
     int8Builder.append(10, 11, 12, 13)
     stringBuilder.append("test10", "test11", "test12", "test13")
     switch RecordBatch.Builder()
-      .addColumn("propInt8", arrowArray: try int8Builder.toHolder())
-      .addColumn("propString", arrowArray: try stringBuilder.toHolder())
+      .addColumn("propInt8", arrowArray: try int8Builder.finish())
+      .addColumn("propString", arrowArray: try stringBuilder.finish())
       .finish()
     {
     case .success(let rb):
@@ -200,8 +203,8 @@ struct CodableTests {
     }
 
     switch RecordBatch.Builder()
-      .addColumn("propString", arrowArray: try stringBuilder.toHolder())
-      .addColumn("propInt8", arrowArray: try int8Builder.toHolder())
+      .addColumn("propString", arrowArray: try stringBuilder.finish())
+      .addColumn("propInt8", arrowArray: try int8Builder.finish())
       .finish()
     {
     case .success(let rb):
@@ -222,8 +225,8 @@ struct CodableTests {
     int8Builder.append(10, 11, 12, 13)
     stringWNilBuilder.append(nil, "test11", nil, "test13")
     let resultWNil = RecordBatch.Builder()
-      .addColumn("propInt8", arrowArray: try int8Builder.toHolder())
-      .addColumn("propString", arrowArray: try stringWNilBuilder.toHolder())
+      .addColumn("propInt8", arrowArray: try int8Builder.finish())
+      .addColumn("propString", arrowArray: try stringWNilBuilder.finish())
       .finish()
     switch resultWNil {
     case .success(let rb):

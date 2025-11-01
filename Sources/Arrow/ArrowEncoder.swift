@@ -15,7 +15,7 @@
 import Foundation
 
 public class ArrowEncoder: Encoder {
-  public private(set) var builders: [String: ArrowArrayHolderBuilder] = [:]
+  public private(set) var builders: [String: AnyArrowArrayBuilder] = [:]
   private var byIndex: [String] = []
   public var codingPath: [CodingKey] = []
   public var userInfo: [CodingUserInfoKey: Any] = [:]
@@ -29,9 +29,7 @@ public class ArrowEncoder: Encoder {
 
   public init() {}
 
-  public init(
-    _ builders: [String: ArrowArrayHolderBuilder], byIndex: [String]
-  ) {
+  public init(_ builders: [String: AnyArrowArrayBuilder], byIndex: [String]) {
     self.builders = builders
     self.byIndex = byIndex
   }
@@ -59,14 +57,13 @@ public class ArrowEncoder: Encoder {
     // this will check if T is a simple built in type
     // (UInt, Int, Int8, String, Date, etc...).
     if ArrowArrayBuilders.isValidBuilderType(T.self) {
-      let builders = ["col0": try ArrowArrayBuilders.loadBuilder(T.self)]
+      let builders = ["col0": try ArrowArrayBuilders.builder(for: T.self)]
       return ArrowEncoder(builders, byIndex: ["col0"])
     } else {
       let encoder = ArrowEncoder()
       if data is [AnyHashable: Any] {
         encoder.modForIndex = 2
       }
-
       return encoder
     }
   }
@@ -78,7 +75,7 @@ public class ArrowEncoder: Encoder {
       guard let builder = builders[key] else {
         throw .invalid("Missing builder for \(key)")
       }
-      batchBuilder.addColumn(key, arrowArray: try builder.toHolder())
+      batchBuilder.addColumn(key, arrowArray: try builder.toAnyArrowArray())
     }
     return try batchBuilder.finish().get()
   }
@@ -116,12 +113,12 @@ public class ArrowEncoder: Encoder {
   func ensureColumnExists<T>(
     _ value: T,
     key: String
-  ) throws(ArrowError) -> ArrowArrayHolderBuilder {
+  ) throws(ArrowError) -> AnyArrowArrayBuilder {
     try throwIfInvalid()
     if let builder = builders[key] {
       return builder
     }
-    let builder = try ArrowArrayBuilders.loadBuilder(T.self)
+    let builder = try ArrowArrayBuilders.builder(for: T.self)
     builders[key] = builder
     byIndex.append(key)
     return builder
