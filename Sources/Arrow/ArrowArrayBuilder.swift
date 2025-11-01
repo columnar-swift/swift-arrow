@@ -1,5 +1,5 @@
 // Copyright 2025 The Apache Software Foundation
-// Copyright 2025 The Columnar-Swift Contributors
+// Copyright 2025 The Columnar Swift Contributors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,10 +20,20 @@ public protocol AnyArrowArrayBuilder {
   func appendAny(_ val: Any?)
 }
 
+/// A type which can build an `ArrowArray`of `ItemType`.
+public protocol ArrowArrayBuilderProtocol {
+  associatedtype BufferBuilder: ArrowBufferBuilder
+  associatedtype ArrayType: ArrowArray
+  where ArrayType.ItemType == BufferBuilder.ItemType
+
+  mutating func append(_ value: BufferBuilder.ItemType?) throws(ArrowError)
+  func finish() throws(ArrowError) -> ArrayType
+}
+
 public class ArrowArrayBuilder<
   BufferBuilder: ArrowBufferBuilder,
   ArrayType: ArrowArray<BufferBuilder.ItemType>
->: AnyArrowArrayBuilder {
+>: AnyArrowArrayBuilder, ArrowArrayBuilderProtocol {
   let arrowType: ArrowType
   let bufferBuilder: BufferBuilder
   public var length: UInt { self.bufferBuilder.length }
@@ -56,9 +66,7 @@ public class ArrowArrayBuilder<
     self.bufferBuilder.append(val as? BufferBuilder.ItemType)
   }
 
-  public func finish() throws(ArrowError) -> any ArrowArray<
-    BufferBuilder.ItemType
-  > {
+  public func finish() throws(ArrowError) -> ArrayType {
     let buffers = self.bufferBuilder.finish()
     let arrowData = ArrowData(
       self.arrowType,
@@ -206,7 +214,7 @@ public class StructArrayBuilder: ArrowArrayBuilder<
     }
   }
 
-  public override func finish() throws(ArrowError) -> any ArrowArray<[Any?]> {
+  public override func finish() throws(ArrowError) -> ArrayType {
     let buffers = self.bufferBuilder.finish()
     var childData: [ArrowData] = []
     for builder in self.builders {
@@ -247,7 +255,7 @@ public class ListArrayBuilder: ArrowArrayBuilder<ListBufferBuilder, NestedArray>
     }
   }
 
-  public override func finish() throws(ArrowError) -> any ArrowArray<[Any?]> {
+  public override func finish() throws(ArrowError) -> ArrayType {
     let buffers = self.bufferBuilder.finish()
     let childData = try valueBuilder.toAnyArrowArray().arrowData
     let arrowData = ArrowData(
