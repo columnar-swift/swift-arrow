@@ -19,6 +19,8 @@ import Foundation
 
 /// A type which builds a type-erased `ArrowArray`.
 public protocol AnyArrowArrayBuilder {
+  /// Returns an unparameterised `ArrowArray`.
+  /// - Returns: The type-erased Arrow array.
   func toAnyArrowArray() throws(ArrowError) -> AnyArrowArray
   func appendAny(_ val: Any?)
 }
@@ -73,8 +75,6 @@ extension ArrowArrayBuilderInternal {
     self.arrowType.getStride()
   }
 
-  /// Returns an unparameterised `ArrowArray`.
-  /// - Returns: The type-erased Arrow array.
   public func toAnyArrowArray() throws(ArrowError) -> AnyArrowArray {
     try self.finish()
   }
@@ -109,7 +109,7 @@ public class ArrowArrayBuilderBase<
   }
 }
 
-/// A type which builds an `ArrowArray` with a numeric `ItemType`.
+/// An array builder for numeric types.
 public class NumberArrayBuilder<ItemType>: ArrowArrayBuilderBase<
   FixedBufferBuilder<ItemType>,
   FixedArray<ItemType>
@@ -120,6 +120,7 @@ where ItemType: Numeric, ItemType: BitwiseCopyable {
   }
 }
 
+/// A `String` array builder.
 public class StringArrayBuilder: ArrowArrayBuilderBase<
   VariableBufferBuilder<String>,
   StringArray
@@ -130,6 +131,7 @@ public class StringArrayBuilder: ArrowArrayBuilderBase<
   }
 }
 
+/// A `Data` array builder.
 public class BinaryArrayBuilder: ArrowArrayBuilderBase<
   VariableBufferBuilder<Data>,
   BinaryArray
@@ -140,6 +142,7 @@ public class BinaryArrayBuilder: ArrowArrayBuilderBase<
   }
 }
 
+/// A  `Bool` array builder.
 public class BoolArrayBuilder: ArrowArrayBuilderBase<
   BoolBufferBuilder, BoolArray
 >
@@ -149,6 +152,7 @@ public class BoolArrayBuilder: ArrowArrayBuilderBase<
   }
 }
 
+/// A 32-bit date array builder.
 public class Date32ArrayBuilder: ArrowArrayBuilderBase<
   Date32BufferBuilder,
   Date32Array
@@ -159,6 +163,7 @@ public class Date32ArrayBuilder: ArrowArrayBuilderBase<
   }
 }
 
+/// A 64-bit date array builder.
 public class Date64ArrayBuilder: ArrowArrayBuilderBase<
   Date64BufferBuilder,
   Date64Array
@@ -169,6 +174,7 @@ public class Date64ArrayBuilder: ArrowArrayBuilderBase<
   }
 }
 
+// A 32-bit elaspsed time builder.
 public class Time32ArrayBuilder: ArrowArrayBuilderBase<
   FixedBufferBuilder<Time32>,
   Time32Array
@@ -179,6 +185,7 @@ public class Time32ArrayBuilder: ArrowArrayBuilderBase<
   }
 }
 
+// A 64-bit elaspsed time builder.
 public class Time64ArrayBuilder: ArrowArrayBuilderBase<
   FixedBufferBuilder<Time64>,
   Time64Array
@@ -189,6 +196,7 @@ public class Time64ArrayBuilder: ArrowArrayBuilderBase<
   }
 }
 
+// A Timestamp array builder.
 public class TimestampArrayBuilder: ArrowArrayBuilderBase<
   FixedBufferBuilder<Int64>,
   TimestampArray
@@ -203,6 +211,7 @@ public class TimestampArrayBuilder: ArrowArrayBuilderBase<
 
 // MARK: Struct array builder.
 
+/// Builds an array of structs.
 public class StructArrayBuilder: ArrowArrayBuilderBase<
   StructBufferBuilder,
   NestedArray
@@ -262,7 +271,9 @@ public class StructArrayBuilder: ArrowArrayBuilderBase<
 
 // MARK: List array builder.
 
-/// A type which can build an `NestedArray`containing exactly `ItemType`.
+/// Builds a `NestedArray`containing lists of `ItemType`.
+///
+/// Both lists and items in lists are nullablie.
 public class ListArrayBuilder: ArrowArrayBuilderBase<
   ListBufferBuilder,
   NestedArray
@@ -271,18 +282,17 @@ public class ListArrayBuilder: ArrowArrayBuilderBase<
   let valueBuilder: any AnyArrowArrayBuilder
 
   public override init(_ elementType: ArrowType) throws(ArrowError) {
-
     guard case .list(let field) = elementType else {
       throw .invalid("Expected a field with type .list")
     }
-
     self.valueBuilder = try ArrowArrayBuilders.loadBuilder(
       arrowType: field.type
     )
     try super.init(elementType)
   }
 
-  // Overrides the default
+  // Overrides the protocol extension.
+  // Swift currently provides no marker for this.
   public func append(_ values: [Any?]?) {
     self.bufferBuilder.append(values)
     if let vals = values {

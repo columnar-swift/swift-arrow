@@ -210,6 +210,7 @@ public indirect enum ArrowType: Codable, Sendable, Equatable {
   /// of binary data in total.
   case binary
   /// Opaque binary data of fixed size.
+  /// 
   /// Enum parameter specifies the number of bytes per value.
   case fixedSizeBinary(Int32)
   /// Opaque binary data of variable length and 64-bit offsets.
