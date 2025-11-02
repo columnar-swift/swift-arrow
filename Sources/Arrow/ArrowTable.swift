@@ -1,4 +1,5 @@
 // Copyright 2025 The Apache Software Foundation
+// Copyright 2025 The Columnar Swift Contributors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -244,6 +245,12 @@ public class RecordBatch {
       return self
     }
 
+    /// Add a column the `RecordBatch` builder.
+    /// - Parameters:
+    ///   - field: The field describing the array.
+    ///   - arrowArray: The array to add to the reocrd batch.
+    /// - Returns: The `RecordBatch.Builder` with the array appended and the field added to
+    /// the schema.
     @discardableResult
     public func addColumn(
       _ field: ArrowField,
@@ -261,6 +268,17 @@ public class RecordBatch {
           if column.length != columnLength {
             return .failure(.runtimeError("Columns have different sizes"))
           }
+        }
+      }
+      // Check nullability matches actual data
+      let schema = self.schemaBuilder.finish()
+      for (index, field) in schema.fields.enumerated() {
+        let column = columns[index]
+        if !field.isNullable && column.nullCount > 0 {
+          return .failure(
+            .invalid(
+              "non-nullable column '\(field.name)' contains \(column.nullCount) null values."
+            ))
         }
       }
       return .success(
