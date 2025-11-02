@@ -54,4 +54,21 @@ struct RecordBatchTests {
       throw error
     }
   }
+
+  // Ensure that invalid record batches can't be built.
+  @Test func schemaNullabilityChecked() throws {
+    let stringBuilder = try ArrowArrayBuilders.loadStringArrayBuilder()
+    stringBuilder.append("test10")
+    stringBuilder.append(nil)
+    stringBuilder.append("test33")
+    let array = try stringBuilder.finish()
+
+    let field = ArrowField(name: "col1", dataType: .utf8, isNullable: false)
+    let result = RecordBatch.Builder()
+      .addColumn(field, arrowArray: array)
+      .finish()
+    if case .success(_) = result {
+      Issue.record("Record batch should have rejected null data.")
+    }
+  }
 }

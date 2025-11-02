@@ -14,7 +14,8 @@
 
 import Foundation
 
-public struct ArrowSchema: Sendable {
+// Note this is a reference type to reduce copying.
+public final class ArrowSchema: Sendable {
   public let fields: [ArrowField]
   public let fieldLookup: [String: Int]
   init(_ fields: [ArrowField]) {

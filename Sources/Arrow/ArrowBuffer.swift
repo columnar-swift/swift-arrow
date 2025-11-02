@@ -1,5 +1,5 @@
 // Copyright 2025 The Apache Software Foundation
-// Copyright 2025 The Columnar-Swift Contributors
+// Copyright 2025 The Columnar Swift Contributors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -24,7 +24,8 @@ public class ArrowBuffer {
   let isMemoryOwner: Bool
 
   init(
-    length: UInt, capacity: UInt, rawPointer: UnsafeMutableRawPointer,
+    length: UInt, capacity: UInt,
+    rawPointer: UnsafeMutableRawPointer,
     isMemoryOwner: Bool = true
   ) {
     self.length = length
