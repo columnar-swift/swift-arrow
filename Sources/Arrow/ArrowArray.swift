@@ -138,8 +138,8 @@ public struct StringArray: ArrowArray {
 
     var startIndex: Int32 = 0
     if index > 0 {
-      startIndex = offsets.rawPointer.advanced(by: offsetIndex).load(
-        as: Int32.self)
+      startIndex = offsets.rawPointer.advanced(by: offsetIndex)
+        .load(as: Int32.self)
     }
 
     let endIndex = offsets.rawPointer.advanced(
@@ -150,9 +150,10 @@ public struct StringArray: ArrowArray {
     let rawPointer = values.rawPointer.advanced(by: Int(startIndex))
       .bindMemory(to: UInt8.self, capacity: arrayLength)
     let buffer = UnsafeBufferPointer<UInt8>(
-      start: rawPointer, count: arrayLength)
-    let byteArray = Array(buffer)
-    return String(data: Data(byteArray), encoding: .utf8)
+      start: rawPointer,
+      count: arrayLength
+    )
+    return String(bytes: buffer, encoding: .utf8)
   }
 }
 
