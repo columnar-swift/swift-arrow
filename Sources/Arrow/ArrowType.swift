@@ -618,8 +618,8 @@ extension ArrowType {
     default:
       return false
     }
-
   }
+
   /// Returns true if this type is nested.
   ///
   ///  Nested types are: (List, FixedSizeList, LargeList, ListView. LargeListView, Struct, Union, or Map,
@@ -636,6 +636,17 @@ extension ArrowType {
       return true
     default:
       return false
+    }
+  }
+
+  /// Returns true if this type is a variable-length data type.
+  ///
+  /// https://arrow.apache.org/docs/format/Intro.html#variable-length-binary-and-string
+  @inlinable
+  public var isVariable: Bool {
+    switch self {
+    case .binary, .utf8: true
+    default: false
     }
   }
 
@@ -862,5 +873,159 @@ extension ArrowType {
   ) {
     self = .fixedSizeList(
       ArrowField(listFieldWith: dataType, isNullable: isNullable), size)
+  }
+}
+
+extension ArrowType {
+
+  /// The C-interface format string.
+  ///
+  /// https://arrow.apache.org/docs/format/CDataInterface.html#data-type-description-format-strings
+  public var cDataFormatId: String {
+    get throws(ArrowError) {
+      switch self {
+      case .int8:
+        return "c"
+      case .int16:
+        return "s"
+      case .int32:
+        return "i"
+      case .int64:
+        return "l"
+      case .uint8:
+        return "C"
+      case .uint16:
+        return "S"
+      case .uint32:
+        return "I"
+      case .uint64:
+        return "L"
+      case .float32:
+        return "f"
+      case .float64:
+        return "g"
+      case .boolean:
+        return "b"
+      case .date32:
+        return "tdD"
+      case .date64:
+        return "tdm"
+      case .time32(let unit):
+        switch unit {
+        case .millisecond:
+          return "ttm"
+        case .second:
+          return "tts"
+        default:
+          throw .invalid("\(unit) invalid for Time32.")
+        }
+      case .time64(let unit):
+        switch unit {
+        case .microsecond:
+          return "ttu"
+        case .nanosecond:
+          return "ttn"
+        default:
+          throw .invalid("\(unit) invalid for Time64.")
+        }
+      case .timestamp(let unit, let timezone):
+        let unitChar: Character =
+          switch unit {
+          case .second: "s"
+          case .millisecond: "m"
+          case .microsecond: "u"
+          case .nanosecond: "n"
+          }
+
+        if let timezone {
+          return "ts\(unitChar):\(timezone)"
+        } else {
+          return "ts\(unitChar)"
+        }
+      case .binary:
+        return "z"
+      case .utf8:
+        return "u"
+      case .strct(let fields):
+        var format = "+s"
+        for field in fields {
+          format += try field.type.cDataFormatId
+        }
+        return format
+      case .list(let field):
+        return "+l" + (try field.type.cDataFormatId)
+      default:
+        throw .notImplemented
+      }
+    }
+  }
+
+  public static func fromCDataFormatId(
+    _ from: String
+  ) throws(ArrowError) -> ArrowType {
+    if from == "c" {
+      return .int8
+    } else if from == "s" {
+      return .int16
+    } else if from == "i" {
+      return .int32
+    } else if from == "l" {
+      return .int64
+    } else if from == "C" {
+      return .uint8
+    } else if from == "S" {
+      return .uint16
+    } else if from == "I" {
+      return .uint32
+    } else if from == "L" {
+      return .uint64
+    } else if from == "f" {
+      return .float32
+    } else if from == "g" {
+      return .float64
+    } else if from == "b" {
+      return .boolean
+    } else if from == "tdD" {
+      return .date32
+    } else if from == "tdm" {
+      return .date64
+    } else if from == "tts" {
+      return .time32(.second)
+    } else if from == "ttm" {
+      return .time32(.millisecond)
+    } else if from == "ttu" {
+      return .time64(.microsecond)
+    } else if from == "ttn" {
+      return .time64(.nanosecond)
+    } else if from.starts(with: "ts") {
+      let components = from.split(separator: ":", maxSplits: 1)
+      guard let unitPart = components.first, unitPart.count == 3 else {
+        throw .invalid(
+          "Invalid timestamp format '\(from)'. Expected format 'ts[s|m|u|n][:timezone]'"
+        )
+      }
+
+      let unitChar = unitPart.suffix(1)
+      let unit: TimeUnit =
+        switch unitChar {
+        case "s": .second
+        case "m": .millisecond
+        case "u": .microsecond
+        case "n": .nanosecond
+        default:
+          throw .invalid(
+            "Unrecognized timestamp unit '\(unitChar)'. Expected 's', 'm', 'u', or 'n'."
+          )
+        }
+
+      let timezone = components.count > 1 ? String(components[1]) : nil
+      return .timestamp(unit, timezone)
+    } else if from == "z" {
+      return .binary
+    } else if from == "u" {
+      return .utf8
+    }
+
+    throw .notImplemented
   }
 }

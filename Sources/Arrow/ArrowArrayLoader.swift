@@ -21,41 +21,41 @@ struct ArrowArrayLoader {
   ) throws(ArrowError) -> any AnyArrowArray {
     switch arrowType {
     case .int8:
-      return FixedArray<Int8>(arrowData)
+      return try FixedArray<Int8>(arrowData)
     case .int16:
-      return FixedArray<Int16>(arrowData)
+      return try FixedArray<Int16>(arrowData)
     case .int32:
-      return FixedArray<Int32>(arrowData)
+      return try FixedArray<Int32>(arrowData)
     case .int64:
-      return FixedArray<Int64>(arrowData)
+      return try FixedArray<Int64>(arrowData)
     case .uint8:
-      return FixedArray<UInt8>(arrowData)
+      return try FixedArray<UInt8>(arrowData)
     case .uint16:
-      return FixedArray<UInt16>(arrowData)
+      return try FixedArray<UInt16>(arrowData)
     case .uint32:
-      return FixedArray<UInt32>(arrowData)
+      return try FixedArray<UInt32>(arrowData)
     case .uint64:
-      return FixedArray<UInt64>(arrowData)
+      return try FixedArray<UInt64>(arrowData)
     case .float64:
-      return FixedArray<Double>(arrowData)
+      return try FixedArray<Double>(arrowData)
     case .float32:
-      return FixedArray<Float>(arrowData)
+      return try FixedArray<Float>(arrowData)
     case .date32:
-      return Date32Array(arrowData)
+      return try Date32Array(arrowData)
     case .date64:
-      return Date64Array(arrowData)
+      return try Date64Array(arrowData)
     case .time32:
-      return Time32Array(arrowData)
+      return try Time32Array(arrowData)
     case .time64:
-      return Time64Array(arrowData)
+      return try Time64Array(arrowData)
     case .timestamp:
-      return TimestampArray(arrowData)
+      return try TimestampArray(arrowData)
     case .utf8:
-      return StringArray(arrowData)
+      return try StringArray(arrowData)
     case .boolean:
-      return BoolArray(arrowData)
+      return try BoolArray(arrowData)
     case .binary:
-      return BinaryArray(arrowData)
+      return try BinaryArray(arrowData)
     case .strct(let _):
       return try NestedArray(arrowData)
     case .list(let _):

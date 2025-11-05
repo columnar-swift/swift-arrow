@@ -20,7 +20,7 @@ import Testing
 
 struct ArrayTests {
 
-  @Test func primitiveArray() throws {
+  @Test func uint8Array() throws {
 
     // MARK: UInt8 array
     let arrayBuilder: NumberArrayBuilder<UInt8> =
@@ -42,8 +42,11 @@ struct ArrayTests {
 
     for buffer in array.arrowData.buffers {
       let dataAddress = UInt(bitPattern: buffer.rawPointer)
-      #expect(dataAddress % 64 == 0, "Data buffer should be 64-byte aligned")
+      #expect(dataAddress % 64 == 0, "Buffer should be 64-byte aligned")
     }
+  }
+
+  @Test func doubleArray() throws {
 
     // MARK: Double array
     let doubleBuilder: NumberArrayBuilder<Double> =

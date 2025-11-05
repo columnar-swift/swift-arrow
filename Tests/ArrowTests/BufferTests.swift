@@ -13,13 +13,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-@testable import Arrow
 import Testing
 
+@testable import Arrow
+
 struct BufferTests {
-  
+
   @Test func example() {
-    
+
     let bufferBuilder = FixedBufferBuilder<UInt32>()
     bufferBuilder.append(1)
     bufferBuilder.append(2)
