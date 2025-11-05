@@ -77,7 +77,8 @@ public class ValuesBufferBuilder<T>: BaseBufferBuilder {
   public override var capacity: UInt { self.values.capacity }
 
   init(
-    values: ArrowBuffer, nulls: ArrowBuffer,
+    values: ArrowBuffer,
+    nulls: ArrowBuffer,
     stride: Int = MemoryLayout<T>.stride
   ) {
     self.stride = stride
@@ -96,7 +97,9 @@ where T: Numeric {
   public required init() {
     let values = ArrowBuffer.createBuffer(0, size: UInt(MemoryLayout<T>.stride))
     let nulls = ArrowBuffer.createBuffer(
-      0, size: UInt(MemoryLayout<UInt8>.stride))
+      0,
+      size: UInt(MemoryLayout<UInt8>.stride)
+    )
     super.init(values: values, nulls: nulls)
   }
 
@@ -138,9 +141,13 @@ where T: Numeric {
   public func finish() -> [ArrowBuffer] {
     let length = self.length
     var values = ArrowBuffer.createBuffer(
-      length, size: UInt(MemoryLayout<T>.size))
+      length,
+      size: UInt(MemoryLayout<T>.size)
+    )
     var nulls = ArrowBuffer.createBuffer(
-      length / 8 + 1, size: UInt(MemoryLayout<UInt8>.size))
+      length / 8 + 1,
+      size: UInt(MemoryLayout<UInt8>.size)
+    )
     ArrowBuffer.copyCurrent(self.values, to: &values, len: values.capacity)
     ArrowBuffer.copyCurrent(self.nulls, to: &nulls, len: nulls.capacity)
     return [nulls, values]

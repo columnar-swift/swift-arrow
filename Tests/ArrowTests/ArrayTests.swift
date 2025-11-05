@@ -20,7 +20,7 @@ import Testing
 
 struct ArrayTests {
 
-  @Test func primitiveArray() throws {
+  @Test func uint8Array() throws {
 
     // MARK: UInt8 array
     let arrayBuilder: NumberArrayBuilder<UInt8> =
@@ -32,7 +32,7 @@ struct ArrayTests {
     #expect(arrayBuilder.nullCount == 0)
     arrayBuilder.append(nil)
     #expect(arrayBuilder.length == 101)
-    #expect(arrayBuilder.capacity == 128 + 8)
+    #expect(arrayBuilder.capacity == 128)
     #expect(arrayBuilder.nullCount == 1)
     let array = try arrayBuilder.finish()
     #expect(array.length == 101)
@@ -42,8 +42,11 @@ struct ArrayTests {
 
     for buffer in array.arrowData.buffers {
       let dataAddress = UInt(bitPattern: buffer.rawPointer)
-      #expect(dataAddress % 64 == 0, "Data buffer should be 64-byte aligned")
+      #expect(dataAddress % 64 == 0, "Buffer should be 64-byte aligned")
     }
+  }
+
+  @Test func doubleArray() throws {
 
     // MARK: Double array
     let doubleBuilder: NumberArrayBuilder<Double> =
@@ -52,7 +55,7 @@ struct ArrayTests {
     doubleBuilder.append(40.4)
     #expect(doubleBuilder.nullCount == 0)
     #expect(doubleBuilder.length == 2)
-    #expect(doubleBuilder.capacity == 256 + 8)
+    #expect(doubleBuilder.capacity == 256)
     let doubleArray = try doubleBuilder.finish()
     #expect(doubleArray.length == 2)
     #expect(doubleArray[0]! == 14)
@@ -71,7 +74,7 @@ struct ArrayTests {
 
     #expect(stringBuilder.nullCount == 10)
     #expect(stringBuilder.length == 100)
-    #expect(stringBuilder.capacity == 640 + 8)
+    #expect(stringBuilder.capacity == 640)
     let stringArray = try stringBuilder.finish()
     #expect(stringArray.length == 100)
     for index in 0..<stringArray.length {
@@ -94,7 +97,7 @@ struct ArrayTests {
     boolBuilder.append(false)
     #expect(boolBuilder.nullCount == 1)
     #expect(boolBuilder.length == 4)
-    #expect(boolBuilder.capacity == 64 + 8)
+    #expect(boolBuilder.capacity == 64)
     let boolArray = try boolBuilder.finish()
     #expect(boolArray.length == 4)
     #expect(boolArray[1] == nil)
@@ -112,7 +115,7 @@ struct ArrayTests {
     date32Builder.append(nil)
     #expect(date32Builder.nullCount == 1)
     #expect(date32Builder.length == 3)
-    #expect(date32Builder.capacity == 128 + 8)
+    #expect(date32Builder.capacity == 128)
     let date32Array = try date32Builder.finish()
     #expect(date32Array.length == 3)
     #expect(date32Array[1] == date2)
@@ -131,7 +134,7 @@ struct ArrayTests {
     date64Builder.append(nil)
     #expect(date64Builder.nullCount == 1)
     #expect(date64Builder.length == 3)
-    #expect(date64Builder.capacity == 256 + 8)
+    #expect(date64Builder.capacity == 256)
     let date64Array = try date64Builder.finish()
     #expect(date64Array.length == 3)
     #expect(date64Array[1] == date2)
@@ -150,7 +153,7 @@ struct ArrayTests {
 
     #expect(binaryBuilder.nullCount == 10)
     #expect(binaryBuilder.length == 100)
-    #expect(binaryBuilder.capacity == 640 + 8)
+    #expect(binaryBuilder.capacity == 640)
     let binaryArray = try binaryBuilder.finish()
     #expect(binaryArray.length == 100)
     for index in 0..<binaryArray.length {
@@ -171,7 +174,7 @@ struct ArrayTests {
     milliBuilder.append(nil)
     #expect(milliBuilder.nullCount == 1)
     #expect(milliBuilder.length == 3)
-    #expect(milliBuilder.capacity == 128 + 8)
+    #expect(milliBuilder.capacity == 128)
     let milliArray = try milliBuilder.finish()
     guard case .time32(let milliType) = milliArray.arrowData.type else {
       Issue.record("Expected time32")
@@ -188,7 +191,7 @@ struct ArrayTests {
     secBuilder.append(2_000_011)
     #expect(secBuilder.nullCount == 1)
     #expect(secBuilder.length == 3)
-    #expect(secBuilder.capacity == 128 + 8)
+    #expect(secBuilder.capacity == 128)
     let secArray = try secBuilder.finish()
     guard case .time32(let secType) = secArray.arrowData.type else {
       Issue.record("Expected time32")
@@ -208,7 +211,7 @@ struct ArrayTests {
     nanoBuilder.append(123_456_789)
     #expect(nanoBuilder.nullCount == 1)
     #expect(nanoBuilder.length == 3)
-    #expect(nanoBuilder.capacity == 256 + 8)
+    #expect(nanoBuilder.capacity == 256)
     let nanoArray = try nanoBuilder.finish()
     guard case .time64(let nanoType) = nanoArray.arrowData.type else {
       Issue.record("Expected time64")
@@ -227,7 +230,7 @@ struct ArrayTests {
     microBuilder.append(987_654_321)
     #expect(microBuilder.nullCount == 1)
     #expect(microBuilder.length == 3)
-    #expect(microBuilder.capacity == 256 + 8)
+    #expect(microBuilder.capacity == 256)
     let microArray = try microBuilder.finish()
     guard case .time64(let microType) = microArray.arrowData.type else {
       Issue.record("Expected time64")
@@ -250,7 +253,7 @@ struct ArrayTests {
     secBuilder.append(nil)
     #expect(secBuilder.nullCount == 1)
     #expect(secBuilder.length == 3)
-    #expect(secBuilder.capacity == 256 + 8)
+    #expect(secBuilder.capacity == 256)
     let secArray = try secBuilder.finish()
     guard case .timestamp(let secType, let timezone) = secArray.arrowData.type
     else {
@@ -274,7 +277,7 @@ struct ArrayTests {
     msBuilder.append(1_609_545_600_000)  // 2021-01-02 00:00:00.000
     #expect(msBuilder.nullCount == 1)
     #expect(msBuilder.length == 3)
-    #expect(msBuilder.capacity == 256 + 8)
+    #expect(msBuilder.capacity == 256)
     let msArray = try msBuilder.finish()
     guard case .timestamp(let msType, let timezone) = msArray.arrowData.type
     else {
@@ -296,7 +299,7 @@ struct ArrayTests {
     usBuilder.append(1_609_632_000_000_000)  // 2021-01-03 00:00:00.000000
     #expect(usBuilder.nullCount == 0)
     #expect(usBuilder.length == 3)
-    #expect(usBuilder.capacity == 256 + 8)
+    #expect(usBuilder.capacity == 256)
     let usArray = try usBuilder.finish()
     guard case .timestamp(let usType, let timezone) = usArray.arrowData.type
     else {
@@ -320,7 +323,7 @@ struct ArrayTests {
     nsBuilder.append(1_609_545_600_000_000_000)
     #expect(nsBuilder.nullCount == 1)
     #expect(nsBuilder.length == 3)
-    #expect(nsBuilder.capacity == 256 + 8)
+    #expect(nsBuilder.capacity == 256)
     let nsArray = try nsBuilder.finish()
     guard case .timestamp(let nsType, let timezone) = nsArray.arrowData.type
     else {
@@ -379,10 +382,6 @@ struct ArrayTests {
     #expect(structArray.length == 3)
     #expect(structArray[1] == nil)
 
-    guard let structArray = structArray as? NestedArray else {
-      Issue.record("Failure casting to nested array")
-      return
-    }
     #expect(structArray.fields![0].length == 3)
     #expect(structArray.fields![0].asAny(1) == nil)
     #expect(structArray[0]![STIndex.bool.rawValue] as? Bool == true)

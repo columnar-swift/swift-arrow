@@ -24,7 +24,8 @@ public class ArrowBuffer {
   let isMemoryOwner: Bool
 
   init(
-    length: UInt, capacity: UInt,
+    length: UInt,
+    capacity: UInt,
     rawPointer: UnsafeMutableRawPointer,
     isMemoryOwner: Bool = true
   ) {
@@ -84,10 +85,8 @@ public class ArrowBuffer {
     to.rawPointer.copyMemory(from: from.rawPointer, byteCount: Int(len))
   }
 
-  // Note this adds space to encode a pointer that CData to identify the buffer.
   static func alignTo64(_ length: UInt) -> UInt {
-    let aligned = (length + 63) & ~63
-    return aligned + UInt(MemoryLayout<UnsafeRawPointer>.size)
+    (length + 63) & ~63
   }
 
   /// Allocates uninitialized memory, defaulting to 64 byte alignment.

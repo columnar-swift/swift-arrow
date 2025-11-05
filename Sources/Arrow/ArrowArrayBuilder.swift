@@ -82,9 +82,10 @@ extension ArrowArrayBuilderInternal {
 
 // MARK: Base implementation.
 
-// Note: It would be preferable to move all of this to a protocol, however
+// Note: It would be preferable to move this to a protocol, however
 // ListArrayBuilder overrides finish. This is delicate because protocol
-// extension method dispatching means the
+// extension method dispatching uses static dispatch, so overrides are not
+// called when type erasure is used in nested types.
 public class ArrowArrayBuilderBase<
   BufferBuilder: ArrowBufferBuilder,
   ArrayType: ArrowArray<BufferBuilder.ItemType>
