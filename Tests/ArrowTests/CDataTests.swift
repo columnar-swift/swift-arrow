@@ -14,6 +14,7 @@
 
 import ArrowC
 import Testing
+
 @testable import Arrow
 
 struct CDataTests {
@@ -92,7 +93,7 @@ struct CDataTests {
   @Test
   @MainActor
   func testImportExportArray() throws {
-//    Issue.record("Fix the deallocation. Test it too if possible.")
+    //    Issue.record("Fix the deallocation. Test it too if possible.")
     let stringBuilder = try ArrowArrayBuilders.loadStringArrayBuilder()
     for index in 0..<100 {
       if index % 10 == 9 {

@@ -40,7 +40,7 @@ public protocol ArrowArray<ItemType>: AnyArrowArray {
 }
 
 public class ArrowArrayBase<T>: ArrowArray {
-  
+
   public var arrowData: ArrowData
   public var cArrayPtr: UnsafePointer<ArrowC.ArrowArray>? = nil
 
@@ -62,7 +62,7 @@ public class ArrowArrayBase<T>: ArrowArray {
   public func asAny(_ index: UInt) -> Any? {
     self[index]
   }
-  
+
   public func setCArrayPtr(_ cArrayPtr: UnsafePointer<ArrowC.ArrowArray>?) {
     self.cArrayPtr = cArrayPtr
   }
