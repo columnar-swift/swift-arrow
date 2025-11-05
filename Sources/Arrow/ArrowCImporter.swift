@@ -171,7 +171,7 @@ public class ArrowCImporter {
       arrowField, buffers: arrowBuffers,
       nullCount: nullCount, children: nil, rbLength: 0)
     {
-    case .success(var holder):
+    case .success(let holder):
       holder.setCArrayPtr(cArrayPtr)
       return .success(holder)
     case .failure(let err):
