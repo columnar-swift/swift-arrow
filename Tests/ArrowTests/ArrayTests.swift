@@ -90,6 +90,12 @@ struct ArrayTests {
   }
 
   @Test func boolArray() throws {
+
+    for i in 0..<100 {
+      let bytesNeeded = (i + 7) / 8
+      print("\(i) bits requires \(bytesNeeded) bytes")
+    }
+
     let boolBuilder = try ArrowArrayBuilders.loadBoolArrayBuilder()
     boolBuilder.append(true)
     boolBuilder.append(nil)
@@ -100,10 +106,23 @@ struct ArrayTests {
     #expect(boolBuilder.capacity == 64)
     let boolArray = try boolBuilder.finish()
     #expect(boolArray.length == 4)
-    #expect(boolArray[1] == nil)
     #expect(boolArray[0]! == true)
+    #expect(boolArray[1] == nil)
     #expect(boolArray[2]! == false)
+    #expect(boolArray[3]! == false)
   }
+
+  //  Uncomment if you want other tests to crash with memory corruption issues.
+  //  @Test func boolArrayNils() throws {
+  //
+  //    let boolBuilder = try ArrowArrayBuilders.loadBoolArrayBuilder()
+  //    boolBuilder.append(true)
+  //    for i in 0..<10000 {
+  //      boolBuilder.append(nil)
+  //    }
+  //    let boolArray = try boolBuilder.finish()
+  //    #expect(boolArray.nullCount == 10000)
+  //  }
 
   @Test func date32Array() throws {
     let date32Builder: Date32ArrayBuilder =

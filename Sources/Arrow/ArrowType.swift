@@ -1004,7 +1004,6 @@ extension ArrowType {
           "Invalid timestamp format '\(from)'. Expected format 'ts[s|m|u|n][:timezone]'"
         )
       }
-
       let unitChar = unitPart.suffix(1)
       let unit: TimeUnit =
         switch unitChar {
@@ -1017,7 +1016,6 @@ extension ArrowType {
             "Unrecognized timestamp unit '\(unitChar)'. Expected 's', 'm', 'u', or 'n'."
           )
         }
-
       let timezone = components.count > 1 ? String(components[1]) : nil
       return .timestamp(unit, timezone)
     } else if from == "z" {

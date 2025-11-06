@@ -138,9 +138,9 @@ public class ArrowCExporter {
     cArray.n_children = 0
     cArray.children = nil
     cArray.dictionary = nil
-    cArray.private_data =
-      UnsafeMutableRawPointer(
-        mutating: UnsafeRawPointer(bitPattern: exportArray.id))
+    cArray.private_data = UnsafeMutableRawPointer(
+      mutating: UnsafeRawPointer(bitPattern: exportArray.id)
+    )
     cArray.release = { (data: UnsafeMutablePointer<ArrowC.ArrowArray>?) in
       guard let data else {
         fatalError("Release called with nil ArrowArray pointer.")

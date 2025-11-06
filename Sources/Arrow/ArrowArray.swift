@@ -68,7 +68,7 @@ public class ArrowArrayBase<T>: ArrowArray {
   }
 
   deinit {
-    if let cArrayPtr = cArrayPtr {
+    if let cArrayPtr {
       ArrowCImporter.release(cArrayPtr)
     }
   }

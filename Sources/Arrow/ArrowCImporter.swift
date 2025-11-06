@@ -23,6 +23,8 @@ public class ArrowCImporter {
     length: UInt
   ) throws(ArrowError) {
     if cBuffer == nil {
+      // Some implementations may have null buffers.
+      // The empty buffers are positional placeholders.
       arrowBuffers.append(ArrowBuffer.createEmptyBuffer())
       return
     }
@@ -171,7 +173,7 @@ public class ArrowCImporter {
       arrowField, buffers: arrowBuffers,
       nullCount: nullCount, children: nil, rbLength: 0)
     {
-    case .success(var holder):
+    case .success(let holder):
       holder.setCArrayPtr(cArrayPtr)
       return .success(holder)
     case .failure(let err):
