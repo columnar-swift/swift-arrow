@@ -19,15 +19,28 @@ import Testing
 
 struct BufferTests {
 
-  @Test func example() {
-
-    let bufferBuilder = FixedBufferBuilder<UInt32>()
-    bufferBuilder.append(1)
-    bufferBuilder.append(2)
-    let buffers = bufferBuilder.finish()
-    for buffer in buffers {
-      print(buffer.capacity)
+  @Test func nullBufferBuilder() {
+    let mutableNullBuffer = NullBufferBuilder()
+    for i in 0..<10000 {
+      if i % 7 == 0 {
+        mutableNullBuffer.appendValid(true)
+      } else {
+        mutableNullBuffer.appendValid(false)
+      }
     }
+    let nullBuffer = mutableNullBuffer.finish()
+    for i in 0..<10000 {
+      if i % 7 == 0 {
+        #expect(nullBuffer.isSet(i))
+      } else {
+        #expect(!nullBuffer.isSet(i))
+      }
+    }
+    #expect(nullBuffer.capacity % 64 == 0)
+    //
+    #expect(nullBuffer.capacity - nullBuffer.length < 64)
 
+    let dataAddress = UInt(bitPattern: nullBuffer.buffer)
+    #expect(dataAddress % 64 == 0, "Buffer should be 64-byte aligned")
   }
 }

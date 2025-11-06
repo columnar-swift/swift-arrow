@@ -139,7 +139,7 @@ public class ArrowCExporter {
     cArray.children = nil
     cArray.dictionary = nil
     cArray.private_data = UnsafeMutableRawPointer(
-        mutating: UnsafeRawPointer(bitPattern: exportArray.id)
+      mutating: UnsafeRawPointer(bitPattern: exportArray.id)
     )
     cArray.release = { (data: UnsafeMutablePointer<ArrowC.ArrowArray>?) in
       guard let data else {

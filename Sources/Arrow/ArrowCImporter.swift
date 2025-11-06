@@ -23,6 +23,8 @@ public class ArrowCImporter {
     length: UInt
   ) throws(ArrowError) {
     if cBuffer == nil {
+      // Some implementations may have null buffers.
+      // The empty buffers are positional placeholders.
       arrowBuffers.append(ArrowBuffer.createEmptyBuffer())
       return
     }
