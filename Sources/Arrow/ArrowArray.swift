@@ -22,14 +22,12 @@ public protocol AnyArrowArray {
   var length: UInt { get }
   var nullCount: UInt { get }
   var arrowData: ArrowData { get }
-  var bufferData: [Data] { get }
-  var bufferDataSizes: [Int] { get }
+  var bufferData: [Data] { get } // TODO: remove
+  var bufferDataSizes: [Int] { get } // TODO: remove
   func asAny(_ index: UInt) -> Any?
   func asString(_ index: UInt) -> String
   func setCArrayPtr(_ cArrayPtr: UnsafePointer<ArrowC.ArrowArray>?)
 }
-
-// MARK: Core Protocol
 
 /// The interface for Arrow array types.
 public protocol ArrowArray<ItemType>: AnyArrowArray {
@@ -86,16 +84,19 @@ extension ArrowArrayBase {
     arrowData.type
   }
 
+  // TODO: Remove
   public var bufferData: [Data] {
-    arrowData.buffers.map { buffer in
-      var data = Data()
-      buffer.append(to: &data)
-      return data
-    }
+    arrowData.bufferData
+//    arrowData.buffers.map { buffer in
+//      var data = Data()
+//      buffer.append(to: &data)
+//      return data
+//    }
   }
 
   public var bufferDataSizes: [Int] {
-    arrowData.buffers.map { Int($0.capacity) }
+    arrowData.bufferDataSizes
+//    arrowData.buffers.map { Int($0.capacity) }
   }
 
   public func isNull(at index: UInt) throws(ArrowError) -> Bool {

@@ -15,8 +15,32 @@
 import Foundation
 
 public struct ArrowData {
+  
+  // MARK: Remove
+  public var bufferData: [Data] {
+    buffers.map { buffer in
+      var data = Data()
+      buffer.append(to: &data)
+      return data
+    }
+  }
+
+  public var bufferDataSizes: [Int] {
+    buffers.map { Int($0.capacity) }
+  }
+  
+  public var data: [UnsafeMutableRawPointer] {
+    buffers.map { $0.rawPointer }
+  }
+  
+  public var bufferCount: Int {
+    return buffers.count
+  }
+  
+  let buffers: [ArrowBuffer]
+  // MARK: End remove
+
   public let type: ArrowType
-  public let buffers: [ArrowBuffer]
   public let children: [ArrowData]
   public let nullCount: UInt
   public let length: UInt

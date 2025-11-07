@@ -68,8 +68,11 @@ public class ArrowCExporter {
       // obj so the memory doesn't get
       // deallocated
       self.arrowData = arrowData
-      for arrowBuffer in arrowData.buffers {
-        self.data.append(arrowBuffer.rawPointer)
+//      for arrowBuffer in arrowData.buffers {
+//        self.data.append(arrowBuffer.rawPointer)
+//      }
+      for pointer in arrowData.data {
+        self.data.append(pointer)
       }
 
       self.buffers = UnsafeMutablePointer<UnsafeRawPointer?>.allocate(
@@ -132,7 +135,7 @@ public class ArrowCExporter {
     cArray.buffers = exportArray.buffers
     cArray.length = Int64(arrowData.length)
     cArray.null_count = Int64(arrowData.nullCount)
-    cArray.n_buffers = Int64(arrowData.buffers.count)
+    cArray.n_buffers = Int64(arrowData.bufferCount)
     // Swift Arrow does not currently support children or dictionaries
     // This will need to be updated once support has been added
     cArray.n_children = 0

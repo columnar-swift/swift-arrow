@@ -19,65 +19,12 @@ public class ChunkedArrayHolder {
   public let length: UInt
   public let nullCount: UInt
   public let holder: Any
-
-  public let getBufferData: () -> Result<[Data], ArrowError>
-  public let getBufferDataSizes: () -> Result<[Int], ArrowError>
+  
   public init<T>(_ chunked: ChunkedArray<T>) {
     self.holder = chunked
     self.length = chunked.length
     self.type = chunked.type
     self.nullCount = chunked.nullCount
-    self.getBufferData = { () -> Result<[Data], ArrowError> in
-      var bufferData: [Data] = []
-      var numBuffers = 2
-      switch toFBTypeEnum(chunked.type) {
-      case .success(let fbType):
-        if !isFixedPrimitive(fbType) {
-          numBuffers = 3
-        }
-      case .failure(let error):
-        return .failure(error)
-      }
-
-      for _ in 0..<numBuffers {
-        bufferData.append(Data())
-      }
-
-      for arrowData in chunked.arrays {
-        for index in 0..<numBuffers {
-          arrowData.arrowData.buffers[index].append(to: &bufferData[index])
-        }
-      }
-
-      return .success(bufferData)
-    }
-
-    self.getBufferDataSizes = { () -> Result<[Int], ArrowError> in
-      var bufferDataSizes: [Int] = []
-      var numBuffers = 2
-
-      switch toFBTypeEnum(chunked.type) {
-      case .success(let fbType):
-        if !isFixedPrimitive(fbType) {
-          numBuffers = 3
-        }
-      case .failure(let error):
-        return .failure(error)
-      }
-
-      for _ in 0..<numBuffers {
-        bufferDataSizes.append(Int(0))
-      }
-
-      for arrowData in chunked.arrays {
-        for index in 0..<numBuffers {
-          bufferDataSizes[index] += Int(
-            arrowData.arrowData.buffers[index].capacity)
-        }
-      }
-
-      return .success(bufferDataSizes)
-    }
   }
 }
 
@@ -93,7 +40,7 @@ public class ChunkedArray<T> {
       throw ArrowError.arrayHasNoElements
     }
 
-    self.type = arrays[0].arrowData.type
+    self.type = arrays[0].type
     var len: UInt = 0
     var nullCount: UInt = 0
     for array in arrays {

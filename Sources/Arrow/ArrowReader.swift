@@ -31,7 +31,7 @@ public struct ArrowReader: Sendable {
     let endOffset = startOffset + buffer.length
 
     let range = Int(startOffset)..<Int(endOffset)
-    let offset = BorrowedOffsets(count: Int(length) / 4, data: fileData, range: range)
+//    let offset = BorrowedOffsets(count: Int(length) / 4, data: fileData, range: range)
     // TODO: This should not copy.
 
     let bufferData = [UInt8](fileData[startOffset..<endOffset])
