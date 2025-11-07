@@ -21,32 +21,32 @@ let continuationMarker = UInt32(0xFFFF_FFFF)
 
 public struct ArrowReader: Sendable {
   private class RecordBatchData {
-    let schema: Schema
-    let recordBatch: FlatRecordBatch
+    let schema: FSchema
+    let recordBatch: FRecordBatch
     private var fieldIndex: Int32 = 0
     private var nodeIndex: Int32 = 0
     private var bufferIndex: Int32 = 0
     init(
-      _ recordBatch: FlatRecordBatch,
-      schema: Schema
+      _ recordBatch: FRecordBatch,
+      schema: FSchema
     ) {
       self.recordBatch = recordBatch
       self.schema = schema
     }
 
-    func nextNode() -> FieldNode? {
+    func nextNode() -> FFieldNode? {
       if nodeIndex >= self.recordBatch.nodesCount { return nil }
       defer { nodeIndex += 1 }
       return self.recordBatch.nodes(at: nodeIndex)
     }
 
-    func nextBuffer() -> Buffer? {
+    func nextBuffer() -> FBuffer? {
       if bufferIndex >= self.recordBatch.buffersCount { return nil }
       defer { bufferIndex += 1 }
       return self.recordBatch.buffers(at: bufferIndex)
     }
 
-    func nextField() -> FlatField? {
+    func nextField() -> FField? {
       if fieldIndex >= self.schema.fieldsCount { return nil }
       defer { fieldIndex += 1 }
       return self.schema.fields(at: fieldIndex)
@@ -64,7 +64,7 @@ public struct ArrowReader: Sendable {
   }
 
   public class ArrowReaderResult {
-    fileprivate var messageSchema: Schema?
+    fileprivate var messageSchema: FSchema?
     public var schema: ArrowSchema?
     public var batches: [RecordBatch] = []
   }
@@ -72,7 +72,7 @@ public struct ArrowReader: Sendable {
   public init() {}
 
   private func loadSchema(
-    _ schema: Schema
+    _ schema: FSchema
   ) -> Result<ArrowSchema, ArrowError> {
     let builder = ArrowSchema.Builder()
     for index in 0..<schema.fieldsCount {
@@ -100,7 +100,7 @@ public struct ArrowReader: Sendable {
 
   private func loadStructData(
     _ loadInfo: DataLoadInfo,
-    field: FlatField
+    field: FField
   ) -> Result<AnyArrowArray, ArrowError> {
     guard let node = loadInfo.batchData.nextNode() else {
       return .failure(.invalid("Node not found"))
@@ -135,7 +135,7 @@ public struct ArrowReader: Sendable {
     )
   }
 
-  private func loadListData(_ loadInfo: DataLoadInfo, field: FlatField)
+  private func loadListData(_ loadInfo: DataLoadInfo, field: FField)
     -> Result<AnyArrowArray, ArrowError>
   {
     guard let node = loadInfo.batchData.nextNode() else {
@@ -177,7 +177,7 @@ public struct ArrowReader: Sendable {
 
   private func loadPrimitiveData(
     _ loadInfo: DataLoadInfo,
-    field: FlatField
+    field: FField
   )
     -> Result<AnyArrowArray, ArrowError>
   {
@@ -208,7 +208,7 @@ public struct ArrowReader: Sendable {
 
   private func loadVariableData(
     _ loadInfo: DataLoadInfo,
-    field: FlatField
+    field: FField
   )
     -> Result<AnyArrowArray, ArrowError>
   {
@@ -246,7 +246,7 @@ public struct ArrowReader: Sendable {
 
   private func loadField(
     _ loadInfo: DataLoadInfo,
-    field: FlatField
+    field: FField
   )
     -> Result<AnyArrowArray, ArrowError>
   {
@@ -265,8 +265,8 @@ public struct ArrowReader: Sendable {
   }
 
   private func loadRecordBatch(
-    _ recordBatch: FlatRecordBatch,
-    schema: Schema,
+    _ recordBatch: FRecordBatch,
+    schema: FSchema,
     arrowSchema: ArrowSchema,
     data: Data,
     messageEndOffset: Int64
@@ -310,7 +310,7 @@ public struct ArrowReader: Sendable {
     var length = getUInt32(input, offset: offset)
     var streamData = input
     // TODO: The following assumes message order will populate schemaMessage first
-    var schemaMessage: Schema?
+    var schemaMessage: FSchema?
     while length != 0 {
       if length == continuationMarker {
         offset += Int(MemoryLayout<UInt32>.size)
@@ -325,10 +325,10 @@ public struct ArrowReader: Sendable {
         data: streamData,
         allowReadingUnalignedBuffers: true
       )
-      let message: Message = getRoot(byteBuffer: &dataBuffer)
+      let message: FMessage = getRoot(byteBuffer: &dataBuffer)
       switch message.headerType {
       case .recordbatch:
-        guard let rbMessage = message.header(type: FlatRecordBatch.self) else {
+        guard let rbMessage = message.header(type: FRecordBatch.self) else {
           return .failure(.invalid("Failed to parse RecordBatch message"))
         }
         guard let schemaMessage else {
@@ -353,7 +353,7 @@ public struct ArrowReader: Sendable {
         offset += Int(message.bodyLength + Int64(length))
         length = getUInt32(input, offset: offset)
       case .schema:
-        schemaMessage = message.header(type: Schema.self)
+        schemaMessage = message.header(type: FSchema.self)
         guard let schemaMessage else {
           return .failure(.invalid("Schema message not found"))
         }
@@ -397,7 +397,7 @@ public struct ArrowReader: Sendable {
     var footerBuffer = ByteBuffer(
       data: footerData,
       allowReadingUnalignedBuffers: useUnalignedBuffers)
-    let footer: Footer = getRoot(byteBuffer: &footerBuffer)
+    let footer: FFooter = getRoot(byteBuffer: &footerBuffer)
     guard let footerSchema = footer.schema else {
       return .failure(.invalid("Missing schema in footer"))
     }
@@ -410,7 +410,7 @@ public struct ArrowReader: Sendable {
     }
 
     for index in 0..<footer.recordBatchesCount {
-      guard let recordBatch: Block = footer.recordBatches(at: index) else {
+      guard let recordBatch: FBlock = footer.recordBatches(at: index) else {
         return .failure(.invalid("Missing record batch at index \(index)"))
       }
       var messageLength = fileData.withUnsafeBytes { rawBuffer in
@@ -436,10 +436,10 @@ public struct ArrowReader: Sendable {
       var mbb = ByteBuffer(
         data: recordBatchData,
         allowReadingUnalignedBuffers: useUnalignedBuffers)
-      let message: Message = getRoot(byteBuffer: &mbb)
+      let message: FMessage = getRoot(byteBuffer: &mbb)
       switch message.headerType {
       case .recordbatch:
-        guard let rbMessage = message.header(type: FlatRecordBatch.self) else {
+        guard let rbMessage = message.header(type: FRecordBatch.self) else {
           return .failure(.invalid("Expected RecordBatch as message header"))
         }
         guard let footerSchema = footer.schema else {
@@ -499,10 +499,10 @@ public struct ArrowReader: Sendable {
     var mbb = ByteBuffer(
       data: dataHeader,
       allowReadingUnalignedBuffers: useUnalignedBuffers)
-    let message: Message = getRoot(byteBuffer: &mbb)
+    let message: FMessage = getRoot(byteBuffer: &mbb)
     switch message.headerType {
     case .schema:
-      guard let sMessage = message.header(type: Schema.self) else {
+      guard let sMessage = message.header(type: FSchema.self) else {
         return .failure(.unknownError("Expected a schema but found none"))
       }
       switch loadSchema(sMessage) {
@@ -514,7 +514,7 @@ public struct ArrowReader: Sendable {
         return .failure(error)
       }
     case .recordbatch:
-      guard let rbMessage = message.header(type: FlatRecordBatch.self) else {
+      guard let rbMessage = message.header(type: FRecordBatch.self) else {
         return .failure(.invalid("Expected a RecordBatch but found none"))
       }
       // TODO: the result used here is also the return type. Ideally is would be constructed once as a struct (same issue as above)

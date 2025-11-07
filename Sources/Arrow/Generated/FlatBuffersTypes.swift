@@ -12,24 +12,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-typealias Footer = org_apache_arrow_flatbuf_Footer
-typealias Message = org_apache_arrow_flatbuf_Message
-typealias Block = org_apache_arrow_flatbuf_Block
-typealias FlatField = org_apache_arrow_flatbuf_Field
-typealias Schema = org_apache_arrow_flatbuf_Schema
-typealias Buffer = org_apache_arrow_flatbuf_Buffer
-typealias FieldNode = org_apache_arrow_flatbuf_FieldNode
-typealias FlatRecordBatch = org_apache_arrow_flatbuf_RecordBatch
-typealias FlatType = org_apache_arrow_flatbuf_Type_
-typealias FloatingPoint = org_apache_arrow_flatbuf_FloatingPoint
-typealias FlatInt = org_apache_arrow_flatbuf_Int
-typealias FlatBool = org_apache_arrow_flatbuf_Bool
-typealias FlatDate = org_apache_arrow_flatbuf_Date
-typealias FlatTime = org_apache_arrow_flatbuf_Time
-typealias FlatTimestamp = org_apache_arrow_flatbuf_Timestamp
-typealias FlatTimeUnit = org_apache_arrow_flatbuf_TimeUnit
-typealias FlatStruct = org_apache_arrow_flatbuf_Struct_
+typealias FFooter = org_apache_arrow_flatbuf_Footer
+typealias FMessage = org_apache_arrow_flatbuf_Message
+typealias FBlock = org_apache_arrow_flatbuf_Block
+typealias FField = org_apache_arrow_flatbuf_Field
+typealias FSchema = org_apache_arrow_flatbuf_Schema
+typealias FBuffer = org_apache_arrow_flatbuf_Buffer
+typealias FFieldNode = org_apache_arrow_flatbuf_FieldNode
+typealias FRecordBatch = org_apache_arrow_flatbuf_RecordBatch
+typealias FType = org_apache_arrow_flatbuf_Type_
+typealias FFloatingPoint = org_apache_arrow_flatbuf_FloatingPoint
+typealias FInt = org_apache_arrow_flatbuf_Int
+typealias FBool = org_apache_arrow_flatbuf_Bool
+typealias FDate = org_apache_arrow_flatbuf_Date
+typealias FTime = org_apache_arrow_flatbuf_Time
+typealias FTimestamp = org_apache_arrow_flatbuf_Timestamp
+typealias FTimeUnit = org_apache_arrow_flatbuf_TimeUnit
+typealias FStruct = org_apache_arrow_flatbuf_Struct_
 
-typealias Utf8 = org_apache_arrow_flatbuf_Utf8
-typealias Binary = org_apache_arrow_flatbuf_Binary
-public typealias MessageHeader = org_apache_arrow_flatbuf_MessageHeader
+typealias FUtf8 = org_apache_arrow_flatbuf_Utf8
+typealias FBinary = org_apache_arrow_flatbuf_Binary
+typealias FMessageHeader = org_apache_arrow_flatbuf_MessageHeader

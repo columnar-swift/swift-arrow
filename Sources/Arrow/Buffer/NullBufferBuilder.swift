@@ -41,7 +41,6 @@ final class NullBufferBuilder {
     }
     bitOffset += 1
     bitCount += 1
-
     if bitOffset == 8 {
       flushByte()
     }

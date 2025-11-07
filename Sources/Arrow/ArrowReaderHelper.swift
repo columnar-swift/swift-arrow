@@ -108,7 +108,7 @@ func makeNestedHolder(
 }
 
 func makeArrayHolder(
-  _ field: FlatField,
+  _ field: FField,
   buffers: [ArrowBuffer],
   nullCount: UInt,
   children: [ArrowData]?,
