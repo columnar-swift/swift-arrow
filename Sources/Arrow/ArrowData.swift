@@ -22,6 +22,8 @@ public struct ArrowData {
   public let length: UInt
   public let stride: Int
 
+  let nullBuffer: ArrowBuffer
+
   init(
     _ arrowType: ArrowType,
     buffers: [ArrowBuffer],
@@ -31,7 +33,8 @@ public struct ArrowData {
       arrowType, buffers: buffers,
       children: [ArrowData](),
       nullCount: nullCount,
-      length: buffers[1].length)
+      length: buffers[1].length
+    )
   }
 
   init(
@@ -47,10 +50,11 @@ public struct ArrowData {
     self.nullCount = nullCount
     self.length = length
     self.stride = arrowType.getStride()
+
+    self.nullBuffer = buffers[0]
   }
 
   public func isNull(_ at: UInt) -> Bool {
-    let nullBuffer = buffers[0]
-    return nullBuffer.length > 0 && !BitUtility.isSet(at, buffer: nullBuffer)
+    nullBuffer.length > 0 && !BitUtility.isSet(at, buffer: nullBuffer)
   }
 }

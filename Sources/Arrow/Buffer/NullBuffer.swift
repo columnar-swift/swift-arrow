@@ -22,8 +22,7 @@ final class NullBuffer {
     length: Int,
     capacity: Int,
     ownsMemory: Bool,
-    buffer:
-      UnsafePointer<UInt8>
+    buffer: UnsafePointer<UInt8>
   ) {
     self.length = length
     self.capacity = capacity

@@ -13,6 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import Foundation
 import Testing
 
 @testable import Arrow
@@ -37,10 +38,33 @@ struct BufferTests {
       }
     }
     #expect(nullBuffer.capacity % 64 == 0)
-    //
     #expect(nullBuffer.capacity - nullBuffer.length < 64)
 
     let dataAddress = UInt(bitPattern: nullBuffer.buffer)
     #expect(dataAddress % 64 == 0, "Buffer should be 64-byte aligned")
+  }
+
+  @Test func offsetsBuffer() {
+
+    let offsets: [UInt32] = [0, 4, 8, 12, 16, 20]
+    let data = offsets.withUnsafeBufferPointer { buffer in
+      Data(
+        buffer: UnsafeBufferPointer(
+          start: buffer.baseAddress,
+          count: buffer.count)
+      )
+    }
+    #expect(data.count == 24)
+    let range = 0..<data.count
+    let borrowed = BorrowedOffsets(
+      count: offsets.count - 1, data: data, range: range)
+
+    var (start, end) = borrowed.offsets(at: 2)
+    #expect(start == 8)
+    #expect(end == 12)
+
+    (start, end) = borrowed.offsets(at: 4)
+    #expect(start == 16)
+    #expect(end == 20)
   }
 }

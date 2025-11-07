@@ -70,9 +70,11 @@ func toFBType(
   case .float16:
     return .success(FFloatingPoint.createFloatingPoint(&fbb, precision: .half))
   case .float32:
-    return .success(FFloatingPoint.createFloatingPoint(&fbb, precision: .single))
+    return .success(
+      FFloatingPoint.createFloatingPoint(&fbb, precision: .single))
   case .float64:
-    return .success(FFloatingPoint.createFloatingPoint(&fbb, precision: .double))
+    return .success(
+      FFloatingPoint.createFloatingPoint(&fbb, precision: .double))
   case .utf8:
     return .success(FUtf8.endUtf8(&fbb, start: FUtf8.startUtf8(&fbb)))
   case .binary:

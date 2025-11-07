@@ -15,18 +15,6 @@
 
 import Foundation
 
-func makeBuffer(
-  _ buffer: FBuffer,
-  fileData: Data,
-  length: UInt,
-  messageOffset: Int64
-) -> ArrowBuffer {
-  let startOffset = messageOffset + buffer.offset
-  let endOffset = startOffset + buffer.length
-  let bufferData = [UInt8](fileData[startOffset..<endOffset])
-  return ArrowBuffer.createBuffer(bufferData, length: length)
-}
-
 func isFixedPrimitive(_ type: FType) -> Bool {
   switch type {
   case .int, .bool, .floatingpoint, .date, .time, .timestamp:

@@ -20,6 +20,22 @@ let fileMarker = Data("ARROW1".utf8)
 let continuationMarker = UInt32(0xFFFF_FFFF)
 
 public struct ArrowReader: Sendable {
+
+  func makeBuffer(
+    _ buffer: FBuffer,
+    fileData: Data,
+    length: UInt,
+    messageOffset: Int64
+  ) -> ArrowBuffer {
+    let startOffset = messageOffset + buffer.offset
+    let endOffset = startOffset + buffer.length
+
+    // TODO: This should not copy.
+
+    let bufferData = [UInt8](fileData[startOffset..<endOffset])
+    return ArrowBuffer.createBuffer(bufferData, length: length)
+  }
+
   private class RecordBatchData {
     let schema: FSchema
     let recordBatch: FRecordBatch
@@ -166,7 +182,8 @@ public struct ArrowReader: Sendable {
     switch loadField(loadInfo, field: childField) {
     case .success(let childHolder):
       return makeArrayHolder(
-        field, buffers: [arrowNullBuffer, arrowOffsetBuffer],
+        field,
+        buffers: [arrowNullBuffer, arrowOffsetBuffer],
         nullCount: UInt(node.nullCount),
         children: [childHolder.arrowData],
         rbLength: UInt(loadInfo.batchData.recordBatch.length))
@@ -206,6 +223,8 @@ public struct ArrowReader: Sendable {
       rbLength: UInt(loadInfo.batchData.recordBatch.length))
   }
 
+  // MARK: Variable data loading
+
   private func loadVariableData(
     _ loadInfo: DataLoadInfo,
     field: FField
@@ -232,6 +251,7 @@ public struct ArrowReader: Sendable {
     let arrowNullBuffer = makeBuffer(
       nullBuffer, fileData: loadInfo.fileData,
       length: nullLength, messageOffset: loadInfo.messageOffset)
+
     let arrowOffsetBuffer = makeBuffer(
       offsetBuffer, fileData: loadInfo.fileData,
       length: UInt(node.length), messageOffset: loadInfo.messageOffset)
@@ -475,7 +495,9 @@ public struct ArrowReader: Sendable {
     _ fileURL: URL
   ) -> Result<ArrowReaderResult, ArrowError> {
     do {
-      let fileData = try Data(contentsOf: fileURL)
+      // TODO: implement alignment checks.
+      let fileData = try Data(contentsOf: fileURL, options: .mappedIfSafe)
+
       if !validateFileData(fileData) {
         return .failure(.ioError("Not a valid arrow file."))
       }
