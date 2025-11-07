@@ -116,12 +116,6 @@ public class FixedArray<T>: ArrowArrayBase<T> where T: BitwiseCopyable {
     }
     let byteOffset = arrowData.stride * Int(index)
 
-    // FIXME: Can probably do this and remove BitwiseCopyable constraint.
-    //    let buffer = UnsafeBufferPointer<ItemType>(
-    //      start: arrowData.buffers[1].rawPointer.assumingMemoryBound(to: ItemType.self),
-    //      count: Int(arrowData.length)
-    //    )
-    //    return buffer[Int(index)]
     return arrowData.buffers[1].rawPointer
       .advanced(by: byteOffset)
       .load(as: ItemType.self)
