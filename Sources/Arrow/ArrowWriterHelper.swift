@@ -21,27 +21,27 @@ extension Data {
   }
 }
 
-func toFBTypeEnum(_ arrowType: ArrowType) -> Result<FlatType, ArrowError> {
+func toFBTypeEnum(_ arrowType: ArrowType) -> Result<FType, ArrowError> {
   let typeId = arrowType
   switch typeId {
   case .int8, .int16, .int32, .int64, .uint8, .uint16, .uint32, .uint64:
-    return .success(FlatType.int)
+    return .success(FType.int)
   case .float16, .float32, .float64:
-    return .success(FlatType.floatingpoint)
+    return .success(FType.floatingpoint)
   case .utf8:
-    return .success(FlatType.utf8)
+    return .success(FType.utf8)
   case .binary:
-    return .success(FlatType.binary)
+    return .success(FType.binary)
   case .boolean:
-    return .success(FlatType.bool)
+    return .success(FType.bool)
   case .date32, .date64:
-    return .success(FlatType.date)
+    return .success(FType.date)
   case .time32, .time64:
-    return .success(FlatType.time)
+    return .success(FType.time)
   case .timestamp:
-    return .success(FlatType.timestamp)
+    return .success(FType.timestamp)
   case .strct:
-    return .success(FlatType.struct_)
+    return .success(FType.struct_)
   default:
     return .failure(
       .unknownType("Unable to find flatbuf type for Arrow type: \(typeId)")
@@ -57,47 +57,49 @@ func toFBType(
   switch arrowType {
   case .int8, .uint8:
     return .success(
-      FlatInt.createInt(&fbb, bitWidth: 8, isSigned: arrowType == .int8))
+      FInt.createInt(&fbb, bitWidth: 8, isSigned: arrowType == .int8))
   case .int16, .uint16:
     return .success(
-      FlatInt.createInt(&fbb, bitWidth: 16, isSigned: arrowType == .int16))
+      FInt.createInt(&fbb, bitWidth: 16, isSigned: arrowType == .int16))
   case .int32, .uint32:
     return .success(
-      FlatInt.createInt(&fbb, bitWidth: 32, isSigned: arrowType == .int32))
+      FInt.createInt(&fbb, bitWidth: 32, isSigned: arrowType == .int32))
   case .int64, .uint64:
     return .success(
-      FlatInt.createInt(&fbb, bitWidth: 64, isSigned: arrowType == .int64))
+      FInt.createInt(&fbb, bitWidth: 64, isSigned: arrowType == .int64))
   case .float16:
-    return .success(FloatingPoint.createFloatingPoint(&fbb, precision: .half))
+    return .success(FFloatingPoint.createFloatingPoint(&fbb, precision: .half))
   case .float32:
-    return .success(FloatingPoint.createFloatingPoint(&fbb, precision: .single))
+    return .success(
+      FFloatingPoint.createFloatingPoint(&fbb, precision: .single))
   case .float64:
-    return .success(FloatingPoint.createFloatingPoint(&fbb, precision: .double))
+    return .success(
+      FFloatingPoint.createFloatingPoint(&fbb, precision: .double))
   case .utf8:
-    return .success(Utf8.endUtf8(&fbb, start: Utf8.startUtf8(&fbb)))
+    return .success(FUtf8.endUtf8(&fbb, start: FUtf8.startUtf8(&fbb)))
   case .binary:
-    return .success(Binary.endBinary(&fbb, start: Binary.startBinary(&fbb)))
+    return .success(FBinary.endBinary(&fbb, start: FBinary.startBinary(&fbb)))
   case .boolean:
-    return .success(FlatBool.endBool(&fbb, start: FlatBool.startBool(&fbb)))
+    return .success(FBool.endBool(&fbb, start: FBool.startBool(&fbb)))
   case .date32:
-    let startOffset = FlatDate.startDate(&fbb)
-    FlatDate.add(unit: .day, &fbb)
-    return .success(FlatDate.endDate(&fbb, start: startOffset))
+    let startOffset = FDate.startDate(&fbb)
+    FDate.add(unit: .day, &fbb)
+    return .success(FDate.endDate(&fbb, start: startOffset))
   case .date64:
-    let startOffset = FlatDate.startDate(&fbb)
-    FlatDate.add(unit: .millisecond, &fbb)
-    return .success(FlatDate.endDate(&fbb, start: startOffset))
+    let startOffset = FDate.startDate(&fbb)
+    FDate.add(unit: .millisecond, &fbb)
+    return .success(FDate.endDate(&fbb, start: startOffset))
   case .time32(let unit):
-    let startOffset = FlatTime.startTime(&fbb)
-    FlatTime.add(unit: unit == .second ? .second : .millisecond, &fbb)
-    return .success(FlatTime.endTime(&fbb, start: startOffset))
+    let startOffset = FTime.startTime(&fbb)
+    FTime.add(unit: unit == .second ? .second : .millisecond, &fbb)
+    return .success(FTime.endTime(&fbb, start: startOffset))
   case .time64(let unit):
-    let startOffset = FlatTime.startTime(&fbb)
-    FlatTime.add(unit: unit == .microsecond ? .microsecond : .nanosecond, &fbb)
-    return .success(FlatTime.endTime(&fbb, start: startOffset))
+    let startOffset = FTime.startTime(&fbb)
+    FTime.add(unit: unit == .microsecond ? .microsecond : .nanosecond, &fbb)
+    return .success(FTime.endTime(&fbb, start: startOffset))
   case .timestamp(let unit, let timezone):
-    let startOffset = FlatTimestamp.startTimestamp(&fbb)
-    let fbUnit: FlatTimeUnit
+    let startOffset = FTimestamp.startTimestamp(&fbb)
+    let fbUnit: FTimeUnit
     switch unit {
     case .second:
       fbUnit = .second
@@ -108,15 +110,15 @@ func toFBType(
     case .nanosecond:
       fbUnit = .nanosecond
     }
-    FlatTimestamp.add(unit: fbUnit, &fbb)
+    FTimestamp.add(unit: fbUnit, &fbb)
     if let timezone {
       let timezoneOffset = fbb.create(string: timezone)
-      FlatTimestamp.add(timezone: timezoneOffset, &fbb)
+      FTimestamp.add(timezone: timezoneOffset, &fbb)
     }
-    return .success(FlatTimestamp.endTimestamp(&fbb, start: startOffset))
+    return .success(FTimestamp.endTimestamp(&fbb, start: startOffset))
   case .strct(_):
-    let startOffset = FlatStruct.startStruct_(&fbb)
-    return .success(FlatStruct.endStruct_(&fbb, start: startOffset))
+    let startOffset = FStruct.startStruct_(&fbb)
+    return .success(FStruct.endStruct_(&fbb, start: startOffset))
   default:
     return .failure(
       .unknownType("Unable to add flatbuf type for Arrow type: \(arrowType)")

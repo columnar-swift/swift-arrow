@@ -34,7 +34,6 @@ public protocol AnyArrowArray {
 /// The interface for Arrow array types.
 public protocol ArrowArray<ItemType>: AnyArrowArray {
   associatedtype ItemType
-  var arrowData: ArrowData { get }
   init(_ arrowData: ArrowData) throws(ArrowError)
   subscript(_ index: UInt) -> ItemType? { get }
 }
@@ -132,25 +131,24 @@ public class FixedArray<T>: ArrowArrayBase<T> where T: BitwiseCopyable {
 public class StringArray: ArrowArrayBase<String> {
 
   public override subscript(_ index: UInt) -> String? {
-    let offsetIndex = MemoryLayout<Int32>.stride * Int(index)
     if self.arrowData.isNull(index) {
       return nil
     }
 
     let offsets = self.arrowData.buffers[1]
-    let values = self.arrowData.buffers[2]
-
+    let offsetIndex = MemoryLayout<Int32>.stride * Int(index)
     var startIndex: Int32 = 0
     if index > 0 {
       startIndex = offsets.rawPointer.advanced(by: offsetIndex)
         .load(as: Int32.self)
     }
-
     let endIndex = offsets.rawPointer.advanced(
       by: offsetIndex + MemoryLayout<Int32>.stride
     )
     .load(as: Int32.self)
+
     let arrayLength = Int(endIndex - startIndex)
+    let values = self.arrowData.buffers[2]
     let rawPointer = values.rawPointer.advanced(by: Int(startIndex))
       .bindMemory(to: UInt8.self, capacity: arrayLength)
     let buffer = UnsafeBufferPointer<UInt8>(

@@ -15,19 +15,7 @@
 
 import Foundation
 
-func makeBuffer(
-  _ buffer: Buffer,
-  fileData: Data,
-  length: UInt,
-  messageOffset: Int64
-) -> ArrowBuffer {
-  let startOffset = messageOffset + buffer.offset
-  let endOffset = startOffset + buffer.length
-  let bufferData = [UInt8](fileData[startOffset..<endOffset])
-  return ArrowBuffer.createBuffer(bufferData, length: length)
-}
-
-func isFixedPrimitive(_ type: FlatType) -> Bool {
+func isFixedPrimitive(_ type: FType) -> Bool {
   switch type {
   case .int, .bool, .floatingpoint, .date, .time, .timestamp:
     return true
@@ -36,11 +24,11 @@ func isFixedPrimitive(_ type: FlatType) -> Bool {
   }
 }
 
-func findArrowType(_ field: FlatField) throws(ArrowError) -> ArrowType {
+func findArrowType(_ field: FField) throws(ArrowError) -> ArrowType {
   let type = field.typeType
   switch type {
   case .int:
-    guard let intType = field.type(type: FlatInt.self) else {
+    guard let intType = field.type(type: FInt.self) else {
       throw .invalid("Could not get integer type from \(field)")
     }
     let bitWidth = intType.bitWidth
@@ -64,7 +52,7 @@ func findArrowType(_ field: FlatField) throws(ArrowError) -> ArrowType {
   case .bool:
     return .boolean
   case .floatingpoint:
-    guard let floatType = field.type(type: FloatingPoint.self) else {
+    guard let floatType = field.type(type: FFloatingPoint.self) else {
       throw .invalid("Could not get floating point type from field")
     }
     switch floatType.precision {
@@ -80,7 +68,7 @@ func findArrowType(_ field: FlatField) throws(ArrowError) -> ArrowType {
   case .binary:
     return .binary
   case .date:
-    guard let dateType = field.type(type: FlatDate.self) else {
+    guard let dateType = field.type(type: FDate.self) else {
       throw .invalid("Could not get date type from field")
     }
     if dateType.unit == .day {
@@ -88,7 +76,7 @@ func findArrowType(_ field: FlatField) throws(ArrowError) -> ArrowType {
     }
     return .date64
   case .time:
-    guard let timeType = field.type(type: FlatTime.self) else {
+    guard let timeType = field.type(type: FTime.self) else {
       throw .invalid("Could not get time type from field")
     }
     if timeType.unit == .second || timeType.unit == .millisecond {
@@ -100,7 +88,7 @@ func findArrowType(_ field: FlatField) throws(ArrowError) -> ArrowType {
       timeType.unit == .microsecond ? .microsecond : .nanosecond
     )
   case .timestamp:
-    guard let timestampType = field.type(type: FlatTimestamp.self) else {
+    guard let timestampType = field.type(type: FTimestamp.self) else {
       throw .invalid("Could not get timestamp type from field")
     }
     let arrowUnit: TimeUnit
@@ -117,7 +105,7 @@ func findArrowType(_ field: FlatField) throws(ArrowError) -> ArrowType {
     let timezone = timestampType.timezone
     return .timestamp(arrowUnit, timezone)
   case .struct_:
-    guard field.type(type: FlatStruct.self) != nil else {
+    guard field.type(type: FStruct.self) != nil else {
       throw .invalid("Could not get struct type from field")
     }
     var fields: [ArrowField] = []
@@ -158,7 +146,7 @@ func findArrowType(_ field: FlatField) throws(ArrowError) -> ArrowType {
   }
 }
 
-func validateBufferIndex(_ recordBatch: FlatRecordBatch, index: Int32) throws {
+func validateBufferIndex(_ recordBatch: FRecordBatch, index: Int32) throws {
   if index >= recordBatch.buffersCount {
     throw ArrowError.outOfBounds(index: Int64(index))
   }

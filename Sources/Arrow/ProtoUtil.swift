@@ -15,13 +15,13 @@
 import Foundation
 
 func fromProto(
-  field: FlatField
+  field: FField
 ) throws(ArrowError) -> ArrowField {
   let type = field.typeType
   var arrowType: ArrowType?
   switch type {
   case .int:
-    guard let intType = field.type(type: FlatInt.self) else {
+    guard let intType = field.type(type: FInt.self) else {
       throw .invalid("Invalid FlatBuffer: \(field)")
     }
     let bitWidth = intType.bitWidth
@@ -37,7 +37,7 @@ func fromProto(
   case .bool:
     arrowType = .boolean
   case .floatingpoint:
-    guard let floatType = field.type(type: FloatingPoint.self) else {
+    guard let floatType = field.type(type: FFloatingPoint.self) else {
       throw .invalid("Invalid FlatBuffer: \(field)")
     }
     switch floatType.precision {
@@ -53,7 +53,7 @@ func fromProto(
   case .binary:
     arrowType = .binary
   case .date:
-    guard let dateType = field.type(type: FlatDate.self) else {
+    guard let dateType = field.type(type: FDate.self) else {
       throw .invalid("Invalid FlatBuffer: \(field)")
     }
     if dateType.unit == .day {
@@ -62,7 +62,7 @@ func fromProto(
       arrowType = .date64
     }
   case .time:
-    guard let timeType = field.type(type: FlatTime.self) else {
+    guard let timeType = field.type(type: FTime.self) else {
       throw .invalid("Invalid FlatBuffer: \(field)")
     }
     if timeType.unit == .second || timeType.unit == .millisecond {
@@ -75,7 +75,7 @@ func fromProto(
       arrowType = .time64(arrowUnit)
     }
   case .timestamp:
-    guard let timestampType = field.type(type: FlatTimestamp.self) else {
+    guard let timestampType = field.type(type: FTimestamp.self) else {
       throw .invalid("Invalid FlatBuffer: \(field)")
     }
     let arrowUnit: TimeUnit

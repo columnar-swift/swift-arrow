@@ -1,19 +1,17 @@
-// Licensed to the Apache Software Foundation (ASF) under one
-// or more contributor license agreements.  See the NOTICE file
-// distributed with this work for additional information
-// regarding copyright ownership.  The ASF licenses this file
-// to you under the Apache License, Version 2.0 (the
-// "License"); you may not use this file except in compliance
-// with the License.  You may obtain a copy of the License at
+// Copyright 2025 The Apache Software Foundation
+// Copyright 2025 Columnar-Swift contributors
 //
-//   http://www.apache.org/licenses/LICENSE-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
 //
-// Unless required by applicable law or agreed to in writing,
-// software distributed under the License is distributed on an
-// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-// KIND, either express or implied.  See the License for the
-// specific language governing permissions and limitations
-// under the License.
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 import FlatBuffers
 import Foundation
@@ -56,12 +54,12 @@ public class ArrowWriter {
   }
 
   public class Info {
-    public let type: MessageHeader
+    let type: FMessageHeader
     public let schema: ArrowSchema
     public let batches: [RecordBatch]
 
-    public init(
-      _ type: MessageHeader,
+    init(
+      _ type: FMessageHeader,
       schema: ArrowSchema,
       batches: [RecordBatch]
     ) {
@@ -70,7 +68,7 @@ public class ArrowWriter {
       self.batches = batches
     }
 
-    public convenience init(_ type: MessageHeader, schema: ArrowSchema) {
+    convenience init(_ type: FMessageHeader, schema: ArrowSchema) {
       self.init(type, schema: schema, batches: [RecordBatch]())
     }
   }
@@ -97,24 +95,24 @@ public class ArrowWriter {
 
     let nameOffset = fbb.create(string: field.name)
     let fieldTypeOffsetResult = toFBType(&fbb, arrowType: field.type)
-    let startOffset = FlatField.startField(&fbb)
-    FlatField.add(name: nameOffset, &fbb)
-    FlatField.add(nullable: field.isNullable, &fbb)
+    let startOffset = FField.startField(&fbb)
+    FField.add(name: nameOffset, &fbb)
+    FField.add(nullable: field.isNullable, &fbb)
     if let childrenOffset = fieldsOffset {
-      FlatField.addVectorOf(children: childrenOffset, &fbb)
+      FField.addVectorOf(children: childrenOffset, &fbb)
     }
 
     switch toFBTypeEnum(field.type) {
     case .success(let type):
-      FlatField.add(typeType: type, &fbb)
+      FField.add(typeType: type, &fbb)
     case .failure(let error):
       return .failure(error)
     }
 
     switch fieldTypeOffsetResult {
     case .success(let offset):
-      FlatField.add(type: offset, &fbb)
-      return .success(FlatField.endField(&fbb, start: startOffset))
+      FField.add(type: offset, &fbb)
+      return .success(FField.endField(&fbb, start: startOffset))
     case .failure(let error):
       return .failure(error)
     }
@@ -135,7 +133,7 @@ public class ArrowWriter {
     }
     let fieldsOffset: Offset = fbb.createVector(ofOffsets: fieldOffsets)
     let schemaOffset =
-      Schema.createSchema(
+      FSchema.createSchema(
         &fbb,
         endianness: .little,
         fieldsVectorOffset: fieldsOffset
@@ -146,8 +144,8 @@ public class ArrowWriter {
   private func writeRecordBatches(
     _ writer: inout DataWriter,
     batches: [RecordBatch]
-  ) -> Result<[Block], ArrowError> {
-    var rbBlocks: [Block] = .init()
+  ) -> Result<[FBlock], ArrowError> {
+    var rbBlocks: [FBlock] = .init()
     for batch in batches {
       let startIndex = writer.count
       switch writeRecordBatch(batch: batch) {
@@ -177,7 +175,7 @@ public class ArrowWriter {
               ))
           }
           rbBlocks.append(
-            Block(
+            FBlock(
               offset: Int64(startIndex),
               metaDataLength: Int32(metadataLength),
               bodyLength: Int64(bodyLength)
@@ -202,7 +200,7 @@ public class ArrowWriter {
   ) {
     for index in (0..<fields.count).reversed() {
       let column = columns[index]
-      let fieldNode = FieldNode(
+      let fieldNode = FFieldNode(
         length: Int64(column.length),
         nullCount: Int64(column.nullCount)
       )
@@ -226,14 +224,14 @@ public class ArrowWriter {
     _ fields: [ArrowField],
     columns: [AnyArrowArray],
     bufferOffset: inout Int,
-    buffers: inout [Buffer],
+    buffers: inout [FBuffer],
     fbb: inout FlatBufferBuilder
   ) {
     for index in 0..<fields.count {
       let column = columns[index]
       for var bufferDataSize in column.bufferDataSizes {
         bufferDataSize = getPadForAlignment(bufferDataSize)
-        let buffer = Buffer(
+        let buffer = FBuffer(
           offset: Int64(bufferOffset), length: Int64(bufferDataSize))
         buffers.append(buffer)
         bufferOffset += bufferDataSize
@@ -260,7 +258,7 @@ public class ArrowWriter {
     var fieldNodeOffsets: [Offset] = []
     fbb.startVector(
       schema.fields.count,
-      elementSize: MemoryLayout<FieldNode>.size
+      elementSize: MemoryLayout<FFieldNode>.size
     )
     writeFieldNodes(
       schema.fields,
@@ -270,33 +268,33 @@ public class ArrowWriter {
     )
     let nodeOffset = fbb.endVector(len: fieldNodeOffsets.count)
     // write out buffers
-    var buffers: [Buffer] = .init()
+    var buffers: [FBuffer] = .init()
     var bufferOffset: Int = 0
     writeBufferInfo(
       schema.fields, columns: batch.columns,
       bufferOffset: &bufferOffset, buffers: &buffers,
       fbb: &fbb
     )
-    FlatRecordBatch.startVectorOfBuffers(batch.schema.fields.count, in: &fbb)
+    FRecordBatch.startVectorOfBuffers(batch.schema.fields.count, in: &fbb)
     for buffer in buffers.reversed() {
       fbb.create(struct: buffer)
     }
     let batchBuffersOffset = fbb.endVector(len: buffers.count)
-    let startRb = FlatRecordBatch.startRecordBatch(&fbb)
-    FlatRecordBatch.addVectorOf(nodes: nodeOffset, &fbb)
-    FlatRecordBatch.addVectorOf(buffers: batchBuffersOffset, &fbb)
-    FlatRecordBatch.add(length: Int64(batch.length), &fbb)
-    let recordBatchOffset = FlatRecordBatch.endRecordBatch(
+    let startRb = FRecordBatch.startRecordBatch(&fbb)
+    FRecordBatch.addVectorOf(nodes: nodeOffset, &fbb)
+    FRecordBatch.addVectorOf(buffers: batchBuffersOffset, &fbb)
+    FRecordBatch.add(length: Int64(batch.length), &fbb)
+    let recordBatchOffset = FRecordBatch.endRecordBatch(
       &fbb,
       start: startRb
     )
     let bodySize = Int64(bufferOffset)
-    let startMessage = Message.startMessage(&fbb)
-    Message.add(version: .max, &fbb)
-    Message.add(bodyLength: Int64(bodySize), &fbb)
-    Message.add(headerType: .recordbatch, &fbb)
-    Message.add(header: recordBatchOffset, &fbb)
-    let messageOffset = Message.endMessage(&fbb, start: startMessage)
+    let startMessage = FMessage.startMessage(&fbb)
+    FMessage.add(version: .max, &fbb)
+    FMessage.add(bodyLength: Int64(bodySize), &fbb)
+    FMessage.add(headerType: .recordbatch, &fbb)
+    FMessage.add(header: recordBatchOffset, &fbb)
+    let messageOffset = FMessage.endMessage(&fbb, start: startMessage)
     fbb.finish(offset: messageOffset)
     return .success((fbb.data, Offset(offset: UInt32(fbb.data.count))))
   }
@@ -337,21 +335,21 @@ public class ArrowWriter {
 
   private func writeFooter(
     schema: ArrowSchema,
-    rbBlocks: [Block]
+    rbBlocks: [FBlock]
   ) -> Result<Data, ArrowError> {
-    var fbb: FlatBufferBuilder = FlatBufferBuilder()
+    var fbb: FlatBufferBuilder = .init()
     switch writeSchema(&fbb, schema: schema) {
     case .success(let schemaOffset):
       fbb.startVector(
-        rbBlocks.count, elementSize: MemoryLayout<Block>.size)
+        rbBlocks.count, elementSize: MemoryLayout<FBlock>.size)
       for blkInfo in rbBlocks.reversed() {
         fbb.create(struct: blkInfo)
       }
       let rbBlkEnd = fbb.endVector(len: rbBlocks.count)
-      let footerStartOffset = Footer.startFooter(&fbb)
-      Footer.add(schema: schemaOffset, &fbb)
-      Footer.addVectorOf(recordBatches: rbBlkEnd, &fbb)
-      let footerOffset = Footer.endFooter(&fbb, start: footerStartOffset)
+      let footerStartOffset = FFooter.startFooter(&fbb)
+      FFooter.add(schema: schemaOffset, &fbb)
+      FFooter.addVectorOf(recordBatches: rbBlkEnd, &fbb)
+      let footerOffset = FFooter.endFooter(&fbb, start: footerStartOffset)
       fbb.finish(offset: footerOffset)
       return .success(fbb.data)
     case .failure(let error):
@@ -363,7 +361,7 @@ public class ArrowWriter {
     _ writer: inout DataWriter,
     info: ArrowWriter.Info
   ) -> Result<Bool, ArrowError> {
-    var fbb: FlatBufferBuilder = FlatBufferBuilder()
+    var fbb: FlatBufferBuilder = .init()
     switch writeSchema(&fbb, schema: info.schema) {
     case .success(let schemaOffset):
       fbb.finish(offset: schemaOffset)
@@ -522,12 +520,12 @@ public class ArrowWriter {
       return .failure(error)
     }
 
-    let startMessage = Message.startMessage(&fbb)
-    Message.add(bodyLength: Int64(0), &fbb)
-    Message.add(headerType: .schema, &fbb)
-    Message.add(header: Offset(offset: UOffset(schemaSize)), &fbb)
-    Message.add(version: .max, &fbb)
-    let messageOffset = Message.endMessage(&fbb, start: startMessage)
+    let startMessage = FMessage.startMessage(&fbb)
+    FMessage.add(bodyLength: Int64(0), &fbb)
+    FMessage.add(headerType: .schema, &fbb)
+    FMessage.add(header: Offset(offset: UOffset(schemaSize)), &fbb)
+    FMessage.add(version: .max, &fbb)
+    let messageOffset = FMessage.endMessage(&fbb, start: startMessage)
     fbb.finish(offset: messageOffset)
     return .success(fbb.data)
   }
