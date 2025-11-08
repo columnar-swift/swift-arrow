@@ -22,14 +22,12 @@ public protocol AnyArrowArray {
   var length: UInt { get }
   var nullCount: UInt { get }
   var arrowData: ArrowData { get }
-  var bufferData: [Data] { get }
-  var bufferDataSizes: [Int] { get }
+  var bufferData: [Data] { get }  // TODO: remove
+  var bufferDataSizes: [Int] { get }  // TODO: remove
   func asAny(_ index: UInt) -> Any?
   func asString(_ index: UInt) -> String
   func setCArrayPtr(_ cArrayPtr: UnsafePointer<ArrowC.ArrowArray>?)
 }
-
-// MARK: Core Protocol
 
 /// The interface for Arrow array types.
 public protocol ArrowArray<ItemType>: AnyArrowArray {
@@ -86,16 +84,14 @@ extension ArrowArrayBase {
     arrowData.type
   }
 
+  // TODO: Remove
   public var bufferData: [Data] {
-    arrowData.buffers.map { buffer in
-      var data = Data()
-      buffer.append(to: &data)
-      return data
-    }
+    arrowData.bufferData
   }
 
+  // TODO: Remove
   public var bufferDataSizes: [Int] {
-    arrowData.buffers.map { Int($0.capacity) }
+    arrowData.bufferDataSizes
   }
 
   public func isNull(at index: UInt) throws(ArrowError) -> Bool {
@@ -114,17 +110,8 @@ public class FixedArray<T>: ArrowArrayBase<T> where T: BitwiseCopyable {
     if arrowData.isNull(index) {
       return nil
     }
-    let byteOffset = arrowData.stride * Int(index)
-
-    // FIXME: Can probably do this and remove BitwiseCopyable constraint.
-    //    let buffer = UnsafeBufferPointer<ItemType>(
-    //      start: arrowData.buffers[1].rawPointer.assumingMemoryBound(to: ItemType.self),
-    //      count: Int(arrowData.length)
-    //    )
-    //    return buffer[Int(index)]
-    return arrowData.buffers[1].rawPointer
-      .advanced(by: byteOffset)
-      .load(as: ItemType.self)
+    let value: ItemType = arrowData.load(at: index)
+    return value
   }
 }
 
@@ -134,28 +121,12 @@ public class StringArray: ArrowArrayBase<String> {
     if self.arrowData.isNull(index) {
       return nil
     }
-
-    let offsets = self.arrowData.buffers[1]
-    let offsetIndex = MemoryLayout<Int32>.stride * Int(index)
-    var startIndex: Int32 = 0
-    if index > 0 {
-      startIndex = offsets.rawPointer.advanced(by: offsetIndex)
-        .load(as: Int32.self)
-    }
-    let endIndex = offsets.rawPointer.advanced(
-      by: offsetIndex + MemoryLayout<Int32>.stride
-    )
-    .load(as: Int32.self)
-
+    let offsetBuffer: OffsetsBuffer = arrowData.offsets
+    let (startIndex, endIndex) = offsetBuffer.offsets(at: Int(index))
     let arrayLength = Int(endIndex - startIndex)
-    let values = self.arrowData.buffers[2]
-    let rawPointer = values.rawPointer.advanced(by: Int(startIndex))
-      .bindMemory(to: UInt8.self, capacity: arrayLength)
-    let buffer = UnsafeBufferPointer<UInt8>(
-      start: rawPointer,
-      count: arrayLength
-    )
-    return String(bytes: buffer, encoding: .utf8)
+    let value: String = self.arrowData.loadVariable(
+      at: Int(startIndex), arrayLength: arrayLength)
+    return value
   }
 }
 
@@ -165,8 +136,7 @@ public class BoolArray: ArrowArrayBase<Bool> {
     if self.arrowData.isNull(index) {
       return nil
     }
-    let valueBuffer = self.arrowData.buffers[1]
-    return BitUtility.isSet(index, buffer: valueBuffer)
+    return arrowData.isNullValue(at: index)
   }
 }
 
@@ -176,10 +146,7 @@ public class Date32Array: ArrowArrayBase<Date> {
     if self.arrowData.isNull(index) {
       return nil
     }
-    let byteOffset = self.arrowData.stride * Int(index)
-    let milliseconds = self.arrowData.buffers[1].rawPointer.advanced(
-      by: byteOffset
-    ).load(as: UInt32.self)
+    let milliseconds: UInt32 = arrowData.load(at: index)
     return Date(timeIntervalSince1970: TimeInterval(milliseconds * 86400))
   }
 }
@@ -190,10 +157,8 @@ public class Date64Array: ArrowArrayBase<Date> {
     if self.arrowData.isNull(index) {
       return nil
     }
-    let byteOffset = self.arrowData.stride * Int(index)
-    let milliseconds = self.arrowData.buffers[1].rawPointer.advanced(
-      by: byteOffset
-    ).load(as: UInt64.self)
+
+    let milliseconds: UInt64 = self.arrowData.load(at: index)
     return Date(timeIntervalSince1970: TimeInterval(milliseconds / 1000))
   }
 }
@@ -298,28 +263,17 @@ public class BinaryArray: ArrowArrayBase<Data> {
   public var options = Options()
 
   public override subscript(_ index: UInt) -> Data? {
-    let offsetIndex = MemoryLayout<Int32>.stride * Int(index)
     if self.arrowData.isNull(index) {
       return nil
     }
-    let offsets = self.arrowData.buffers[1]
-    let values = self.arrowData.buffers[2]
-    var startIndex: Int32 = 0
-    if index > 0 {
-      startIndex = offsets.rawPointer.advanced(by: offsetIndex)
-        .load(as: Int32.self)
-    }
-    let endIndex = offsets.rawPointer.advanced(
-      by: offsetIndex + MemoryLayout<Int32>.stride
-    )
-    .load(as: Int32.self)
+
+    let (startIndex, endIndex) = arrowData.offsets.offsets(at: Int(index))
+
     let arrayLength = Int(endIndex - startIndex)
-    let rawPointer = values.rawPointer.advanced(by: Int(startIndex))
-      .bindMemory(to: UInt8.self, capacity: arrayLength)
-    let buffer = UnsafeBufferPointer<UInt8>(
-      start: rawPointer, count: arrayLength)
-    let byteArray = Array(buffer)
-    return Data(byteArray)
+
+    let data: Data = self.arrowData.loadVariable(
+      at: Int(startIndex), arrayLength: arrayLength)
+    return data
   }
 
   public override func asString(_ index: UInt) -> String {
@@ -381,16 +335,10 @@ public class NestedArray: ArrowArrayBase<[Any?]> {
     switch arrowData.type {
     case .list(let _):
       guard let values = children.first else { return nil }
-      let offsets = self.arrowData.buffers[1]
-      let offsetIndex = Int(index) * MemoryLayout<Int32>.stride
-      let startOffset = offsets.rawPointer.advanced(by: offsetIndex)
-        .load(as: Int32.self)
-      let endOffset = offsets.rawPointer.advanced(
-        by: offsetIndex + MemoryLayout<Int32>.stride
-      )
-      .load(as: Int32.self)
+
+      let (startIndex, endIndex) = arrowData.offsets.offsets(at: Int(index))
       var items: [Any?] = []
-      for i in startOffset..<endOffset {
+      for i in startIndex..<endIndex {
         items.append(values.asAny(UInt(i)))
       }
       return items

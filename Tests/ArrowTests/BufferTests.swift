@@ -21,6 +21,9 @@ import Testing
 struct BufferTests {
 
   @Test func nullBufferBuilder() {
+
+    // TODO: consider empty buffers
+
     let mutableNullBuffer = NullBufferBuilder()
     for i in 0..<10000 {
       if i % 7 == 0 {

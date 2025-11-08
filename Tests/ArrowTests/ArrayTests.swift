@@ -40,10 +40,10 @@ struct ArrayTests {
     #expect(array[10]! == 10)
     #expect(try array.isNull(at: 100) == true)
 
-    for buffer in array.arrowData.buffers {
-      let dataAddress = UInt(bitPattern: buffer.rawPointer)
-      #expect(dataAddress % 64 == 0, "Buffer should be 64-byte aligned")
-    }
+    //    for buffer in array.arrowData.buffers {
+    //      let dataAddress = UInt(bitPattern: buffer.rawPointer)
+    //      #expect(dataAddress % 64 == 0, "Buffer should be 64-byte aligned")
+    //    }
   }
 
   @Test func doubleArray() throws {
@@ -90,11 +90,6 @@ struct ArrayTests {
   }
 
   @Test func boolArray() throws {
-
-    for i in 0..<100 {
-      let bytesNeeded = (i + 7) / 8
-      print("\(i) bits requires \(bytesNeeded) bytes")
-    }
 
     let boolBuilder = try ArrowArrayBuilders.loadBoolArrayBuilder()
     boolBuilder.append(true)

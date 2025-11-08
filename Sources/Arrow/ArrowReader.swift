@@ -30,6 +30,8 @@ public struct ArrowReader: Sendable {
     let startOffset = messageOffset + buffer.offset
     let endOffset = startOffset + buffer.length
 
+    let range = Int(startOffset)..<Int(endOffset)
+    //    let offset = BorrowedOffsets(count: Int(length) / 4, data: fileData, range: range)
     // TODO: This should not copy.
 
     let bufferData = [UInt8](fileData[startOffset..<endOffset])
@@ -212,15 +214,24 @@ public struct ArrowReader: Sendable {
 
     let nullLength = UInt(ceil(Double(node.length) / 8))
     let arrowNullBuffer = makeBuffer(
-      nullBuffer, fileData: loadInfo.fileData,
-      length: nullLength, messageOffset: loadInfo.messageOffset)
+      nullBuffer,
+      fileData: loadInfo.fileData,
+      length: nullLength,
+      messageOffset: loadInfo.messageOffset
+    )
     let arrowValueBuffer = makeBuffer(
-      valueBuffer, fileData: loadInfo.fileData,
-      length: UInt(node.length), messageOffset: loadInfo.messageOffset)
+      valueBuffer,
+      fileData: loadInfo.fileData,
+      length: UInt(node.length),
+      messageOffset: loadInfo.messageOffset
+    )
     return makeArrayHolder(
-      field, buffers: [arrowNullBuffer, arrowValueBuffer],
-      nullCount: UInt(node.nullCount), children: nil,
-      rbLength: UInt(loadInfo.batchData.recordBatch.length))
+      field,
+      buffers: [arrowNullBuffer, arrowValueBuffer],
+      nullCount: UInt(node.nullCount),
+      children: nil,
+      rbLength: UInt(loadInfo.batchData.recordBatch.length)
+    )
   }
 
   // MARK: Variable data loading
