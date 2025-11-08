@@ -15,7 +15,7 @@
 /// A type which provides offset ranges in Arrow arrays.
 protocol OffsetsBuffer {
   /// Number of offset pairs available
-//  var count: Int { get }
+  //  var count: Int { get }
 
   /// Get the start and end offsets for the element at index
   /// - Parameter index: Zero-based index of the element

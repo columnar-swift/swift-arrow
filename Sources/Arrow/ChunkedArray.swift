@@ -19,7 +19,7 @@ public class ChunkedArrayHolder {
   public let length: UInt
   public let nullCount: UInt
   public let holder: Any
-  
+
   public init<T>(_ chunked: ChunkedArray<T>) {
     self.holder = chunked
     self.length = chunked.length

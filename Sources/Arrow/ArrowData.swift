@@ -15,7 +15,7 @@
 import Foundation
 
 protocol VariableLength {
-  init (_ value: UnsafeBufferPointer<UInt8>)
+  init(_ value: UnsafeBufferPointer<UInt8>)
 }
 
 extension String: VariableLength {
@@ -31,7 +31,7 @@ extension Data: VariableLength {
 }
 
 public struct ArrowData {
-  
+
   // FIXME: Remove
   public var bufferData: [Data] {
     buffers.map { buffer in
@@ -45,20 +45,17 @@ public struct ArrowData {
   public var bufferDataSizes: [Int] {
     buffers.map { Int($0.capacity) }
   }
-  
+
   // FIXME: Remove
   public var data: [UnsafeMutableRawPointer] {
     buffers.map { $0.rawPointer }
   }
-  
+
   // FIXME: Remove
   public var bufferCount: Int {
-    return buffers.count
+    buffers.count
   }
-  
-  // FIXME: Remove
-  private let buffers: [ArrowBuffer]
-  
+
   // TODO: Typed accessors - migration
   var offsets: OffsetsBuffer {
     if !type.isVariable && !type.isNested {
@@ -66,12 +63,14 @@ public struct ArrowData {
     }
     return ArrowBufferBackedOffsets(buffers[1])
   }
-  
+
   // TODO: this should replace nullBuffer
   var nulls: NullBuffer {
     let buffer = buffers[0]
     let pointer = buffer.rawPointer.assumingMemoryBound(to: UInt8.self)
-    return NullBuffer(length: Int(buffer.length), capacity: 0, ownsMemory: false, buffer: pointer)
+    return NullBuffer(
+      length: Int(buffer.length), capacity: 0, ownsMemory: false,
+      buffer: pointer)
   }
 
   public let type: ArrowType
@@ -79,7 +78,9 @@ public struct ArrowData {
   public let nullCount: UInt
   public let length: UInt
 
-  let nullBuffer: ArrowBuffer
+  private let nullBuffer: ArrowBuffer
+  // FIXME: Remove
+  private let buffers: [ArrowBuffer]
 
   init(
     _ arrowType: ArrowType,
@@ -108,7 +109,7 @@ public struct ArrowData {
     self.length = length
     self.nullBuffer = buffers[0]
   }
-  
+
   // TODO: Temporary while removing ArrowBuffer
   public func load<T>(at index: UInt) -> T where T: BitwiseCopyable {
     let valueType = T.self
@@ -118,7 +119,7 @@ public struct ArrowData {
     ).load(as: valueType)
     return milliseconds
   }
-  
+
   // TODO: Temporary while removing ArrowBuffer
   func loadVariable<T>(
     at startIndex: Int,
@@ -144,11 +145,11 @@ public struct ArrowData {
     }
     return a
   }
-  
+
   // TODO: Temporary while removing ArrowBuffer
   func isNullValue(at index: UInt) -> Bool {
     let valueBuffer = buffers[1]
     return BitUtility.isSet(index, buffer: valueBuffer)
   }
-  
+
 }

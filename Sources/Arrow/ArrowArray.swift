@@ -22,8 +22,8 @@ public protocol AnyArrowArray {
   var length: UInt { get }
   var nullCount: UInt { get }
   var arrowData: ArrowData { get }
-  var bufferData: [Data] { get } // TODO: remove
-  var bufferDataSizes: [Int] { get } // TODO: remove
+  var bufferData: [Data] { get }  // TODO: remove
+  var bufferDataSizes: [Int] { get }  // TODO: remove
   func asAny(_ index: UInt) -> Any?
   func asString(_ index: UInt) -> String
   func setCArrayPtr(_ cArrayPtr: UnsafePointer<ArrowC.ArrowArray>?)
@@ -124,7 +124,8 @@ public class StringArray: ArrowArrayBase<String> {
     let offsetBuffer: OffsetsBuffer = arrowData.offsets
     let (startIndex, endIndex) = offsetBuffer.offsets(at: Int(index))
     let arrayLength = Int(endIndex - startIndex)
-    let value: String = self.arrowData.loadVariable(at: Int(startIndex), arrayLength: arrayLength)
+    let value: String = self.arrowData.loadVariable(
+      at: Int(startIndex), arrayLength: arrayLength)
     return value
   }
 }
@@ -156,7 +157,7 @@ public class Date64Array: ArrowArrayBase<Date> {
     if self.arrowData.isNull(index) {
       return nil
     }
-    
+
     let milliseconds: UInt64 = self.arrowData.load(at: index)
     return Date(timeIntervalSince1970: TimeInterval(milliseconds / 1000))
   }
@@ -265,12 +266,13 @@ public class BinaryArray: ArrowArrayBase<Data> {
     if self.arrowData.isNull(index) {
       return nil
     }
-    
+
     let (startIndex, endIndex) = arrowData.offsets.offsets(at: Int(index))
 
     let arrayLength = Int(endIndex - startIndex)
-    
-    let data: Data = self.arrowData.loadVariable(at: Int(startIndex), arrayLength: arrayLength)
+
+    let data: Data = self.arrowData.loadVariable(
+      at: Int(startIndex), arrayLength: arrayLength)
     return data
   }
 
@@ -333,7 +335,7 @@ public class NestedArray: ArrowArrayBase<[Any?]> {
     switch arrowData.type {
     case .list(let _):
       guard let values = children.first else { return nil }
-      
+
       let (startIndex, endIndex) = arrowData.offsets.offsets(at: Int(index))
       var items: [Any?] = []
       for i in startIndex..<endIndex {

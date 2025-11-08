@@ -68,9 +68,9 @@ public class ArrowCExporter {
       // obj so the memory doesn't get
       // deallocated
       self.arrowData = arrowData
-//      for arrowBuffer in arrowData.buffers {
-//        self.data.append(arrowBuffer.rawPointer)
-//      }
+      //      for arrowBuffer in arrowData.buffers {
+      //        self.data.append(arrowBuffer.rawPointer)
+      //      }
       for pointer in arrowData.data {
         self.data.append(pointer)
       }

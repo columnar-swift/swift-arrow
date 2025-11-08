@@ -13,15 +13,15 @@
 // limitations under the License.
 
 struct ArrowBufferBackedOffsets: OffsetsBuffer {
-  
+
   let arrowBuffer: ArrowBuffer
-  
+
   init(_ arrowBuffer: ArrowBuffer) {
     self.arrowBuffer = arrowBuffer
   }
-  
+
   func offsets(at index: Int) -> (start: Int32, end: Int32) {
-    
+
     let offsets = arrowBuffer
     let offsetIndex = MemoryLayout<Int32>.stride * Int(index)
     var startIndex: Int32 = 0
@@ -33,7 +33,7 @@ struct ArrowBufferBackedOffsets: OffsetsBuffer {
       by: offsetIndex + MemoryLayout<Int32>.stride
     )
     .load(as: Int32.self)
-  
+
     return (start: startIndex, end: endIndex)
   }
 }
