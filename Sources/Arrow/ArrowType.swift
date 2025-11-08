@@ -57,7 +57,7 @@ public struct UnionField: Codable, Sendable, Equatable {
 /// [the physical memory layout of Apache Arrow]: https://arrow.apache.org/docs/format/Columnar.html#physical-memory-layout
 public indirect enum ArrowType: Codable, Sendable, Equatable {
   /// Null type
-  case null
+  case null // TODO: Implement this
   /// A boolean datatype representing the values `true` and `false`.
   case boolean
   /// A signed 8-bit integer.

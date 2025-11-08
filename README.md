@@ -4,6 +4,8 @@
 
 A Swift implementation of Apache Arrow, the universal columnar format for fast data interchange and in-memory analytics.
 
+This is a **work in progress**. Do not use in production. Progress is fast however, expect a beta in December.
+
 This project is based on Arrow-Swift, the official Swift implementation of Apache Arrow. The decision was made to at least temporarily operate independently of the Apache Software Foundation (ASF). Currently there are no active ASF maintaners with knowledge of Swift, and the only [Apache approved CI for Swift](https://github.com/apache/infrastructure-actions/blob/main/approved_patterns.yml) is [setup-swift which is unmaintained](https://github.com/swift-actions/setup-swift/issues), leading to intermittent CI failures. This has led to delays in much-needed fixes being implemented.
 
 The intention is to continue contributing to the official Apache-Swift repository, however changes can be iterated on more quickly here.

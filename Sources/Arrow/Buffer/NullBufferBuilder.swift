@@ -51,7 +51,6 @@ final class NullBufferBuilder {
     // ensure we have space to write at index `length`
     if length >= capacity {
       resize(to: capacity * 2)
-      print("capacity: \(capacity)")
     }
     buffer[length] = currentByte
     currentByte = 0
