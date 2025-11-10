@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+/// A buffer providing offsets, backed by an `ArrowBuffer` temporarily.
 struct ArrowBufferBackedOffsets: OffsetsBuffer {
 
   let arrowBuffer: ArrowBuffer

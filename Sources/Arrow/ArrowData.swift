@@ -14,22 +14,6 @@
 
 import Foundation
 
-protocol VariableLength {
-  init(_ value: UnsafeBufferPointer<UInt8>)
-}
-
-extension String: VariableLength {
-  init(_ value: UnsafeBufferPointer<UInt8>) {
-    self.init(decoding: value, as: Unicode.UTF8.self)
-  }
-}
-
-extension Data: VariableLength {
-  init(value: UnsafeBufferPointer<UInt8>) {
-    self.init(value)
-  }
-}
-
 public struct ArrowData {
 
   // FIXME: Remove

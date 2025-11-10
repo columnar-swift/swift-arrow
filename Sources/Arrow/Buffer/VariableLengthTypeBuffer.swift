@@ -12,8 +12,37 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-/// A  bit-packed buffer used to represent nulls and booleans in Arrow arrays.
-final class NullBuffer {
+import Foundation
+
+/// An Arrow type with variable length.
+protocol VariableLength {
+  init(_ value: UnsafeBufferPointer<UInt8>)
+
+  var data: Data { get }
+}
+
+extension String: VariableLength {
+  init(_ value: UnsafeBufferPointer<UInt8>) {
+    self.init(decoding: value, as: Unicode.UTF8.self)
+  }
+
+  var data: Data {
+    Data(self.utf8)
+  }
+}
+
+extension Data: VariableLength {
+  init(value: UnsafeBufferPointer<UInt8>) {
+    self.init(value)
+  }
+
+  var data: Data {
+    self
+  }
+}
+
+/// A buffer containing values with variable length, used in variable length type Arrow arrays.
+final class VariableLengthTypeBuffer<T: VariableLength> {
   var length: Int
   var capacity: Int
   let ownsMemory: Bool
@@ -31,11 +60,17 @@ final class NullBuffer {
     self.buffer = buffer
   }
 
-  func isSet(_ bit: Int) -> Bool {
-    let byteIndex = bit / 8
-    precondition(length > byteIndex, "Bit index \(bit) out of range")
-    let byte = self.buffer[byteIndex]
-    return byte & (1 << (bit % 8)) > 0
+  func loadVariable(
+    at startIndex: Int,
+    arrayLength: Int
+  ) -> T {
+    precondition(startIndex + arrayLength <= self.length)
+    let rawPointer = buffer.advanced(by: startIndex)
+    let buffer = UnsafeBufferPointer<UInt8>(
+      start: rawPointer,
+      count: arrayLength
+    )
+    return T(buffer)
   }
 
   deinit {

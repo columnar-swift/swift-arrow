@@ -12,18 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-/// A  bit-packed buffer used to represent nulls and booleans in Arrow arrays.
-final class NullBuffer {
+/// A  buffer used in Arrow arrays that hold fixed-width types.
+final class FixedWidthBuffer<T: Numeric> {
   var length: Int
   var capacity: Int
   let ownsMemory: Bool
-  var buffer: UnsafePointer<UInt8>
+  var buffer: UnsafePointer<T>
 
   init(
     length: Int,
     capacity: Int,
     ownsMemory: Bool,
-    buffer: UnsafePointer<UInt8>
+    buffer: UnsafePointer<T>
   ) {
     self.length = length
     self.capacity = capacity
@@ -31,11 +31,8 @@ final class NullBuffer {
     self.buffer = buffer
   }
 
-  func isSet(_ bit: Int) -> Bool {
-    let byteIndex = bit / 8
-    precondition(length > byteIndex, "Bit index \(bit) out of range")
-    let byte = self.buffer[byteIndex]
-    return byte & (1 << (bit % 8)) > 0
+  subscript(index: Int) -> T {
+    buffer[index]
   }
 
   deinit {

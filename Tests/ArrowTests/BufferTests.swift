@@ -47,6 +47,19 @@ struct BufferTests {
     #expect(dataAddress % 64 == 0, "Buffer should be 64-byte aligned")
   }
 
+  @Test func fixedWidthBufferBuilder() {
+
+    let builder = FixedWidthBufferBuilder<Int64>()
+
+    for i in 0..<10_000 {
+      builder.append(Int64(i))
+    }
+
+    let buffer = builder.finish()
+    #expect(buffer.length == 10000)
+
+  }
+
   @Test func offsetsBuffer() {
 
     let offsets: [UInt32] = [0, 4, 8, 12, 16, 20]

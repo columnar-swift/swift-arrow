@@ -12,50 +12,44 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-/// A builder for bit-packed buffers used to represent nulls and booleans in Arrow arrays.
-final class NullBufferBuilder {
+import Foundation
+
+/// Builds Arrow arrays of variable length types such as `String`.
+final class VariableLengthTypeBufferBuilder<T> where T: VariableLength {
   var length: Int
   var capacity: Int
-  var bitCount: Int = 0
   private var buffer: UnsafeMutablePointer<UInt8>
   private var ownsMemory: Bool
-  private var currentByte: UInt8 = 0
-  private var bitOffset: Int8 = 0
+
+  func getBuffer() -> UnsafeMutablePointer<UInt8> {
+    self.buffer
+  }
 
   init(
-    length: Int = 0,
     minCapacity: Int = 64
   ) {
-    self.length = length
+    self.length = 0
     self.capacity = minCapacity
-    // Currently unaligned: probably doesn't need to be for a builder.
     self.buffer = .allocate(capacity: capacity)
     self.ownsMemory = true
   }
 
-  /// Appends a validity bit to the buffer.
-  @inline(__always)
-  func appendValid(_ isValid: Bool) {
-    if isValid {
-      currentByte |= 1 << bitOffset
+  func append(_ data: Data) {
+
+    let buffer = getBuffer()
+
+    data.withUnsafeBytes { dataBuffer in
+      UnsafeMutableRawBufferPointer(
+        start: buffer.advanced(by: length),
+        count: data.count
+      ).copyBytes(from: dataBuffer)
     }
-    bitOffset += 1
-    bitCount += 1
-    if bitOffset == 8 {
-      flushByte()
-    }
+
+    length += data.count
   }
 
-  @inline(__always)
-  private func flushByte() {
-    // ensure we have space to write at index `length`
-    if length >= capacity {
-      resize(to: capacity * 2)
-    }
-    buffer[length] = currentByte
-    currentByte = 0
-    bitOffset = 0
-    length += 1
+  func doubleCapacity() {
+    resize(to: capacity * 2)
   }
 
   private func resize(to newCapacity: Int) {
@@ -73,17 +67,14 @@ final class NullBufferBuilder {
     }
   }
 
-  /// Builds completed `NullBuffer` with 64-byte alignment, flushing any intermediate state.
+  /// Builds completed `VariableBuffer` with 64-byte alignment.
   ///
-  /// Memory ownership is transferred to the returned `NullBuffer`. Any memory held is deallocated.
+  /// Memory ownership is transferred to the returned `VariableBuffer`.  Any memory held is
+  /// deallocated.
   /// - Returns: the completed `NullBuffer` with capacity shrunk to a multiple of 64 bytes.
-  func finish() -> NullBuffer {
-    if bitOffset != 0 {
-      flushByte()
-    }
+  func finish() -> VariableLengthTypeBuffer<T> {
     precondition(ownsMemory, "Buffer already finished.")
     ownsMemory = false
-    //    defer { ownsMemory = false }
     let newCapacity = (length + 63) & ~63
     let newBuffer = UnsafeMutableRawPointer.allocate(
       byteCount: newCapacity,
@@ -91,7 +82,7 @@ final class NullBufferBuilder {
     ).bindMemory(to: UInt8.self, capacity: newCapacity)
     newBuffer.initialize(from: buffer, count: length)
     buffer.deallocate()
-    return NullBuffer(
+    return VariableLengthTypeBuffer(
       length: length,
       capacity: newCapacity,
       ownsMemory: true,
