@@ -39,7 +39,7 @@ public protocol ArrowBufferBuilder {
   var offset: UInt { get }
   init()
   func append(_ newValue: ItemType?)
-  func isNull(_ index: UInt) -> Bool
+  //  func isNull(_ index: UInt) -> Bool
   func resize(_ length: UInt)
   func finish() -> [ArrowBuffer]
 }
@@ -329,9 +329,9 @@ where U: Numeric {
     fatalError("Method is not implemented")
   }
 
-  public func isNull(_ index: UInt) -> Bool {
-    self.bufferBuilder.isNull(index)
-  }
+  //  public func isNull(_ index: UInt) -> Bool {
+  //    self.bufferBuilder.isNull(index)
+  //  }
 
   public func resize(_ length: UInt) {
     self.bufferBuilder.resize(length)
