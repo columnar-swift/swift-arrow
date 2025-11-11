@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import Foundation
+
 protocol ArrowArrayProtocol {
   associatedtype ItemType
   subscript(_ index: Int) -> ItemType? { get }
@@ -65,5 +67,45 @@ struct ArrowArrayVariable<T>: ArrowArrayProtocol where T: VariableLength {
       at: Int(startIndex),
       arrayLength: Int(endIndex - startIndex)
     )
+  }
+}
+
+/// An Arrow array of `Date`s with a resolution of 1 day.
+struct ArrowArrayDate32: ArrowArrayProtocol {
+  typealias ItemType = Date
+
+  let array: ArrowArrayFixed<Date32>
+
+  var length: Int {
+    array.length
+  }
+
+  subscript(index: Int) -> Date? {
+    let days: Int32? = array[index]
+    if let days {
+      return Date(timeIntervalSince1970: TimeInterval(days * 86400))
+    } else {
+      return nil
+    }
+  }
+}
+
+/// An Arrow array of `Date`s with a resolution of 1 second.
+struct ArrowArrayDate64: ArrowArrayProtocol {
+  typealias ItemType = Date
+
+  let array: ArrowArrayFixed<Date64>
+
+  var length: Int {
+    array.length
+  }
+
+  subscript(index: Int) -> Date? {
+    let milliseconds: Int64? = array[index]
+    if let milliseconds {
+      return Date(timeIntervalSince1970: TimeInterval(milliseconds / 1000))
+    } else {
+      return nil
+    }
   }
 }

@@ -220,15 +220,15 @@ struct ArrayTests2 {
       case 0:
         expected[i] = ""  // Empty string
       case 1:
-        expected[i] = randomString(length: 1, using: &rng)  // Single char
+        expected[i] = randomString(length: 1, using: &rng)
       case 2:
-        expected[i] = randomString(length: 10000, using: &rng)  // Very long
+        expected[i] = randomString(length: 10000, using: &rng)
       case 3:
-        expected[i] = String(repeating: "a", count: 100)  // Repeated chars
+        expected[i] = String(repeating: "a", count: 100)
       case 4:
-        expected[i] = "🎉🚀✨"  // Unicode/emoji
+        expected[i] = "🎉🚀✨"
       case 5:
-        expected[i] = nil  // Null
+        expected[i] = nil
       default:
         expected[i] = randomString(length: Int.random(in: 1..<100), using: &rng)
       }
@@ -249,13 +249,10 @@ struct ArrayTests2 {
     var rng = getSeededRNG()
     let count = 10_000
     var expected = [Int64?](repeating: nil, count: count)
-
-    // Create runs of nulls and non-nulls
     var i = 0
     while i < count {
       let runLength = Int.random(in: 1...100, using: &rng)
       let isNull = Bool.random(using: &rng)
-
       for j in 0..<min(runLength, count - i) {
         if !isNull {
           expected[i + j] = Int64.random(in: Int64.min...Int64.max, using: &rng)
@@ -263,13 +260,11 @@ struct ArrayTests2 {
       }
       i += runLength
     }
-
     let arrayBuilder: ArrayBuilderFixedWidth<Int64> = .init()
     for value in expected {
       arrayBuilder.append(value)
     }
     let int64Array = arrayBuilder.finish()
-
     for i in 0..<count {
       #expect(int64Array[i] == expected[i])
     }
@@ -316,20 +311,15 @@ struct ArrayTests2 {
     }
   }
 
-  // MARK: need to migrate these
-
   @Test func date32Array() throws {
-    let date32Builder: Date32ArrayBuilder =
-      try ArrowArrayBuilders.loadDate32ArrayBuilder()
+
+    let date32Builder: ArrayBuilderDate32 = .init()
     let date2 = Date(timeIntervalSinceReferenceDate: 86400 * 1)
     let date1 = Date(timeIntervalSinceReferenceDate: 86400 * 5000 + 352)
     date32Builder.append(date1)
     date32Builder.append(date2)
     date32Builder.append(nil)
-    #expect(date32Builder.nullCount == 1)
-    #expect(date32Builder.length == 3)
-    #expect(date32Builder.capacity == 128)
-    let date32Array = try date32Builder.finish()
+    let date32Array = date32Builder.finish()
     #expect(date32Array.length == 3)
     #expect(date32Array[1] == date2)
     let adjustedDate1 = Date(
@@ -337,18 +327,16 @@ struct ArrayTests2 {
     #expect(date32Array[0]! == adjustedDate1)
   }
 
+  // MARK: need to migrate these
+
   @Test func date64Array() throws {
-    let date64Builder: Date64ArrayBuilder =
-      try ArrowArrayBuilders.loadDate64ArrayBuilder()
+    let date64Builder: ArrayBuilderDate64 = .init()
     let date2 = Date(timeIntervalSinceReferenceDate: 86400 * 1)
     let date1 = Date(timeIntervalSinceReferenceDate: 86400 * 5000 + 352)
     date64Builder.append(date1)
     date64Builder.append(date2)
     date64Builder.append(nil)
-    #expect(date64Builder.nullCount == 1)
-    #expect(date64Builder.length == 3)
-    #expect(date64Builder.capacity == 256)
-    let date64Array = try date64Builder.finish()
+    let date64Array = date64Builder.finish()
     #expect(date64Array.length == 3)
     #expect(date64Array[1] == date2)
     #expect(date64Array[0]! == date1)
