@@ -103,8 +103,13 @@ class ArrayBuilderVariable<T: VariableLength> {
     if let val {
       nullBuilder.appendValid(true)
       let data = val.data
-      if valueBuilder.length + data.count > valueBuilder.capacity {
-        valueBuilder.doubleCapacity()
+      let requiredCapacity = valueBuilder.length + data.count
+      if requiredCapacity > valueBuilder.capacity {
+        var newCapacity = valueBuilder.capacity
+        while newCapacity < requiredCapacity {
+          newCapacity *= 2
+        }
+        valueBuilder.increaseCapacity(to: newCapacity)
       }
       valueBuilder.append(data)
       let newOffset = UInt32(valueBuilder.length)

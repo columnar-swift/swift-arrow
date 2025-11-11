@@ -49,10 +49,10 @@ public struct ArrowData {
   }
 
   // TODO: this should replace nullBuffer
-  var nulls: NullBuffer {
+  var nulls: BitPackedNullBuffer {
     let buffer = buffers[0]
     let pointer = buffer.rawPointer.assumingMemoryBound(to: UInt8.self)
-    return NullBuffer(
+    return BitPackedNullBuffer(
       length: Int(buffer.length), capacity: 0, ownsMemory: false,
       buffer: pointer)
   }
