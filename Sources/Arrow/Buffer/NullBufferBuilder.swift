@@ -17,6 +17,8 @@ final class NullBufferBuilder {
   var length: Int
   var capacity: Int
   var bitCount: Int = 0
+  var valueCount: Int = 0
+  var nullCount: Int = 0
   private var buffer: UnsafeMutablePointer<UInt8>
   private var ownsMemory: Bool
   private var currentByte: UInt8 = 0
@@ -36,8 +38,11 @@ final class NullBufferBuilder {
   /// Appends a validity bit to the buffer.
   @inline(__always)
   func appendValid(_ isValid: Bool) {
+    valueCount += 1
     if isValid {
       currentByte |= 1 << bitOffset
+    } else {
+      nullCount += 1
     }
     bitOffset += 1
     bitCount += 1
@@ -76,26 +81,35 @@ final class NullBufferBuilder {
   /// Builds completed `NullBuffer` with 64-byte alignment, flushing any intermediate state.
   ///
   /// Memory ownership is transferred to the returned `NullBuffer`. Any memory held is deallocated.
-  /// - Returns: the completed `NullBuffer` with capacity shrunk to a multiple of 64 bytes.
+  /// - Returns: The completed `NullBuffer` which in the case of zero nulls will be a struct
+  /// which always reports validity to be true, or if all nulls the inverse of this. Otherwise a buffer  with
+  /// capacity shrunk to a multiple of 64 bytes will be returned.
+  ///
   func finish() -> NullBuffer {
     if bitOffset != 0 {
       flushByte()
     }
     precondition(ownsMemory, "Buffer already finished.")
-    ownsMemory = false
-    //    defer { ownsMemory = false }
-    let newCapacity = (length + 63) & ~63
-    let newBuffer = UnsafeMutableRawPointer.allocate(
-      byteCount: newCapacity,
-      alignment: 64
-    ).bindMemory(to: UInt8.self, capacity: newCapacity)
-    newBuffer.initialize(from: buffer, count: length)
-    buffer.deallocate()
-    return NullBuffer(
-      length: length,
-      capacity: newCapacity,
-      ownsMemory: true,
-      buffer: newBuffer
-    )
+
+    if nullCount == 0 {
+      return AllValidNullBuffer(length: valueCount)
+    } else if nullCount == valueCount {
+      return AllNullBuffer(length: valueCount)
+    } else {
+      ownsMemory = false
+      let newCapacity = (length + 63) & ~63
+      let newBuffer = UnsafeMutableRawPointer.allocate(
+        byteCount: newCapacity,
+        alignment: 64
+      ).bindMemory(to: UInt8.self, capacity: newCapacity)
+      newBuffer.initialize(from: buffer, count: length)
+      buffer.deallocate()
+      return BitPackedNullBuffer(
+        length: length,
+        capacity: newCapacity,
+        ownsMemory: true,
+        buffer: newBuffer
+      )
+    }
   }
 }

@@ -48,8 +48,8 @@ final class VariableLengthTypeBufferBuilder<T> where T: VariableLength {
     length += data.count
   }
 
-  func doubleCapacity() {
-    resize(to: capacity * 2)
+  func increaseCapacity(to newCapacity: Int) {
+    resize(to: newCapacity)
   }
 
   private func resize(to newCapacity: Int) {
