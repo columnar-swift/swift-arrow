@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import Foundation
+
 /// A builder for Arrow arrays using the three-valued logical model (true / false / null).
 class ArrayBuilderBoolean {
 
@@ -25,11 +27,11 @@ class ArrayBuilderBoolean {
     self.valueBuilder = NullBufferBuilder()
   }
 
-  public func append(_ val: Bool?) {
+  public func append(_ value: Bool?) {
     length += 1
-    if let val {
+    if let value {
       nullBuilder.appendValid(true)
-      valueBuilder.appendValid(val)
+      valueBuilder.appendValid(value)
     } else {
       nullBuilder.appendValid(false)
     }
@@ -60,11 +62,11 @@ class ArrayBuilderFixedWidth<T: Numeric> {
     self.valueBuilder = FixedWidthBufferBuilder<T>()
   }
 
-  public func append(_ val: T?) {
+  public func append(_ value: T?) {
     length += 1
-    if let val {
+    if let value {
       nullBuilder.appendValid(true)
-      valueBuilder.append(val)
+      valueBuilder.append(value)
     } else {
       nullBuilder.appendValid(false)
       valueBuilder.append(T.zero)
@@ -98,13 +100,18 @@ class ArrayBuilderVariable<T: VariableLength> {
     self.offsetsBuilder.append(UInt32.zero)
   }
 
-  public func append(_ val: T?) {
+  public func append(_ value: T?) {
     length += 1
-    if let val {
+    if let value {
       nullBuilder.appendValid(true)
-      let data = val.data
-      if valueBuilder.length + data.count > valueBuilder.capacity {
-        valueBuilder.doubleCapacity()
+      let data = value.data
+      let requiredCapacity = valueBuilder.length + data.count
+      if requiredCapacity > valueBuilder.capacity {
+        var newCapacity = valueBuilder.capacity
+        while newCapacity < requiredCapacity {
+          newCapacity *= 2
+        }
+        valueBuilder.increaseCapacity(to: newCapacity)
       }
       valueBuilder.append(data)
       let newOffset = UInt32(valueBuilder.length)
@@ -126,5 +133,41 @@ class ArrayBuilderVariable<T: VariableLength> {
       offsetsBuffer: offsetsBuffer,
       valueBuffer: valueBuffer
     )
+  }
+}
+
+/// A builder for Arrow arrays holding `Date`s with a resolution of one day.
+struct ArrayBuilderDate32 {
+  let builder: ArrayBuilderFixedWidth<Date32> = .init()
+
+  public func append(_ value: Date?) {
+    if let value {
+      let daysSinceEpoch = Int32(value.timeIntervalSince1970 / 86400)
+      self.builder.append(daysSinceEpoch)
+    } else {
+      self.builder.append(nil)
+    }
+  }
+
+  func finish() -> ArrowArrayDate32 {
+    .init(array: builder.finish())
+  }
+}
+
+/// A builder for Arrow arrays holding `Date`s with a resolution of one day.
+struct ArrayBuilderDate64 {
+  let builder: ArrayBuilderFixedWidth<Date64> = .init()
+
+  public func append(_ value: Date?) {
+    if let value {
+      let millisecondsSinceEpoch = Int64(value.timeIntervalSince1970 * 1000)
+      self.builder.append(millisecondsSinceEpoch)
+    } else {
+      self.builder.append(nil)
+    }
+  }
+
+  func finish() -> ArrowArrayDate64 {
+    .init(array: builder.finish())
   }
 }

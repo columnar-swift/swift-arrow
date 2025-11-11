@@ -40,10 +40,16 @@ struct BufferTests {
         #expect(!nullBuffer.isSet(i))
       }
     }
-    #expect(nullBuffer.capacity % 64 == 0)
-    #expect(nullBuffer.capacity - nullBuffer.length < 64)
 
-    let dataAddress = UInt(bitPattern: nullBuffer.buffer)
+    guard let buffer = nullBuffer as? BitPackedNullBuffer else {
+      Issue.record("Expected NullBuffer type")
+      return
+    }
+
+    #expect(buffer.capacity % 64 == 0)
+    #expect(buffer.capacity - nullBuffer.length < 64)
+
+    let dataAddress = UInt(bitPattern: buffer.buffer)
     #expect(dataAddress % 64 == 0, "Buffer should be 64-byte aligned")
   }
 
@@ -57,7 +63,18 @@ struct BufferTests {
 
     let buffer = builder.finish()
     #expect(buffer.length == 10000)
+  }
 
+  @Test func fixedWidthBufferTinyInitialCapacity() throws {
+    let builder = FixedWidthBufferBuilder<Int32>(minCapacity: 1)
+    for i in 0..<1000 {
+      builder.append(Int32(i))
+    }
+    let array = builder.finish()
+
+    for i in 0..<1000 {
+      #expect(array[i] == Int32(i))
+    }
   }
 
   @Test func offsetsBuffer() {

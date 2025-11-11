@@ -20,17 +20,22 @@ final class FixedWidthBufferBuilder<T: Numeric> {
   private var bitOffset: Int8 = 0
 
   init(
-    minCapacity: Int = 4096
+    minCapacity: Int = 1024
   ) {
     self.length = 0
-    self.capacity = minCapacity / MemoryLayout<T>.size
+    // Ensure at least 1 element capacity
+    self.capacity = max(1, minCapacity / MemoryLayout<T>.size)
     self.buffer = .allocate(capacity: capacity)
     self.ownsMemory = true
   }
 
   func append(_ val: T) {
     if length >= capacity {
-      resize(to: capacity * 2)
+      var newCapacity = capacity * 2
+      while length >= newCapacity {
+        newCapacity *= 2
+      }
+      resize(to: newCapacity)
     }
     buffer[length] = val
     length += 1

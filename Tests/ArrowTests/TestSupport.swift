@@ -51,3 +51,19 @@ struct RapidRandom: RandomNumberGenerator {
     return Self.mix(state, state ^ 0x8bb8_4b93_962e_acc9)
   }
 }
+
+func randomString(
+  length: Int,
+  using rng: inout some RandomNumberGenerator
+) -> String {
+  let characters =
+    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 "
+  return String(
+    (0..<length).map { _ in
+      guard let element = characters.randomElement(using: &rng) else {
+        fatalError("Unable to generate random element from character set.")
+      }
+      return element
+    }
+  )
+}
