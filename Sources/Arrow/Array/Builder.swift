@@ -171,3 +171,9 @@ struct ArrayBuilderDate64 {
     .init(array: builder.finish())
   }
 }
+
+typealias ArrayBuilderTime32 = ArrayBuilderFixedWidth<Time32>
+
+typealias ArrayBuilderTime64 = ArrayBuilderFixedWidth<Time64>
+
+typealias ArrayBuilderTimestamp = ArrayBuilderFixedWidth<Timestamp>
