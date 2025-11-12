@@ -39,6 +39,7 @@ struct ArrowArrayBoolean: ArrowArrayProtocol {
   let valueBuffer: NullBuffer
 
   subscript(index: Int) -> Bool? {
+    precondition(index >= 0 && index < length, "Invalid index.")
     let offsetIndex = self.offset + index
     if !self.nullBuffer.isSet(offsetIndex) {
       return nil
@@ -65,6 +66,7 @@ struct ArrowArrayFixed<T>: ArrowArrayProtocol where T: Numeric {
   let valueBuffer: FixedWidthBuffer<T>
 
   subscript(index: Int) -> T? {
+    precondition(index >= 0 && index < length, "Invalid index.")
     let offsetIndex = self.offset + index
     if !self.nullBuffer.isSet(offsetIndex) {
       return nil
@@ -132,6 +134,7 @@ struct ArrowArrayDate32: ArrowArrayProtocol {
   }
 
   subscript(index: Int) -> Date? {
+    precondition(index >= 0 && index < length, "Invalid index.")
     let offsetIndex = self.offset + index
     let days: Int32? = array[offsetIndex]
     if let days {
@@ -162,6 +165,7 @@ struct ArrowArrayDate64: ArrowArrayProtocol {
   }
 
   subscript(index: Int) -> Date? {
+    precondition(index >= 0 && index < length, "Invalid index.")
     let offsetIndex = self.offset + index
     let milliseconds: Int64? = array[offsetIndex]
     if let milliseconds {
@@ -188,6 +192,7 @@ struct ArrowListArray<T>: ArrowArrayProtocol where T: ArrowArrayProtocol {
   let values: T
   
   subscript(index: Int) -> T? {
+    precondition(index >= 0 && index < length, "Invalid index.")
     let offsetIndex = self.offset + index
     if !self.nullBuffer.isSet(offsetIndex) {
       return nil
