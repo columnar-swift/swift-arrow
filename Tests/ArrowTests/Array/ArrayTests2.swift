@@ -82,6 +82,11 @@ struct ArrayTests2 {
     for index in 0..<100 {
       #expect(array[Int(index)]! == UInt8(index))
     }
+    
+    let slice = array.slice(offset: 5, length: 5)
+    for i in 0..<5 {
+      #expect(slice[i] == UInt8(5 + i))
+    }
   }
 
   @Test func int64Array() throws {
@@ -102,7 +107,7 @@ struct ArrayTests2 {
       #expect(int64Array[i] == testArray[i])
     }
   }
-  
+
   @Test func stringArray() throws {
     let builder: ArrayBuilderVariable<String> = .init()
 
@@ -155,7 +160,7 @@ struct ArrayTests2 {
       #expect(stringArray[i] == testArray[i])
     }
   }
-  
+
   @Test func binaryStringArray() throws {
     let arrayBuilder: ArrayBuilderVariable<Data> = .init()
     for index in 0..<100 {
@@ -321,7 +326,6 @@ struct ArrayTests2 {
   }
 
   @Test func doubleArray() throws {
-
     let builder: ArrayBuilderFixedWidth<Double> = .init()
     builder.append(14)
     builder.append(nil)
@@ -332,7 +336,6 @@ struct ArrayTests2 {
     #expect(doubleArray[1] == nil)
     #expect(doubleArray[2]! == 40.4)
   }
-
 
   @Test func date32Array() throws {
     let date32Builder: ArrayBuilderDate32 = .init()
@@ -361,18 +364,13 @@ struct ArrayTests2 {
     #expect(date64Array[1] == date2)
     #expect(date64Array[0]! == date1)
   }
-  
+
   @Test func time32Array() throws {
     let milliBuilder: ArrayBuilderTime32 = .init()
     milliBuilder.append(100)
     milliBuilder.append(1_000_000)
     milliBuilder.append(nil)
     let milliArray = milliBuilder.finish()
-//    guard case .time32(let milliType) = milliArray.arrowData.type else {
-//      Issue.record("Expected time32")
-//      return
-//    }
-//    #expect(milliType == .millisecond)
     #expect(milliArray.length == 3)
     #expect(milliArray[1] == 1_000_000)
     #expect(milliArray[2] == nil)
@@ -382,11 +380,6 @@ struct ArrayTests2 {
     secBuilder.append(nil)
     secBuilder.append(2_000_011)
     let secArray = secBuilder.finish()
-//    guard case .time32(let secType) = secArray.arrowData.type else {
-//      Issue.record("Expected time32")
-//      return
-//    }
-//    #expect(secType == .second)
     #expect(secArray.length == 3)
     #expect(secArray[1] == nil)
     #expect(secArray[2] == 2_000_011)
@@ -398,11 +391,6 @@ struct ArrayTests2 {
     nanoBuilder.append(nil)
     nanoBuilder.append(123_456_789)
     let nanoArray = nanoBuilder.finish()
-//    guard case .time64(let nanoType) = nanoArray.arrowData.type else {
-//      Issue.record("Expected time64")
-//      return
-//    }
-//    #expect(nanoType == .nanosecond)
     #expect(nanoArray.length == 3)
     #expect(nanoArray[1] == nil)
     #expect(nanoArray[2] == 123_456_789)
@@ -411,15 +399,8 @@ struct ArrayTests2 {
     microBuilder.append(nil)
     microBuilder.append(20000)
     microBuilder.append(987_654_321)
-//    #expect(microBuilder.nullCount == 1)
-//    #expect(microBuilder.length == 3)
-//    #expect(microBuilder.capacity == 256)
+    
     let microArray = microBuilder.finish()
-//    guard case .time64(let microType) = microArray.arrowData.type else {
-//      Issue.record("Expected time64")
-//      return
-//    }
-//    #expect(microType == .microsecond)
     #expect(microArray.length == 3)
     #expect(microArray[1] == 20000)
     #expect(microArray[2] == 987_654_321)
@@ -428,24 +409,10 @@ struct ArrayTests2 {
   @Test func timestampArray() throws {
     // Test timestamp with seconds unit
     let secBuilder: ArrayBuilderTimestamp = .init()
-//    let secBuilder = try ArrowArrayBuilders.loadTimestampArrayBuilder(
-//      .second,
-//      timezone: nil
-//    )
     secBuilder.append(1_609_459_200)  // 2021-01-01 00:00:00
     secBuilder.append(1_609_545_600)  // 2021-01-02 00:00:00
     secBuilder.append(nil)
-//    #expect(secBuilder.nullCount == 1)
-//    #expect(secBuilder.length == 3)
-//    #expect(secBuilder.capacity == 256)
     let secArray = secBuilder.finish()
-//    guard case .timestamp(let secType, let timezone) = secArray.arrowData.type
-//    else {
-//      Issue.record("Expected timestamp")
-//      return
-//    }
-//    #expect(secType == .second)
-//    #expect(timezone == nil)
     #expect(secArray.length == 3)
     #expect(secArray[0] == 1_609_459_200)
     #expect(secArray[1] == 1_609_545_600)
@@ -453,21 +420,10 @@ struct ArrayTests2 {
 
     // Test timestamp with milliseconds unit and timezone America/New_York
     let msBuilder: ArrayBuilderTimestamp = .init()
-//    let msBuilder = try ArrowArrayBuilders.loadTimestampArrayBuilder(
-//      .millisecond,
-//      timezone: "America/New_York"
-//    )
     msBuilder.append(1_609_459_200_000)  // 2021-01-01 00:00:00.000
     msBuilder.append(nil)
     msBuilder.append(1_609_545_600_000)  // 2021-01-02 00:00:00.000
     let msArray = msBuilder.finish()
-//    guard case .timestamp(let msType, let timezone) = msArray.arrowData.type
-//    else {
-//      Issue.record("Expected timestamp")
-//      return
-//    }
-//    #expect(msType == .millisecond)
-//    #expect(timezone == "America/New_York")
     #expect(msArray.length == 3)
     #expect(msArray[0] == 1_609_459_200_000)
     #expect(msArray[1] == nil)
@@ -475,19 +431,10 @@ struct ArrayTests2 {
 
     // Test timestamp with microseconds unit and timezone UTC
     let usBuilder: ArrayBuilderTimestamp = .init()
-//    let usBuilder = try ArrowArrayBuilders.loadTimestampArrayBuilder(
-//      .microsecond, timezone: "UTC")
     usBuilder.append(1_609_459_200_000_000)  // 2021-01-01 00:00:00.000000
     usBuilder.append(1_609_545_600_000_000)  // 2021-01-02 00:00:00.000000
     usBuilder.append(1_609_632_000_000_000)  // 2021-01-03 00:00:00.000000
     let usArray = usBuilder.finish()
-//    guard case .timestamp(let usType, let timezone) = usArray.arrowData.type
-//    else {
-//      Issue.record("Expected timestamp")
-//      return
-//    }
-//    #expect(usType == .microsecond)
-//    #expect(timezone == "UTC")
     #expect(usArray.length == 3)
     #expect(usArray[0] == 1_609_459_200_000_000)
     #expect(usArray[1] == 1_609_545_600_000_000)
@@ -495,32 +442,23 @@ struct ArrayTests2 {
 
     // Test timestamp with nanoseconds unit
     let nsBuilder: ArrayBuilderTimestamp = .init()
-//    let nsBuilder = try ArrowArrayBuilders.loadTimestampArrayBuilder(
-//      .nanosecond, timezone: nil)
     nsBuilder.append(nil)
     // 2021-01-01 00:00:00.000000000
     nsBuilder.append(1_609_459_200_000_000_000)
     // 2021-01-02 00:00:00.000000000
     nsBuilder.append(1_609_545_600_000_000_000)
-//    #expect(nsBuilder.nullCount == 1)
-//    #expect(nsBuilder.length == 3)
-//    #expect(nsBuilder.capacity == 256)
     let nsArray = nsBuilder.finish()
-//    guard case .timestamp(let nsType, let timezone) = nsArray.arrowData.type
-//    else {
-//      Issue.record("Expected timestamp")
-//      return
-//    }
-//    #expect(nsType == .nanosecond)
-//    #expect(timezone == nil)
     #expect(nsArray.length == 3)
     #expect(nsArray[0] == nil)
     #expect(nsArray[1] == 1_609_459_200_000_000_000)
     #expect(nsArray[2] == 1_609_545_600_000_000_000)
   }
+
+  @Test func listArray() throws {
+    
+  }
   
   // MARK: need to migrate these
-
   @Test func structArray() throws {
     class StructTest {
       var fieldBool: Bool = false

@@ -14,58 +14,97 @@
 
 import Foundation
 
-protocol ArrowArrayProtocol {
+protocol ArrowArrayProtocol<ItemType> {
   associatedtype ItemType
   subscript(_ index: Int) -> ItemType? { get }
+  var offset: Int { get }
+  var length: Int { get }
+  func slice(offset: Int, length: Int) -> Self
 }
 
 /// An Arrow array of booleans using the three-valued logical model (true / false / null).
 struct ArrowArrayBoolean: ArrowArrayProtocol {
   typealias ItemType = Bool
+  let offset: Int
   let length: Int
   let nullBuffer: NullBuffer
   let valueBuffer: NullBuffer
 
   subscript(index: Int) -> Bool? {
-    if !self.nullBuffer.isSet(index) {
+    let offsetIndex = self.offset + index
+    if !self.nullBuffer.isSet(offsetIndex) {
       return nil
     }
-    return valueBuffer.isSet(index)
+    return valueBuffer.isSet(offsetIndex)
+  }
+  
+  func slice(offset: Int, length: Int) -> ArrowArrayBoolean {
+     return .init(
+      offset: offset,
+      length: length,
+      nullBuffer: nullBuffer,
+      valueBuffer: valueBuffer
+    )
   }
 }
 
 /// An Arrow array of fixed-width types.
 struct ArrowArrayFixed<T>: ArrowArrayProtocol where T: Numeric {
   typealias ItemType = T
+  let offset: Int
   let length: Int
   let nullBuffer: NullBuffer
   let valueBuffer: FixedWidthBuffer<T>
 
   subscript(index: Int) -> T? {
-    if !self.nullBuffer.isSet(index) {
+    let offsetIndex = self.offset + index
+    if !self.nullBuffer.isSet(offsetIndex) {
       return nil
     }
-    return valueBuffer[index]
+    return valueBuffer[offsetIndex]
+  }
+  
+  func slice(offset: Int, length: Int) -> ArrowArrayFixed<T> {
+    return .init(
+      offset: offset,
+      length: length,
+      nullBuffer: nullBuffer,
+      valueBuffer: valueBuffer
+    )
   }
 }
 
 /// An Arrow array of variable-length types.
 struct ArrowArrayVariable<T>: ArrowArrayProtocol where T: VariableLength {
   typealias ItemType = T
+  let offset: Int
   let length: Int
   let nullBuffer: NullBuffer
-  let offsetsBuffer: FixedWidthBuffer<UInt32>
+  let offsetsBuffer: FixedWidthBuffer<Int32>
   let valueBuffer: VariableLengthTypeBuffer<T>
 
   subscript(index: Int) -> T? {
-    if !self.nullBuffer.isSet(index) {
+    
+    let offsetIndex = self.offset + index
+    
+    if !self.nullBuffer.isSet(offsetIndex) {
       return nil
     }
-    let startIndex = offsetsBuffer[index]
-    let endIndex = offsetsBuffer[index + 1]
+    let startIndex = offsetsBuffer[offsetIndex]
+    let endIndex = offsetsBuffer[offsetIndex + 1]
     return valueBuffer.loadVariable(
       at: Int(startIndex),
       arrayLength: Int(endIndex - startIndex)
+    )
+  }
+  
+  func slice(offset: Int, length: Int) -> Self {
+    .init(
+      offset: offset,
+      length: length,
+      nullBuffer: nullBuffer,
+      offsetsBuffer: offsetsBuffer,
+      valueBuffer: valueBuffer
     )
   }
 }
@@ -75,18 +114,28 @@ struct ArrowArrayDate32: ArrowArrayProtocol {
   typealias ItemType = Date
 
   let array: ArrowArrayFixed<Date32>
+  
+  var offset: Int {
+    array.offset
+  }
 
   var length: Int {
     array.length
   }
 
   subscript(index: Int) -> Date? {
-    let days: Int32? = array[index]
+    let offsetIndex = self.offset + index
+    let days: Int32? = array[offsetIndex]
     if let days {
       return Date(timeIntervalSince1970: TimeInterval(days * 86400))
     } else {
       return nil
     }
+  }
+  
+  func slice(offset: Int, length: Int) -> Self {
+    let internalSlice = array.slice(offset: offset, length: length)
+    return .init(array: internalSlice)
   }
 }
 
@@ -95,17 +144,60 @@ struct ArrowArrayDate64: ArrowArrayProtocol {
   typealias ItemType = Date
 
   let array: ArrowArrayFixed<Date64>
+  
+  var offset: Int {
+    array.offset
+  }
 
   var length: Int {
     array.length
   }
 
   subscript(index: Int) -> Date? {
-    let milliseconds: Int64? = array[index]
+    let offsetIndex = self.offset + index
+    let milliseconds: Int64? = array[offsetIndex]
     if let milliseconds {
       return Date(timeIntervalSince1970: TimeInterval(milliseconds / 1000))
     } else {
       return nil
     }
+  }
+  
+  func slice(offset: Int, length: Int) -> Self {
+    let internalSlice = array.slice(offset: offset, length: length)
+    return .init(array: internalSlice)
+  }
+}
+
+struct ArrowListArray<T>: ArrowArrayProtocol where T: ArrowArrayProtocol {
+  
+  typealias ItemType = T
+  
+  let offset: Int
+  let length: Int
+  let nullBuffer: NullBuffer
+  let offsetsBuffer: FixedWidthBuffer<Int32>
+  let values: T
+  
+  subscript(index: Int) -> T? {
+    let offsetIndex = self.offset + index
+    if !self.nullBuffer.isSet(offsetIndex) {
+      return nil
+    }
+    let startIndex = offsetsBuffer[offsetIndex]
+    let endIndex = offsetsBuffer[offsetIndex + 1]
+
+    let length = endIndex - startIndex
+    return values.slice(offset: Int(startIndex), length: Int(length))
+  }
+  
+  func slice(offset: Int, length: Int) -> Self {
+    .init(
+      offset: self.offset + offset,
+      length: length,
+      nullBuffer: nullBuffer,
+      offsetsBuffer: offsetsBuffer,
+      values: values
+    )
   }
 }

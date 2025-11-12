@@ -14,8 +14,20 @@
 
 import Foundation
 
+protocol AnyArrayBuilder {
+  
+  associatedtype ArrayType: ArrowArrayProtocol
+  
+  func appendNull()
+  var length: Int { get }
+  
+  func finish() -> ArrayType
+}
+
 /// A builder for Arrow arrays using the three-valued logical model (true / false / null).
-class ArrayBuilderBoolean {
+class ArrayBuilderBoolean: AnyArrayBuilder {
+  
+  typealias ArrayType = ArrowArrayBoolean
 
   var length: Int
   let nullBuilder: NullBufferBuilder
@@ -37,11 +49,16 @@ class ArrayBuilderBoolean {
     }
   }
 
-  public func finish() -> ArrowArrayBoolean {
+  func appendNull() {
+    nullBuilder.appendValid(false)
+  }
+
+  public func finish() -> ArrayType {
     let nullBuffer = nullBuilder.finish()
     let valueBuffer = valueBuilder.finish()
 
-    return ArrowArrayBoolean(
+    return .init(
+      offset: 0,
       length: length,
       nullBuffer: nullBuffer,
       valueBuffer: valueBuffer
@@ -50,8 +67,10 @@ class ArrayBuilderBoolean {
 }
 
 /// A builder for Arrow arrays holding fixed-width types.
-class ArrayBuilderFixedWidth<T: Numeric> {
+class ArrayBuilderFixedWidth<T: Numeric>: AnyArrayBuilder {
 
+  typealias ArrayType = ArrowArrayFixed<T>
+  
   var length: Int
   let nullBuilder: NullBufferBuilder
   let valueBuilder: FixedWidthBufferBuilder<T>
@@ -73,11 +92,16 @@ class ArrayBuilderFixedWidth<T: Numeric> {
     }
   }
 
-  public func finish() -> ArrowArrayFixed<T> {
+  func appendNull() {
+    nullBuilder.appendValid(false)
+  }
+
+  public func finish() -> ArrayType {
     let nullBuffer = nullBuilder.finish()
     let valueBuffer = valueBuilder.finish()
 
-    return ArrowArrayFixed(
+    return .init(
+      offset: 0,
       length: length,
       nullBuffer: nullBuffer,
       valueBuffer: valueBuffer
@@ -86,18 +110,20 @@ class ArrayBuilderFixedWidth<T: Numeric> {
 }
 
 /// A builder for Arrow arrays holding variable length types.
-class ArrayBuilderVariable<T: VariableLength> {
+class ArrayBuilderVariable<T: VariableLength>: AnyArrayBuilder {
+  typealias ArrayType = ArrowArrayVariable<T>
+  
   var length: Int
   let nullBuilder: NullBufferBuilder
-  let offsetsBuilder: FixedWidthBufferBuilder<UInt32>
+  let offsetsBuilder: FixedWidthBufferBuilder<Int32>
   let valueBuilder: VariableLengthTypeBufferBuilder<T>
 
   init() {
     self.length = 0
     self.nullBuilder = NullBufferBuilder()
-    self.offsetsBuilder = FixedWidthBufferBuilder<UInt32>()
+    self.offsetsBuilder = FixedWidthBufferBuilder<Int32>()
     self.valueBuilder = VariableLengthTypeBufferBuilder<T>()
-    self.offsetsBuilder.append(UInt32.zero)
+    self.offsetsBuilder.append(Int32.zero)
   }
 
   public func append(_ value: T?) {
@@ -114,20 +140,25 @@ class ArrayBuilderVariable<T: VariableLength> {
         valueBuilder.increaseCapacity(to: newCapacity)
       }
       valueBuilder.append(data)
-      let newOffset = UInt32(valueBuilder.length)
+      let newOffset = Int32(valueBuilder.length)
       offsetsBuilder.append(newOffset)
     } else {
       nullBuilder.appendValid(false)
-      let newOffset = UInt32(valueBuilder.length)
+      let newOffset = Int32(valueBuilder.length)
       offsetsBuilder.append(newOffset)
     }
   }
 
-  public func finish() -> ArrowArrayVariable<T> {
+  func appendNull() {
+    nullBuilder.appendValid(false)
+  }
+
+  public func finish() -> ArrayType {
     let nullBuffer = nullBuilder.finish()
     let offsetsBuffer = offsetsBuilder.finish()
     let valueBuffer = valueBuilder.finish()
-    return ArrowArrayVariable(
+    return .init(
+      offset: 0,
       length: length,
       nullBuffer: nullBuffer,
       offsetsBuffer: offsetsBuffer,
@@ -137,8 +168,14 @@ class ArrayBuilderVariable<T: VariableLength> {
 }
 
 /// A builder for Arrow arrays holding `Date`s with a resolution of one day.
-struct ArrayBuilderDate32 {
+struct ArrayBuilderDate32: AnyArrayBuilder {
+  typealias ArrayType = ArrowArrayDate32
+  
   let builder: ArrayBuilderFixedWidth<Date32> = .init()
+  
+  var length: Int {
+    builder.length
+  }
 
   public func append(_ value: Date?) {
     if let value {
@@ -149,14 +186,28 @@ struct ArrayBuilderDate32 {
     }
   }
 
-  func finish() -> ArrowArrayDate32 {
+  func appendNull() {
+    builder.appendNull()
+  }
+
+  func finish() -> ArrayType {
     .init(array: builder.finish())
   }
 }
 
 /// A builder for Arrow arrays holding `Date`s with a resolution of one day.
-struct ArrayBuilderDate64 {
+struct ArrayBuilderDate64: AnyArrayBuilder {
+  typealias ArrayType = ArrowArrayDate64
+
   let builder: ArrayBuilderFixedWidth<Date64> = .init()
+  
+  var length: Int {
+    builder.length
+  }
+
+  func appendNull() {
+    self.builder.append(nil)
+  }
 
   public func append(_ value: Date?) {
     if let value {
@@ -167,13 +218,67 @@ struct ArrayBuilderDate64 {
     }
   }
 
-  func finish() -> ArrowArrayDate64 {
+  func finish() -> ArrayType {
     .init(array: builder.finish())
   }
 }
 
+/// A builder for Arrow arrays holding Time32 values.
 typealias ArrayBuilderTime32 = ArrayBuilderFixedWidth<Time32>
 
+/// A builder for Arrow arrays holding Time64 values.
 typealias ArrayBuilderTime64 = ArrayBuilderFixedWidth<Time64>
 
+/// A builder for Arrow arrays holding Timestamp values.
 typealias ArrayBuilderTimestamp = ArrayBuilderFixedWidth<Timestamp>
+
+
+class ArrayBuilderList<T: AnyArrayBuilder>: AnyArrayBuilder {
+  typealias ArrayType = ArrowListArray<T.ArrayType>
+
+  var length: Int
+  let nullBuilder: NullBufferBuilder
+  let offsetsBuilder: FixedWidthBufferBuilder<Int32>
+  let valueBuilder: T  // Child array builder
+  
+  init(valueBuilder: T) {
+    self.length = 0
+    self.nullBuilder = NullBufferBuilder()
+    self.offsetsBuilder = FixedWidthBufferBuilder<Int32>()
+    self.valueBuilder = valueBuilder
+    self.offsetsBuilder.append(Int32.zero)
+  }
+  
+  // Append a list by providing a closure that populates the child builder
+  func append(_ builder: (T) -> Void) {
+    length += 1
+    nullBuilder.appendValid(true)
+    
+//    let startLength = valueBuilder.length
+    builder(valueBuilder)  // User adds items to child builder
+    let endLength = valueBuilder.length
+    
+    offsetsBuilder.append(Int32(endLength))
+  }
+  
+  func appendNull() {
+    length += 1
+    nullBuilder.appendValid(false)
+    // Append current child length (empty slice)
+    offsetsBuilder.append(Int32(valueBuilder.length))
+  }
+  
+  func finish() -> ArrowListArray<T.ArrayType> {
+    let nullBuffer = nullBuilder.finish()
+    let offsetsBuffer = offsetsBuilder.finish()
+    let valuesArray = valueBuilder.finish()
+    
+    return ArrowListArray(
+      offset: 0,
+      length: length,
+      nullBuffer: nullBuffer,
+      offsetsBuffer: offsetsBuffer,
+      values: valuesArray
+    )
+  }
+}
