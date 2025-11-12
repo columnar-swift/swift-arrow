@@ -20,7 +20,7 @@ import PackageDescription
 let package = Package(
   name: "Arrow",
   platforms: [
-    .macOS(.v13)
+    .macOS(.v15)
   ],
   products: [
     .library(
@@ -45,6 +45,10 @@ let package = Package(
       url: "https://github.com/apple/swift-protobuf.git",
       from: "1.29.0"
     ),
+    .package(
+      url: "https://github.com/apple/swift-binary-parsing",
+      from: "0.0.1"
+    )
   ],
   targets: [
     .target(
@@ -55,6 +59,7 @@ let package = Package(
     ),
     .target(
       name: "Arrow",
+      // TODO: clean up after removing old backend
       dependencies: [
         "ArrowC",
         .product(name: "FlatBuffers", package: "flatbuffers"),
@@ -64,6 +69,24 @@ let package = Package(
         // build: .unsafeFlags(["-warnings-as-errors"])
       ]
     ),
+    .target(
+      name: "ArrowIPC",
+      dependencies: [
+        "Arrow",
+        "ArrowC",
+        .product(name: "FlatBuffers", package: "flatbuffers"),
+        .product(name: "BinaryParsing", package: "swift-binary-parsing"),
+      ],
+      swiftSettings: [
+        // build: .unsafeFlags(["-warnings-as-errors"])
+      ]
+    ),
+//    .target(
+//      name: "ArrowC",
+//      swiftSettings: [
+//        // build: .unsafeFlags(["-warnings-as-errors"])
+//      ]
+//    ),
     .target(
       name: "ArrowFlight",
       dependencies: [
@@ -78,6 +101,17 @@ let package = Package(
     .testTarget(
       name: "ArrowTests",
       dependencies: ["Arrow", "ArrowC"],
+      // TODO: clean up after removing old backend
+      resources: [
+        .copy("Resources/")
+      ],
+      swiftSettings: [
+        // build: .unsafeFlags(["-warnings-as-errors"])
+      ]
+    ),
+    .testTarget(
+      name: "ArrowIPCTests",
+      dependencies: ["Arrow", "ArrowIPC"],
       resources: [
         .copy("Resources/")
       ],
