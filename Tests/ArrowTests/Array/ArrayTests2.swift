@@ -38,7 +38,7 @@ struct ArrayTests2 {
     // Must have null buffer, all bits = 0
     let arrayBuilder: ArrayBuilderFixedWidth<Int64> = .init()
     for _ in 0..<1000 {
-      arrayBuilder.append(nil)
+      arrayBuilder.appendNull()
     }
     let array = arrayBuilder.finish()
     #expect(array.nullBuffer is AllNullBuffer)
@@ -52,7 +52,7 @@ struct ArrayTests2 {
 
     let builder = ArrayBuilderBoolean()
     builder.append(true)
-    builder.append(nil)
+    builder.appendNull()
     builder.append(false)
     builder.append(false)
     let boolArray = builder.finish()
@@ -71,7 +71,7 @@ struct ArrayTests2 {
       arrayBuilder.append(index)
     }
 
-    arrayBuilder.append(nil)
+    arrayBuilder.appendNull()
     #expect(arrayBuilder.length == 101)
     let array = arrayBuilder.finish()
     #expect(array.length == 101)
@@ -111,13 +111,13 @@ struct ArrayTests2 {
   @Test func stringArray() throws {
     let builder: ArrayBuilderVariable<String> = .init()
 
-    builder.append(nil)
+    builder.appendNull()
     builder.append("abc")
     builder.append("def")
-    builder.append(nil)
+    builder.appendNull()
     builder.append("This is a longer string")
-    builder.append(nil)
-    builder.append(nil)
+    builder.appendNull()
+    builder.appendNull()
     for i in 0..<100 {
       builder.append("test \(i)")
     }
@@ -152,7 +152,11 @@ struct ArrayTests2 {
 
     let arrayBuilder: ArrayBuilderVariable<String> = .init()
     for value in testArray {
-      arrayBuilder.append(value)
+      if let value {
+        arrayBuilder.append(value)
+      } else {
+        arrayBuilder.appendNull()
+      }
     }
     let stringArray = arrayBuilder.finish()
 
@@ -165,9 +169,10 @@ struct ArrayTests2 {
     let arrayBuilder: ArrayBuilderVariable<Data> = .init()
     for index in 0..<100 {
       if index % 10 == 9 {
-        arrayBuilder.append(nil)
+        arrayBuilder.appendNull()
       } else {
-        arrayBuilder.append(("test" + String(index)).data(using: .utf8))
+        let val = Data("test\(index)".utf8)
+        arrayBuilder.append(val)
       }
     }
 
@@ -204,7 +209,11 @@ struct ArrayTests2 {
 
     let arrayBuilder: ArrayBuilderVariable<Data> = .init()
     for value in expected {
-      arrayBuilder.append(value)
+      if let value {
+        arrayBuilder.append(value)
+      } else {
+        arrayBuilder.appendNull()
+      }
     }
     let binaryArray = arrayBuilder.finish()
 
@@ -228,7 +237,11 @@ struct ArrayTests2 {
 
     let arrayBuilder: ArrayBuilderFixedWidth<Int64> = .init()
     for value in expected {
-      arrayBuilder.append(value)
+      if let value {
+        arrayBuilder.append(value)
+      } else {
+        arrayBuilder.appendNull()
+      }
     }
     let int64Array = arrayBuilder.finish()
 
@@ -254,7 +267,11 @@ struct ArrayTests2 {
       }
       let arrayBuilder: ArrayBuilderVariable<String> = .init()
       for value in expected {
-        arrayBuilder.append(value)
+        if let value {
+          arrayBuilder.append(value)
+        } else {
+          arrayBuilder.appendNull()
+        }
       }
       let stringArray = arrayBuilder.finish()
 
@@ -291,7 +308,11 @@ struct ArrayTests2 {
 
     let arrayBuilder: ArrayBuilderVariable<String> = .init()
     for value in expected {
-      arrayBuilder.append(value)
+      if let value {
+        arrayBuilder.append(value)
+      } else {
+        arrayBuilder.appendNull()
+      }
     }
     let stringArray = arrayBuilder.finish()
 
@@ -317,7 +338,11 @@ struct ArrayTests2 {
     }
     let arrayBuilder: ArrayBuilderFixedWidth<Int64> = .init()
     for value in expected {
-      arrayBuilder.append(value)
+      if let value {
+        arrayBuilder.append(value)
+      } else {
+        arrayBuilder.appendNull()
+      }
     }
     let int64Array = arrayBuilder.finish()
     for i in 0..<count {
@@ -328,7 +353,7 @@ struct ArrayTests2 {
   @Test func doubleArray() throws {
     let builder: ArrayBuilderFixedWidth<Double> = .init()
     builder.append(14)
-    builder.append(nil)
+    builder.appendNull()
     builder.append(40.4)
     let doubleArray = builder.finish()
     #expect(doubleArray.length == 3)
@@ -343,7 +368,7 @@ struct ArrayTests2 {
     let date1 = Date(timeIntervalSinceReferenceDate: 86400 * 5000 + 352)
     date32Builder.append(date1)
     date32Builder.append(date2)
-    date32Builder.append(nil)
+    date32Builder.appendNull()
     let date32Array = date32Builder.finish()
     #expect(date32Array.length == 3)
     #expect(date32Array[1] == date2)
@@ -358,7 +383,7 @@ struct ArrayTests2 {
     let date1 = Date(timeIntervalSinceReferenceDate: 86400 * 5000 + 352)
     date64Builder.append(date1)
     date64Builder.append(date2)
-    date64Builder.append(nil)
+    date64Builder.appendNull()
     let date64Array = date64Builder.finish()
     #expect(date64Array.length == 3)
     #expect(date64Array[1] == date2)
@@ -369,7 +394,7 @@ struct ArrayTests2 {
     let milliBuilder: ArrayBuilderTime32 = .init()
     milliBuilder.append(100)
     milliBuilder.append(1_000_000)
-    milliBuilder.append(nil)
+    milliBuilder.appendNull()
     let milliArray = milliBuilder.finish()
     #expect(milliArray.length == 3)
     #expect(milliArray[1] == 1_000_000)
@@ -377,7 +402,7 @@ struct ArrayTests2 {
 
     let secBuilder: ArrayBuilderTime32 = .init()
     secBuilder.append(200)
-    secBuilder.append(nil)
+    secBuilder.appendNull()
     secBuilder.append(2_000_011)
     let secArray = secBuilder.finish()
     #expect(secArray.length == 3)
@@ -388,7 +413,7 @@ struct ArrayTests2 {
   @Test func time64Array() throws {
     let nanoBuilder: ArrayBuilderTime64 = .init()
     nanoBuilder.append(10000)
-    nanoBuilder.append(nil)
+    nanoBuilder.appendNull()
     nanoBuilder.append(123_456_789)
     let nanoArray = nanoBuilder.finish()
     #expect(nanoArray.length == 3)
@@ -396,7 +421,7 @@ struct ArrayTests2 {
     #expect(nanoArray[2] == 123_456_789)
 
     let microBuilder: ArrayBuilderTime64 = .init()
-    microBuilder.append(nil)
+    microBuilder.appendNull()
     microBuilder.append(20000)
     microBuilder.append(987_654_321)
     
@@ -411,7 +436,7 @@ struct ArrayTests2 {
     let secBuilder: ArrayBuilderTimestamp = .init()
     secBuilder.append(1_609_459_200)  // 2021-01-01 00:00:00
     secBuilder.append(1_609_545_600)  // 2021-01-02 00:00:00
-    secBuilder.append(nil)
+    secBuilder.appendNull()
     let secArray = secBuilder.finish()
     #expect(secArray.length == 3)
     #expect(secArray[0] == 1_609_459_200)
@@ -421,7 +446,7 @@ struct ArrayTests2 {
     // Test timestamp with milliseconds unit and timezone America/New_York
     let msBuilder: ArrayBuilderTimestamp = .init()
     msBuilder.append(1_609_459_200_000)  // 2021-01-01 00:00:00.000
-    msBuilder.append(nil)
+    msBuilder.appendNull()
     msBuilder.append(1_609_545_600_000)  // 2021-01-02 00:00:00.000
     let msArray = msBuilder.finish()
     #expect(msArray.length == 3)
@@ -442,7 +467,7 @@ struct ArrayTests2 {
 
     // Test timestamp with nanoseconds unit
     let nsBuilder: ArrayBuilderTimestamp = .init()
-    nsBuilder.append(nil)
+    nsBuilder.appendNull()
     // 2021-01-01 00:00:00.000000000
     nsBuilder.append(1_609_459_200_000_000_000)
     // 2021-01-02 00:00:00.000000000

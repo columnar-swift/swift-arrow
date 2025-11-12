@@ -20,6 +20,14 @@ protocol ArrowArrayProtocol<ItemType> {
   var offset: Int { get }
   var length: Int { get }
   func slice(offset: Int, length: Int) -> Self
+  func any(at index: Int) -> Any?
+}
+
+// This exists to support type-erased struct arrays.
+extension ArrowArrayProtocol {
+  func any(at index: Int) -> Any? {
+    self[index] as Any?
+  }
 }
 
 /// An Arrow array of booleans using the three-valued logical model (true / false / null).
