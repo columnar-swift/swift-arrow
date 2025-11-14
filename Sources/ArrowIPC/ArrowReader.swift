@@ -1,0 +1,330 @@
+// Copyright 2025 The Apache Software Foundation
+// Copyright 2025 The Columnar Swift Contributors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+import Arrow
+import BinaryParsing
+import FlatBuffers
+import Foundation
+
+let fileMarker: [UInt8] = .init(Data("ARROW1".utf8))
+let continuationMarker = UInt32(0xFFFF_FFFF)
+
+struct FileDataBuffer {
+  let data: Data
+  let range: Range<Int>
+}
+
+struct NullBufferIPC: NullBuffer {
+
+  let buffer: FileDataBuffer
+  var length: Int {
+    buffer.range.count
+  }
+
+  func isSet(_ bit: Int) -> Bool {
+    let byteIndex = bit / 8
+    precondition(length > byteIndex, "Bit index \(bit) out of range")
+
+    let offsetIndex = buffer.range.lowerBound + byteIndex
+
+    let byte = self.buffer.data[offsetIndex]
+    return byte & (1 << (bit % 8)) > 0
+  }
+}
+
+struct FixedWidthBufferIPC<T>: FixedWidthBufferProtocol
+where T: Numeric, T: BitwiseCopyable {
+
+  typealias ElementType = T
+
+  let buffer: FileDataBuffer
+  var length: Int {
+    buffer.range.count
+  }
+
+  subscript(index: Int) -> T {
+
+    let offsetIndex = buffer.range.lowerBound + index
+
+    return buffer.data.withUnsafeBytes { rawBuffer in
+      let sub = rawBuffer[buffer.range]
+      let span = Span<T>(_unsafeBytes: sub)
+      return span[index]
+    }
+  }
+}
+
+struct VariableLengthBuffer<T: VariableLength>: VariableLengthBufferProtocol {
+  typealias ElementType = T
+
+  let buffer: FileDataBuffer
+
+  var length: Int {
+    buffer.range.count
+  }
+
+  // For IPC buffer backed by Data
+  func loadVariable(
+    at startIndex: Int,
+    arrayLength: Int
+  ) -> T {
+    precondition(startIndex + arrayLength <= self.length)
+
+    return buffer.data.withUnsafeBytes { rawBuffer in
+      let offsetStart = buffer.range.lowerBound + startIndex
+      let offsetEnd = offsetStart + arrayLength
+      let slice = rawBuffer[offsetStart..<offsetEnd]
+
+      // Create UnsafeBufferPointer<UInt8> from the slice
+      let uint8Buffer = slice.bindMemory(to: UInt8.self)
+      return T(uint8Buffer)
+    }
+  }
+}
+
+/// This is for reading the Arrow file format.
+///
+/// The Arrow file format supports  random access. The Arrow file format contains a header and footer
+/// around the Arrow streaming format.
+public struct ArrowReader {
+
+  let data: Data
+
+  /// Create an `ArrowReader` from a URL.
+  ///
+  /// - Parameter url: the file to read from.
+  /// - Throws: a ParsingError if the file could not be read.
+  public init(url: URL) throws {
+
+    self.data = try Data(contentsOf: url, options: .mappedIfSafe)
+
+    try data.withParserSpan { input in
+      let marker = try [UInt8](parsing: &input, byteCount: 6)
+      guard marker == fileMarker else {
+        throw ArrowError.invalid("Invalid Arrow file")
+      }
+    }
+  }
+
+  func read() throws -> [RecordBatch] {
+
+    let footerData = try data.withParserSpan { input in
+      let count = input.count
+      try input.seek(toAbsoluteOffset: count - 10)
+
+      let footerLength = try Int(parsingLittleEndian: &input, byteCount: 4)
+      try input.seek(toAbsoluteOffset: count - 10 - footerLength)
+
+      return try [UInt8](parsing: &input, byteCount: footerLength)
+    }
+
+    var footerBuffer = ByteBuffer(
+      data: Data(footerData)
+    )
+
+    let footer: FFooter = getRoot(byteBuffer: &footerBuffer)
+
+    guard let schema = footer.schema else {
+      throw ArrowError.invalid("Missing schema in footer")
+    }
+    let arrowSchema = try loadSchema(schema)
+    var recordBatches: [RecordBatch] = []
+
+    // MARK: Record batch parsing
+    for index in 0..<footer.recordBatchesCount {
+      guard let block: FBlock = footer.recordBatches(at: index) else {
+        throw ArrowError.invalid("Missing record batch at index \(index)")
+      }
+
+      let (message, offset) = try data.withParserSpan { input in
+        try input.seek(toAbsoluteOffset: block.offset)
+        let marker = try UInt32(parsingLittleEndian: &input)
+        if marker != continuationMarker {
+          throw ArrowError.invalid("Missing continuation marker.")
+        }
+        let messageLength = try UInt32(parsingLittleEndian: &input)
+        let data = try [UInt8](parsing: &input, byteCount: Int(messageLength))
+        // TODO: Not zero-copy. Maybe new API fixes this.
+        var mbb = ByteBuffer(data: Data(data))
+        let message: FMessage = getRoot(byteBuffer: &mbb)
+        let offset = Int64(input.startPosition)
+        return (message, offset)
+      }
+
+      guard message.headerType == .recordbatch else {
+        throw ArrowError.invalid("Expected RecordBatch message.")
+      }
+
+      guard let rbMessage = message.header(type: FRecordBatch.self) else {
+        throw ArrowError.invalid("Expected RecordBatch as message header")
+      }
+      guard let footerSchema = footer.schema else {
+        throw ArrowError.invalid("Expected schema in footer")
+      }
+
+      // MARK: Load arrays
+      var arrays: [any ArrowArrayProtocol] = .init()
+      var nodeIndex: Int32 = 0
+      var bufferIndex: Int32 = 0
+      for fieldIndex in 0..<footerSchema.fieldsCount {
+        guard let field = schema.fields(at: fieldIndex) else {
+          throw ArrowError.invalid("Missing field at index \(fieldIndex)")
+        }
+
+        guard nodeIndex < rbMessage.nodesCount,
+          let node = rbMessage.nodes(at: nodeIndex)
+        else {
+          throw ArrowError.invalid("Missing node at index \(nodeIndex)")
+        }
+        nodeIndex += 1
+
+        let arrowType: ArrowType = try .type(for: field)
+
+        let length = Int(node.length)
+
+        let buffer0 = try nextBuffer(
+          message: rbMessage,
+          index: &bufferIndex,
+          offset: offset,
+          data: data
+        )
+
+        // MARK: Load arrays
+        let nullsPresent = node.nullCount > 0
+        let nullBuffer: NullBuffer
+        if nullsPresent {
+          if node.nullCount == 0 {
+            nullBuffer = AllValidNullBuffer(length: Int(node.length))
+          } else if node.length == 0 {
+            nullBuffer = AllValidNullBuffer(length: 0)
+          } else if node.nullCount == node.length {
+            nullBuffer = AllNullBuffer(length: Int(node.length))
+          } else {
+            nullBuffer = NullBufferIPC(buffer: buffer0)
+          }
+        } else {
+          nullBuffer = AllValidNullBuffer(length: Int(node.length))
+        }
+
+        if nullsPresent && !field.nullable {
+          print("Nullabity violated for field \(field.name ?? "<unknown>")")
+        }
+
+        if arrowType == .boolean {
+          let buffer1 = try nextBuffer(
+            message: rbMessage, index: &bufferIndex, offset: offset, data: data)
+          let valueBuffer = NullBufferIPC(buffer: buffer1)
+          let array = ArrowArrayBoolean(
+            offset: 0, length: length, nullBuffer: nullBuffer,
+            valueBuffer: valueBuffer)
+          arrays.append(array)
+        } else if arrowType == .utf8 {
+          let buffer1 = try nextBuffer(
+            message: rbMessage, index: &bufferIndex, offset: offset, data: data)
+          let offsetsBuffer = FixedWidthBufferIPC<Int32>(buffer: buffer1)
+          let buffer2 = try nextBuffer(
+            message: rbMessage, index: &bufferIndex, offset: offset, data: data)
+          let valueBuffer = VariableLengthBuffer<String>(buffer: buffer2)
+          let stringArray = ArrowArrayUtf8(
+            offset: 0, length: length, nullBuffer: nullBuffer,
+            offsetsBuffer: offsetsBuffer, valueBuffer: valueBuffer)
+          arrays.append(stringArray)
+        } else {
+          throw ArrowError.notImplemented
+        }
+      }
+
+      let recordBatch = RecordBatch(arrowSchema, columns: arrays)
+      recordBatches.append(recordBatch)
+    }
+
+    return recordBatches
+
+  }
+
+  func nextBuffer(
+    message: FRecordBatch, index: inout Int32, offset: Int64, data: Data
+  ) throws -> FileDataBuffer {
+    guard index < message.buffersCount, let buffer = message.buffers(at: index)
+    else {
+      throw ArrowError.invalid("Invalid buffer index.")
+    }
+    index += 1
+    let startOffset = offset + buffer.offset
+    let endOffset = startOffset + buffer.length
+    let range = Int(startOffset)..<Int(endOffset)
+    let fileDataBuffer = FileDataBuffer(data: data, range: range)
+    return fileDataBuffer
+  }
+
+  //
+  //  private func loadPrimitiveData(
+  //    field: FField,
+  //    fieldNode: FFieldNode
+  //  )
+  //    -> any ArrowArrayProtocol
+  //  {
+  //
+  //    guard let nullBuffer = loadInfo.batchData.nextBuffer() else {
+  //      return .failure(.invalid("Null buffer not found"))
+  //    }
+  //
+  //    guard let valueBuffer = loadInfo.batchData.nextBuffer() else {
+  //      return .failure(.invalid("Value buffer not found"))
+  //    }
+  //
+  //    let nullLength = UInt(ceil(Double(node.length) / 8))
+  //    let arrowNullBuffer = makeBuffer(
+  //      nullBuffer,
+  //      fileData: loadInfo.fileData,
+  //      length: nullLength,
+  //      messageOffset: loadInfo.messageOffset
+  //    )
+  //    let arrowValueBuffer = makeBuffer(
+  //      valueBuffer,
+  //      fileData: loadInfo.fileData,
+  //      length: UInt(node.length),
+  //      messageOffset: loadInfo.messageOffset
+  //    )
+  //    return makeArrayHolder(
+  //      field,
+  //      buffers: [arrowNullBuffer, arrowValueBuffer],
+  //      nullCount: UInt(node.nullCount),
+  //      children: nil,
+  //      rbLength: UInt(loadInfo.batchData.recordBatch.length)
+  //    )
+  //  }
+
+  private func loadSchema(_ schema: FSchema) throws(ArrowError) -> ArrowSchema {
+    let builder = ArrowSchema.Builder()
+    for index in 0..<schema.fieldsCount {
+      guard let field = schema.fields(at: index) else {
+        throw .invalid("Field not found at index: \(index)")
+      }
+      let fieldType: ArrowType = try .type(for: field)
+      guard let fieldName = field.name else {
+        throw .invalid("Field name not found")
+      }
+      let arrowField = ArrowField(
+        name: fieldName,
+        dataType: fieldType,
+        isNullable: field.nullable
+      )
+      builder.addField(arrowField)
+    }
+    return builder.finish()
+  }
+
+}

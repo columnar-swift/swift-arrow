@@ -38,7 +38,7 @@ struct ArrayTests2 {
     // Must have null buffer, all bits = 0
     let arrayBuilder: ArrayBuilderFixedWidth<Int64> = .init()
     for _ in 0..<1000 {
-      arrayBuilder.append(nil)
+      arrayBuilder.appendNull()
     }
     let array = arrayBuilder.finish()
     #expect(array.nullBuffer is AllNullBuffer)
@@ -52,7 +52,7 @@ struct ArrayTests2 {
 
     let builder = ArrayBuilderBoolean()
     builder.append(true)
-    builder.append(nil)
+    builder.appendNull()
     builder.append(false)
     builder.append(false)
     let boolArray = builder.finish()
@@ -71,7 +71,7 @@ struct ArrayTests2 {
       arrayBuilder.append(index)
     }
 
-    arrayBuilder.append(nil)
+    arrayBuilder.appendNull()
     #expect(arrayBuilder.length == 101)
     let array = arrayBuilder.finish()
     #expect(array.length == 101)
@@ -81,6 +81,11 @@ struct ArrayTests2 {
 
     for index in 0..<100 {
       #expect(array[Int(index)]! == UInt8(index))
+    }
+
+    let slice = array.slice(offset: 5, length: 5)
+    for i in 0..<5 {
+      #expect(slice[i] == UInt8(5 + i))
     }
   }
 
@@ -103,6 +108,33 @@ struct ArrayTests2 {
     }
   }
 
+  @Test func stringArray() throws {
+    let builder: ArrayBuilderVariable<String> = .init()
+
+    builder.appendNull()
+    builder.append("abc")
+    builder.append("def")
+    builder.appendNull()
+    builder.append("This is a longer string")
+    builder.appendNull()
+    builder.appendNull()
+    for i in 0..<100 {
+      builder.append("test \(i)")
+    }
+
+    let stringArray = builder.finish()
+    #expect(stringArray[0] == nil)
+    #expect(stringArray[1]! == "abc")
+    #expect(stringArray[2]! == "def")
+    #expect(stringArray[3] == nil)
+    #expect(stringArray[4]! == "This is a longer string")
+    #expect(stringArray[5] == nil)
+    #expect(stringArray[6] == nil)
+    for i in 0..<100 {
+      #expect(stringArray[i + 7]! == "test \(i)")
+    }
+  }
+
   @Test func stringArrayWithRandomNulls() throws {
     var rng = getSeededRNG()
     let count = Int.random(in: 0...100_000)
@@ -120,12 +152,40 @@ struct ArrayTests2 {
 
     let arrayBuilder: ArrayBuilderVariable<String> = .init()
     for value in testArray {
-      arrayBuilder.append(value)
+      if let value {
+        arrayBuilder.append(value)
+      } else {
+        arrayBuilder.appendNull()
+      }
     }
     let stringArray = arrayBuilder.finish()
 
     for i in 0..<count {
       #expect(stringArray[i] == testArray[i])
+    }
+  }
+
+  @Test func binaryStringArray() throws {
+    let arrayBuilder: ArrayBuilderVariable<Data> = .init()
+    for index in 0..<100 {
+      if index % 10 == 9 {
+        arrayBuilder.appendNull()
+      } else {
+        let val = Data("test\(index)".utf8)
+        arrayBuilder.append(val)
+      }
+    }
+
+    let binaryArray = arrayBuilder.finish()
+    #expect(binaryArray.length == 100)
+    for index in 0..<binaryArray.length {
+      if index % 10 == 9 {
+        #expect(binaryArray[index] == nil)
+      } else {
+        let data = binaryArray[index]!
+        let string = String(data: data, encoding: .utf8)
+        #expect(string == "test\(index)")
+      }
     }
   }
 
@@ -149,7 +209,11 @@ struct ArrayTests2 {
 
     let arrayBuilder: ArrayBuilderVariable<Data> = .init()
     for value in expected {
-      arrayBuilder.append(value)
+      if let value {
+        arrayBuilder.append(value)
+      } else {
+        arrayBuilder.appendNull()
+      }
     }
     let binaryArray = arrayBuilder.finish()
 
@@ -173,7 +237,11 @@ struct ArrayTests2 {
 
     let arrayBuilder: ArrayBuilderFixedWidth<Int64> = .init()
     for value in expected {
-      arrayBuilder.append(value)
+      if let value {
+        arrayBuilder.append(value)
+      } else {
+        arrayBuilder.appendNull()
+      }
     }
     let int64Array = arrayBuilder.finish()
 
@@ -199,7 +267,11 @@ struct ArrayTests2 {
       }
       let arrayBuilder: ArrayBuilderVariable<String> = .init()
       for value in expected {
-        arrayBuilder.append(value)
+        if let value {
+          arrayBuilder.append(value)
+        } else {
+          arrayBuilder.appendNull()
+        }
       }
       let stringArray = arrayBuilder.finish()
 
@@ -236,7 +308,11 @@ struct ArrayTests2 {
 
     let arrayBuilder: ArrayBuilderVariable<String> = .init()
     for value in expected {
-      arrayBuilder.append(value)
+      if let value {
+        arrayBuilder.append(value)
+      } else {
+        arrayBuilder.appendNull()
+      }
     }
     let stringArray = arrayBuilder.finish()
 
@@ -262,7 +338,11 @@ struct ArrayTests2 {
     }
     let arrayBuilder: ArrayBuilderFixedWidth<Int64> = .init()
     for value in expected {
-      arrayBuilder.append(value)
+      if let value {
+        arrayBuilder.append(value)
+      } else {
+        arrayBuilder.appendNull()
+      }
     }
     let int64Array = arrayBuilder.finish()
     for i in 0..<count {
@@ -271,11 +351,9 @@ struct ArrayTests2 {
   }
 
   @Test func doubleArray() throws {
-
-    // MARK: Double array
     let builder: ArrayBuilderFixedWidth<Double> = .init()
     builder.append(14)
-    builder.append(nil)
+    builder.appendNull()
     builder.append(40.4)
     let doubleArray = builder.finish()
     #expect(doubleArray.length == 3)
@@ -284,41 +362,13 @@ struct ArrayTests2 {
     #expect(doubleArray[2]! == 40.4)
   }
 
-  @Test func stringArray() throws {
-    let builder: ArrayBuilderVariable<String> = .init()
-
-    builder.append(nil)
-    builder.append("abc")
-    builder.append("def")
-    builder.append(nil)
-    builder.append("This is a longer string")
-    builder.append(nil)
-    builder.append(nil)
-    for i in 0..<100 {
-      builder.append("test \(i)")
-    }
-
-    let stringArray = builder.finish()
-    #expect(stringArray[0] == nil)
-    #expect(stringArray[1]! == "abc")
-    #expect(stringArray[2]! == "def")
-    #expect(stringArray[3] == nil)
-    #expect(stringArray[4]! == "This is a longer string")
-    #expect(stringArray[5] == nil)
-    #expect(stringArray[6] == nil)
-    for i in 0..<100 {
-      #expect(stringArray[i + 7]! == "test \(i)")
-    }
-  }
-
   @Test func date32Array() throws {
-
     let date32Builder: ArrayBuilderDate32 = .init()
     let date2 = Date(timeIntervalSinceReferenceDate: 86400 * 1)
     let date1 = Date(timeIntervalSinceReferenceDate: 86400 * 5000 + 352)
     date32Builder.append(date1)
     date32Builder.append(date2)
-    date32Builder.append(nil)
+    date32Builder.appendNull()
     let date32Array = date32Builder.finish()
     #expect(date32Array.length == 3)
     #expect(date32Array[1] == date2)
@@ -327,117 +377,55 @@ struct ArrayTests2 {
     #expect(date32Array[0]! == adjustedDate1)
   }
 
-  // MARK: need to migrate these
-
   @Test func date64Array() throws {
     let date64Builder: ArrayBuilderDate64 = .init()
     let date2 = Date(timeIntervalSinceReferenceDate: 86400 * 1)
     let date1 = Date(timeIntervalSinceReferenceDate: 86400 * 5000 + 352)
     date64Builder.append(date1)
     date64Builder.append(date2)
-    date64Builder.append(nil)
+    date64Builder.appendNull()
     let date64Array = date64Builder.finish()
     #expect(date64Array.length == 3)
     #expect(date64Array[1] == date2)
     #expect(date64Array[0]! == date1)
   }
 
-  @Test func binaryArray() throws {
-    let binaryBuilder = try ArrowArrayBuilders.loadBinaryArrayBuilder()
-    for index in 0..<100 {
-      if index % 10 == 9 {
-        binaryBuilder.append(nil)
-      } else {
-        binaryBuilder.append(("test" + String(index)).data(using: .utf8))
-      }
-    }
-
-    #expect(binaryBuilder.nullCount == 10)
-    #expect(binaryBuilder.length == 100)
-    #expect(binaryBuilder.capacity == 640)
-    let binaryArray = try binaryBuilder.finish()
-    #expect(binaryArray.length == 100)
-    for index in 0..<binaryArray.length {
-      if index % 10 == 9 {
-        #expect(try binaryArray.isNull(at: index) == true)
-      } else {
-        let stringData = String(bytes: binaryArray[index]!, encoding: .utf8)
-        #expect(stringData == "test" + String(index))
-      }
-    }
-  }
-
   @Test func time32Array() throws {
-    let milliBuilder = try ArrowArrayBuilders.loadTime32ArrayBuilder(
-      .millisecond)
+    let milliBuilder: ArrayBuilderTime32 = .init()
     milliBuilder.append(100)
     milliBuilder.append(1_000_000)
-    milliBuilder.append(nil)
-    #expect(milliBuilder.nullCount == 1)
-    #expect(milliBuilder.length == 3)
-    #expect(milliBuilder.capacity == 128)
-    let milliArray = try milliBuilder.finish()
-    guard case .time32(let milliType) = milliArray.arrowData.type else {
-      Issue.record("Expected time32")
-      return
-    }
-    #expect(milliType == .millisecond)
+    milliBuilder.appendNull()
+    let milliArray = milliBuilder.finish()
     #expect(milliArray.length == 3)
     #expect(milliArray[1] == 1_000_000)
     #expect(milliArray[2] == nil)
 
-    let secBuilder = try ArrowArrayBuilders.loadTime32ArrayBuilder(.second)
+    let secBuilder: ArrayBuilderTime32 = .init()
     secBuilder.append(200)
-    secBuilder.append(nil)
+    secBuilder.appendNull()
     secBuilder.append(2_000_011)
-    #expect(secBuilder.nullCount == 1)
-    #expect(secBuilder.length == 3)
-    #expect(secBuilder.capacity == 128)
-    let secArray = try secBuilder.finish()
-    guard case .time32(let secType) = secArray.arrowData.type else {
-      Issue.record("Expected time32")
-      return
-    }
-    #expect(secType == .second)
+    let secArray = secBuilder.finish()
     #expect(secArray.length == 3)
     #expect(secArray[1] == nil)
     #expect(secArray[2] == 2_000_011)
   }
 
   @Test func time64Array() throws {
-    let nanoBuilder = try ArrowArrayBuilders.loadTime64ArrayBuilder(
-      .nanosecond)
+    let nanoBuilder: ArrayBuilderTime64 = .init()
     nanoBuilder.append(10000)
-    nanoBuilder.append(nil)
+    nanoBuilder.appendNull()
     nanoBuilder.append(123_456_789)
-    #expect(nanoBuilder.nullCount == 1)
-    #expect(nanoBuilder.length == 3)
-    #expect(nanoBuilder.capacity == 256)
-    let nanoArray = try nanoBuilder.finish()
-    guard case .time64(let nanoType) = nanoArray.arrowData.type else {
-      Issue.record("Expected time64")
-      return
-    }
-    #expect(nanoType == .nanosecond)
+    let nanoArray = nanoBuilder.finish()
     #expect(nanoArray.length == 3)
     #expect(nanoArray[1] == nil)
     #expect(nanoArray[2] == 123_456_789)
 
-    let microBuilder = try ArrowArrayBuilders.loadTime64ArrayBuilder(
-      .microsecond
-    )
-    microBuilder.append(nil)
+    let microBuilder: ArrayBuilderTime64 = .init()
+    microBuilder.appendNull()
     microBuilder.append(20000)
     microBuilder.append(987_654_321)
-    #expect(microBuilder.nullCount == 1)
-    #expect(microBuilder.length == 3)
-    #expect(microBuilder.capacity == 256)
-    let microArray = try microBuilder.finish()
-    guard case .time64(let microType) = microArray.arrowData.type else {
-      Issue.record("Expected time64")
-      return
-    }
-    #expect(microType == .microsecond)
+
+    let microArray = microBuilder.finish()
     #expect(microArray.length == 3)
     #expect(microArray[1] == 20000)
     #expect(microArray[2] == 987_654_321)
@@ -445,100 +433,53 @@ struct ArrayTests2 {
 
   @Test func timestampArray() throws {
     // Test timestamp with seconds unit
-    let secBuilder = try ArrowArrayBuilders.loadTimestampArrayBuilder(
-      .second,
-      timezone: nil
-    )
+    let secBuilder: ArrayBuilderTimestamp = .init()
     secBuilder.append(1_609_459_200)  // 2021-01-01 00:00:00
     secBuilder.append(1_609_545_600)  // 2021-01-02 00:00:00
-    secBuilder.append(nil)
-    #expect(secBuilder.nullCount == 1)
-    #expect(secBuilder.length == 3)
-    #expect(secBuilder.capacity == 256)
-    let secArray = try secBuilder.finish()
-    guard case .timestamp(let secType, let timezone) = secArray.arrowData.type
-    else {
-      Issue.record("Expected timestamp")
-      return
-    }
-    #expect(secType == .second)
-    #expect(timezone == nil)
+    secBuilder.appendNull()
+    let secArray = secBuilder.finish()
     #expect(secArray.length == 3)
     #expect(secArray[0] == 1_609_459_200)
     #expect(secArray[1] == 1_609_545_600)
     #expect(secArray[2] == nil)
 
     // Test timestamp with milliseconds unit and timezone America/New_York
-    let msBuilder = try ArrowArrayBuilders.loadTimestampArrayBuilder(
-      .millisecond,
-      timezone: "America/New_York"
-    )
+    let msBuilder: ArrayBuilderTimestamp = .init()
     msBuilder.append(1_609_459_200_000)  // 2021-01-01 00:00:00.000
-    msBuilder.append(nil)
+    msBuilder.appendNull()
     msBuilder.append(1_609_545_600_000)  // 2021-01-02 00:00:00.000
-    #expect(msBuilder.nullCount == 1)
-    #expect(msBuilder.length == 3)
-    #expect(msBuilder.capacity == 256)
-    let msArray = try msBuilder.finish()
-    guard case .timestamp(let msType, let timezone) = msArray.arrowData.type
-    else {
-      Issue.record("Expected timestamp")
-      return
-    }
-    #expect(msType == .millisecond)
-    #expect(timezone == "America/New_York")
+    let msArray = msBuilder.finish()
     #expect(msArray.length == 3)
     #expect(msArray[0] == 1_609_459_200_000)
     #expect(msArray[1] == nil)
     #expect(msArray[2] == 1_609_545_600_000)
 
     // Test timestamp with microseconds unit and timezone UTC
-    let usBuilder = try ArrowArrayBuilders.loadTimestampArrayBuilder(
-      .microsecond, timezone: "UTC")
+    let usBuilder: ArrayBuilderTimestamp = .init()
     usBuilder.append(1_609_459_200_000_000)  // 2021-01-01 00:00:00.000000
     usBuilder.append(1_609_545_600_000_000)  // 2021-01-02 00:00:00.000000
     usBuilder.append(1_609_632_000_000_000)  // 2021-01-03 00:00:00.000000
-    #expect(usBuilder.nullCount == 0)
-    #expect(usBuilder.length == 3)
-    #expect(usBuilder.capacity == 256)
-    let usArray = try usBuilder.finish()
-    guard case .timestamp(let usType, let timezone) = usArray.arrowData.type
-    else {
-      Issue.record("Expected timestamp")
-      return
-    }
-    #expect(usType == .microsecond)
-    #expect(timezone == "UTC")
+    let usArray = usBuilder.finish()
     #expect(usArray.length == 3)
     #expect(usArray[0] == 1_609_459_200_000_000)
     #expect(usArray[1] == 1_609_545_600_000_000)
     #expect(usArray[2] == 1_609_632_000_000_000)
 
     // Test timestamp with nanoseconds unit
-    let nsBuilder = try ArrowArrayBuilders.loadTimestampArrayBuilder(
-      .nanosecond, timezone: nil)
-    nsBuilder.append(nil)
+    let nsBuilder: ArrayBuilderTimestamp = .init()
+    nsBuilder.appendNull()
     // 2021-01-01 00:00:00.000000000
     nsBuilder.append(1_609_459_200_000_000_000)
     // 2021-01-02 00:00:00.000000000
     nsBuilder.append(1_609_545_600_000_000_000)
-    #expect(nsBuilder.nullCount == 1)
-    #expect(nsBuilder.length == 3)
-    #expect(nsBuilder.capacity == 256)
-    let nsArray = try nsBuilder.finish()
-    guard case .timestamp(let nsType, let timezone) = nsArray.arrowData.type
-    else {
-      Issue.record("Expected timestamp")
-      return
-    }
-    #expect(nsType == .nanosecond)
-    #expect(timezone == nil)
+    let nsArray = nsBuilder.finish()
     #expect(nsArray.length == 3)
     #expect(nsArray[0] == nil)
     #expect(nsArray[1] == 1_609_459_200_000_000_000)
     #expect(nsArray[2] == 1_609_545_600_000_000_000)
   }
 
+  // MARK: need to migrate these
   @Test func structArray() throws {
     class StructTest {
       var fieldBool: Bool = false

@@ -12,8 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+public protocol FixedWidthBufferProtocol<ElementType> {
+  associatedtype ElementType: Numeric
+  var length: Int { get }
+  subscript(index: Int) -> ElementType { get }
+}
+
 /// A  buffer used in Arrow arrays that hold fixed-width types.
-final class FixedWidthBuffer<T: Numeric> {
+final class FixedWidthBuffer<T>: FixedWidthBufferProtocol where T: Numeric {
+
+  typealias ElementType = T
+
   var length: Int
   var capacity: Int
   let ownsMemory: Bool

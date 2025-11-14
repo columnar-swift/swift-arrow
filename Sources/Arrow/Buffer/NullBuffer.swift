@@ -13,26 +13,34 @@
 // limitations under the License.
 
 /// A type used to represent nulls and booleans in Arrow arrays.
-protocol NullBuffer {
+public protocol NullBuffer {
   var length: Int { get }
   func isSet(_ bit: Int) -> Bool
 }
 
 /// Represents an array with no nulls (all values valid).
-struct AllValidNullBuffer: NullBuffer {
-  let length: Int
+public struct AllValidNullBuffer: NullBuffer {
+  public let length: Int
 
-  func isSet(_ bit: Int) -> Bool {
+  public init(length: Int) {
+    self.length = length
+  }
+
+  public func isSet(_ bit: Int) -> Bool {
     precondition(bit < length)
     return true
   }
 }
 
 /// Represents an array with all nulls.
-struct AllNullBuffer: NullBuffer {
-  let length: Int
+public struct AllNullBuffer: NullBuffer {
+  public let length: Int
 
-  func isSet(_ bit: Int) -> Bool {
+  public init(length: Int) {
+    self.length = length
+  }
+
+  public func isSet(_ bit: Int) -> Bool {
     precondition(bit < length)
     return false
   }
