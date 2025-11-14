@@ -82,7 +82,7 @@ struct ArrayTests2 {
     for index in 0..<100 {
       #expect(array[Int(index)]! == UInt8(index))
     }
-    
+
     let slice = array.slice(offset: 5, length: 5)
     for i in 0..<5 {
       #expect(slice[i] == UInt8(5 + i))
@@ -424,7 +424,7 @@ struct ArrayTests2 {
     microBuilder.appendNull()
     microBuilder.append(20000)
     microBuilder.append(987_654_321)
-    
+
     let microArray = microBuilder.finish()
     #expect(microArray.length == 3)
     #expect(microArray[1] == 20000)
@@ -479,10 +479,6 @@ struct ArrayTests2 {
     #expect(nsArray[2] == 1_609_545_600_000_000_000)
   }
 
-  @Test func listArray() throws {
-    
-  }
-  
   // MARK: need to migrate these
   @Test func structArray() throws {
     class StructTest {

@@ -48,7 +48,7 @@ let package = Package(
     .package(
       url: "https://github.com/apple/swift-binary-parsing",
       from: "0.0.1"
-    )
+    ),
   ],
   targets: [
     .target(
@@ -81,12 +81,12 @@ let package = Package(
         // build: .unsafeFlags(["-warnings-as-errors"])
       ]
     ),
-//    .target(
-//      name: "ArrowC",
-//      swiftSettings: [
-//        // build: .unsafeFlags(["-warnings-as-errors"])
-//      ]
-//    ),
+    //    .target(
+    //      name: "ArrowC",
+    //      swiftSettings: [
+    //        // build: .unsafeFlags(["-warnings-as-errors"])
+    //      ]
+    //    ),
     .target(
       name: "ArrowFlight",
       dependencies: [

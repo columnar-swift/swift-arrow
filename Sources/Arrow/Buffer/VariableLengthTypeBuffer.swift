@@ -15,40 +15,53 @@
 import Foundation
 
 /// An Arrow type with variable length.
-protocol VariableLength {
+public protocol VariableLength {
   init(_ value: UnsafeBufferPointer<UInt8>)
 
   var data: Data { get }
 }
 
 extension String: VariableLength {
-  init(_ value: UnsafeBufferPointer<UInt8>) {
+  public init(_ value: UnsafeBufferPointer<UInt8>) {
     self.init(decoding: value, as: Unicode.UTF8.self)
   }
 
-  var data: Data {
+  public var data: Data {
     Data(self.utf8)
   }
 }
 
 extension Data: VariableLength {
-  init(value: UnsafeBufferPointer<UInt8>) {
+  public init(value: UnsafeBufferPointer<UInt8>) {
     self.init(value)
   }
 
-  var data: Data {
+  public var data: Data {
     self
   }
 }
 
+public protocol VariableLengthBufferProtocol<ElementType> {
+  associatedtype ElementType: VariableLength
+
+  func loadVariable(
+    at startIndex: Int,
+    arrayLength: Int
+  ) -> ElementType
+
+}
+
 /// A buffer containing values with variable length, used in variable length type Arrow arrays.
-final class VariableLengthTypeBuffer<T: VariableLength> {
+final class VariableLengthTypeBuffer<T: VariableLength>:
+  VariableLengthBufferProtocol
+{
+  typealias ElementType = T
   var length: Int
   var capacity: Int
   let ownsMemory: Bool
   var buffer: UnsafePointer<UInt8>
 
-  init(
+  public init(
     length: Int,
     capacity: Int,
     ownsMemory: Bool,

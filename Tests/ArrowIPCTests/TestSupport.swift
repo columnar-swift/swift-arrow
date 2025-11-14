@@ -12,9 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import Testing
-import Foundation
 import Arrow
+import Foundation
+import Testing
 
 func loadArrowResource(name: String) throws(ArrowError) -> URL {
   if let resource = Bundle.module.url(

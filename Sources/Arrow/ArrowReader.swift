@@ -30,7 +30,7 @@ public struct ArrowReader: Sendable {
     let startOffset = messageOffset + buffer.offset
     let endOffset = startOffset + buffer.length
 
-    let range = Int(startOffset)..<Int(endOffset)
+    //    let range = Int(startOffset)..<Int(endOffset)
     //    let offset = BorrowedOffsets(count: Int(length) / 4, data: fileData, range: range)
     // TODO: This should not copy.
 
@@ -353,8 +353,7 @@ public struct ArrowReader: Sendable {
       offset += Int(MemoryLayout<UInt32>.size)
       streamData = input[offset...]
       var dataBuffer = ByteBuffer(
-        data: streamData,
-        allowReadingUnalignedBuffers: true
+        data: streamData
       )
       let message: FMessage = getRoot(byteBuffer: &dataBuffer)
       switch message.headerType {

@@ -19,17 +19,17 @@ struct ArrowStructArray: ArrowArrayProtocol {
   let length: Int
   let nullBuffer: NullBuffer
   let fields: [(name: String, array: any ArrowArrayProtocol)]
-  
+
   subscript(index: Int) -> ItemType? {
     guard nullBuffer.isSet(offset + index) else { return nil }
-    
+
     var result: [String: Any] = [:]
     for (name, array) in fields {
       result[name] = array.any(at: index)
     }
     return result
   }
-  
+
   func slice(offset newOffset: Int, length newLength: Int) -> Self {
     .init(
       offset: self.offset + newOffset,
