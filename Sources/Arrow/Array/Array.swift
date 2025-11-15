@@ -71,7 +71,10 @@ public struct ArrowArrayBoolean: ArrowArrayProtocol {
 
 /// An Arrow array of fixed-width types.
 struct ArrowArrayFixed<Element, ValueBuffer>: ArrowArrayProtocol
-where Element: Numeric, ValueBuffer: FixedWidthBufferProtocol<Element> {
+where
+  Element: Numeric,
+  ValueBuffer: FixedWidthBufferProtocol<Element>
+{
   typealias ItemType = Element
   let offset: Int
   let length: Int
@@ -98,22 +101,26 @@ where Element: Numeric, ValueBuffer: FixedWidthBufferProtocol<Element> {
 }
 
 /// An Arrow array of variable-length types.
-public struct ArrowArrayVariable<T>: ArrowArrayProtocol
-where T: VariableLength {
-  public typealias ItemType = T
+public struct ArrowArrayVariable<Element, OffsetsBuffer, ValueBuffer>:
+  ArrowArrayProtocol
+where
+  Element: VariableLength,
+  OffsetsBuffer: FixedWidthBufferProtocol<Int32>,
+  ValueBuffer: VariableLengthBufferProtocol<Element>
+{
+  public typealias ItemType = Element
   public let offset: Int
   public let length: Int
   let nullBuffer: NullBuffer
-  let offsetsBuffer: any FixedWidthBufferProtocol<Int32>
-  let valueBuffer: any VariableLengthBufferProtocol<T>
+  let offsetsBuffer: OffsetsBuffer
+  let valueBuffer: ValueBuffer
 
   public init(
     offset: Int,
     length: Int,
     nullBuffer: NullBuffer,
-    offsetsBuffer:
-      any FixedWidthBufferProtocol<Int32>,
-    valueBuffer: any VariableLengthBufferProtocol<T>
+    offsetsBuffer: OffsetsBuffer,
+    valueBuffer: ValueBuffer
   ) {
     self.offset = offset
     self.length = length
@@ -122,7 +129,7 @@ where T: VariableLength {
     self.valueBuffer = valueBuffer
   }
 
-  public subscript(index: Int) -> T? {
+  public subscript(index: Int) -> Element? {
 
     let offsetIndex = self.offset + index
 
@@ -148,12 +155,11 @@ where T: VariableLength {
   }
 }
 
-public typealias ArrowArrayUtf8 = ArrowArrayVariable<String>
-public typealias ArrowArrayBinary = ArrowArrayVariable<Data>
-
 /// An Arrow array of `Date`s with a resolution of 1 day.
 struct ArrowArrayDate32<ValueBuffer>: ArrowArrayProtocol
-where ValueBuffer: FixedWidthBufferProtocol<Int32> {
+where
+  ValueBuffer: FixedWidthBufferProtocol<Int32>
+{
   typealias ItemType = Date
 
   let array: ArrowArrayFixed<Date32, ValueBuffer>
@@ -185,7 +191,9 @@ where ValueBuffer: FixedWidthBufferProtocol<Int32> {
 
 /// An Arrow array of `Date`s with a resolution of 1 second.
 struct ArrowArrayDate64<ValueBuffer>: ArrowArrayProtocol
-where ValueBuffer: FixedWidthBufferProtocol<Int64> {
+where
+  ValueBuffer: FixedWidthBufferProtocol<Int64>
+{
   typealias ItemType = Date
 
   let array: ArrowArrayFixed<Date64, ValueBuffer>
@@ -217,7 +225,9 @@ where ValueBuffer: FixedWidthBufferProtocol<Int64> {
 
 /// An Arrow list array which may be nested arbitrarily.
 struct ArrowListArray<Element>: ArrowArrayProtocol
-where Element: ArrowArrayProtocol {
+where
+  Element: ArrowArrayProtocol
+{
   typealias ItemType = Element
 
   let offset: Int

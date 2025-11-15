@@ -21,11 +21,13 @@ import Foundation
 let fileMarker: [UInt8] = .init(Data("ARROW1".utf8))
 let continuationMarker = UInt32(0xFFFF_FFFF)
 
+/// A view over `Data` which backs an Arrow buffer.
 struct FileDataBuffer {
   let data: Data
   let range: Range<Int>
 }
 
+/// A `Data` backed buffer for null bitmaps and boolean arrays.
 struct NullBufferIPC: NullBuffer {
 
   let buffer: FileDataBuffer
@@ -36,38 +38,40 @@ struct NullBufferIPC: NullBuffer {
   func isSet(_ bit: Int) -> Bool {
     let byteIndex = bit / 8
     precondition(length > byteIndex, "Bit index \(bit) out of range")
-
     let offsetIndex = buffer.range.lowerBound + byteIndex
-
     let byte = self.buffer.data[offsetIndex]
     return byte & (1 << (bit % 8)) > 0
   }
 }
 
-struct FixedWidthBufferIPC<T>: FixedWidthBufferProtocol
-where T: Numeric, T: BitwiseCopyable {
+/// A `Data` backed buffer for fixed-width types.
+struct FixedWidthBufferIPC<Element>: FixedWidthBufferProtocol
+where Element: Numeric, Element: BitwiseCopyable {
 
-  typealias ElementType = T
+  typealias ElementType = Element
 
   let buffer: FileDataBuffer
   var length: Int {
     buffer.range.count
   }
 
-  subscript(index: Int) -> T {
+  subscript(index: Int) -> Element {
 
     let offsetIndex = buffer.range.lowerBound + index
 
     return buffer.data.withUnsafeBytes { rawBuffer in
       let sub = rawBuffer[buffer.range]
-      let span = Span<T>(_unsafeBytes: sub)
+      let span = Span<Element>(_unsafeBytes: sub)
       return span[index]
     }
   }
 }
 
-struct VariableLengthBuffer<T: VariableLength>: VariableLengthBufferProtocol {
-  typealias ElementType = T
+/// A `Data` backed buffer for variable-length types.
+struct VariableLengthBufferIPC<Element: VariableLength>:
+  VariableLengthBufferProtocol
+{
+  typealias ElementType = Element
 
   let buffer: FileDataBuffer
 
@@ -75,26 +79,22 @@ struct VariableLengthBuffer<T: VariableLength>: VariableLengthBufferProtocol {
     buffer.range.count
   }
 
-  // For IPC buffer backed by Data
   func loadVariable(
     at startIndex: Int,
     arrayLength: Int
-  ) -> T {
+  ) -> Element {
     precondition(startIndex + arrayLength <= self.length)
-
     return buffer.data.withUnsafeBytes { rawBuffer in
       let offsetStart = buffer.range.lowerBound + startIndex
       let offsetEnd = offsetStart + arrayLength
       let slice = rawBuffer[offsetStart..<offsetEnd]
-
-      // Create UnsafeBufferPointer<UInt8> from the slice
       let uint8Buffer = slice.bindMemory(to: UInt8.self)
-      return T(uint8Buffer)
+      return Element(uint8Buffer)
     }
   }
 }
 
-/// This is for reading the Arrow file format.
+/// A reader for the Arrow file format.
 ///
 /// The Arrow file format supports  random access. The Arrow file format contains a header and footer
 /// around the Arrow streaming format.
@@ -230,17 +230,32 @@ public struct ArrowReader {
             offset: 0, length: length, nullBuffer: nullBuffer,
             valueBuffer: valueBuffer)
           arrays.append(array)
-        } else if arrowType == .utf8 {
+        } else if arrowType.isVariable {
           let buffer1 = try nextBuffer(
             message: rbMessage, index: &bufferIndex, offset: offset, data: data)
-          let offsetsBuffer = FixedWidthBufferIPC<Int32>(buffer: buffer1)
           let buffer2 = try nextBuffer(
             message: rbMessage, index: &bufferIndex, offset: offset, data: data)
-          let valueBuffer = VariableLengthBuffer<String>(buffer: buffer2)
-          let stringArray = ArrowArrayUtf8(
-            offset: 0, length: length, nullBuffer: nullBuffer,
-            offsetsBuffer: offsetsBuffer, valueBuffer: valueBuffer)
-          arrays.append(stringArray)
+
+          if arrowType == .utf8 {
+            let stringArray = ArrowArrayVariable.utf8(
+              length: length,
+              nullBuffer: nullBuffer,
+              offsetsBuffer: buffer1,
+              valueBuffer: buffer2
+            )
+            arrays.append(stringArray)
+          } else if arrowType == .binary {
+            let stringArray = ArrowArrayVariable.binary(
+              length: length,
+              nullBuffer: nullBuffer,
+              offsetsBuffer: buffer1,
+              valueBuffer: buffer2
+            )
+            arrays.append(stringArray)
+          } else {
+            throw ArrowError.notImplemented
+          }
+          
         } else {
           throw ArrowError.notImplemented
         }

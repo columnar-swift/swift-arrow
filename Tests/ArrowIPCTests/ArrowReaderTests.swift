@@ -47,7 +47,9 @@ struct ArrowReaderTests {
       #expect(booleanColumn[3] == false)
       #expect(booleanColumn[4] == true)
 
-      guard let utf8Column = recordBatch.columns[1] as? ArrowArrayUtf8 else {
+      guard
+        let utf8Column = recordBatch.columns[1] as? ArrowArrayUtf8
+      else {
         Issue.record("Failed to cast column to ArrowUtf8Array")
         return
       }
