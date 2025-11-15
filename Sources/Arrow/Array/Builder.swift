@@ -76,7 +76,7 @@ class ArrayBuilderBoolean: AnyArrayBuilder {
 /// A builder for Arrow arrays holding fixed-width types.
 class ArrayBuilderFixedWidth<T: Numeric>: AnyArrayBuilder {
 
-  typealias ArrayType = ArrowArrayFixed<T>
+  typealias ArrayType = ArrowArrayFixed<T, FixedWidthBuffer<T>>
 
   var length: Int
   let nullBuilder: NullBufferBuilder
@@ -114,23 +114,25 @@ class ArrayBuilderFixedWidth<T: Numeric>: AnyArrayBuilder {
 }
 
 /// A builder for Arrow arrays holding variable length types.
-class ArrayBuilderVariable<T: VariableLength>: AnyArrayBuilder {
-  typealias ArrayType = ArrowArrayVariable<T>
+class ArrayBuilderVariable<Element: VariableLength>: AnyArrayBuilder {
+  typealias ArrayType = ArrowArrayVariable<
+    Element, FixedWidthBuffer<Int32>, VariableLengthTypeBuffer<Element>
+  >
 
   var length: Int
   let nullBuilder: NullBufferBuilder
   let offsetsBuilder: FixedWidthBufferBuilder<Int32>
-  let valueBuilder: VariableLengthTypeBufferBuilder<T>
+  let valueBuilder: VariableLengthTypeBufferBuilder<Element>
 
   init() {
     self.length = 0
     self.nullBuilder = NullBufferBuilder()
     self.offsetsBuilder = FixedWidthBufferBuilder<Int32>()
-    self.valueBuilder = VariableLengthTypeBufferBuilder<T>()
+    self.valueBuilder = VariableLengthTypeBufferBuilder<Element>()
     self.offsetsBuilder.append(Int32.zero)
   }
 
-  public func append(_ value: T) {
+  public func append(_ value: Element) {
     length += 1
     nullBuilder.appendValid(true)
     let data = value.data
@@ -176,7 +178,7 @@ typealias ArrayBuilderBinary = ArrayBuilderVariable<Data>
 
 /// A builder for Arrow arrays holding `Date`s with a resolution of one day.
 struct ArrayBuilderDate32: AnyArrayBuilder {
-  typealias ArrayType = ArrowArrayDate32
+  typealias ArrayType = ArrowArrayDate32<FixedWidthBuffer<Date32>>
 
   let builder: ArrayBuilderFixedWidth<Date32> = .init()
 
@@ -200,7 +202,7 @@ struct ArrayBuilderDate32: AnyArrayBuilder {
 
 /// A builder for Arrow arrays holding `Date`s with a resolution of one day.
 struct ArrayBuilderDate64: AnyArrayBuilder {
-  typealias ArrayType = ArrowArrayDate64
+  typealias ArrayType = ArrowArrayDate64<FixedWidthBuffer<Date64>>
 
   let builder: ArrayBuilderFixedWidth<Date64> = .init()
 

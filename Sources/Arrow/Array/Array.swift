@@ -70,14 +70,18 @@ public struct ArrowArrayBoolean: ArrowArrayProtocol {
 }
 
 /// An Arrow array of fixed-width types.
-struct ArrowArrayFixed<T>: ArrowArrayProtocol where T: Numeric {
-  typealias ItemType = T
+struct ArrowArrayFixed<Element, ValueBuffer>: ArrowArrayProtocol
+where
+  Element: Numeric,
+  ValueBuffer: FixedWidthBufferProtocol<Element>
+{
+  typealias ItemType = Element
   let offset: Int
   let length: Int
   let nullBuffer: NullBuffer
-  let valueBuffer: FixedWidthBuffer<T>
+  let valueBuffer: ValueBuffer
 
-  subscript(index: Int) -> T? {
+  subscript(index: Int) -> Element? {
     precondition(index >= 0 && index < length, "Invalid index.")
     let offsetIndex = self.offset + index
     if !self.nullBuffer.isSet(offsetIndex) {
@@ -86,7 +90,7 @@ struct ArrowArrayFixed<T>: ArrowArrayProtocol where T: Numeric {
     return valueBuffer[offsetIndex]
   }
 
-  func slice(offset: Int, length: Int) -> ArrowArrayFixed<T> {
+  func slice(offset: Int, length: Int) -> Self {
     .init(
       offset: offset,
       length: length,
@@ -97,22 +101,26 @@ struct ArrowArrayFixed<T>: ArrowArrayProtocol where T: Numeric {
 }
 
 /// An Arrow array of variable-length types.
-public struct ArrowArrayVariable<T>: ArrowArrayProtocol
-where T: VariableLength {
-  public typealias ItemType = T
+public struct ArrowArrayVariable<Element, OffsetsBuffer, ValueBuffer>:
+  ArrowArrayProtocol
+where
+  Element: VariableLength,
+  OffsetsBuffer: FixedWidthBufferProtocol<Int32>,
+  ValueBuffer: VariableLengthBufferProtocol<Element>
+{
+  public typealias ItemType = Element
   public let offset: Int
   public let length: Int
   let nullBuffer: NullBuffer
-  let offsetsBuffer: any FixedWidthBufferProtocol<Int32>
-  let valueBuffer: any VariableLengthBufferProtocol<T>
+  let offsetsBuffer: OffsetsBuffer
+  let valueBuffer: ValueBuffer
 
   public init(
     offset: Int,
     length: Int,
     nullBuffer: NullBuffer,
-    offsetsBuffer:
-      any FixedWidthBufferProtocol<Int32>,
-    valueBuffer: any VariableLengthBufferProtocol<T>
+    offsetsBuffer: OffsetsBuffer,
+    valueBuffer: ValueBuffer
   ) {
     self.offset = offset
     self.length = length
@@ -121,7 +129,7 @@ where T: VariableLength {
     self.valueBuffer = valueBuffer
   }
 
-  public subscript(index: Int) -> T? {
+  public subscript(index: Int) -> Element? {
 
     let offsetIndex = self.offset + index
 
@@ -147,14 +155,14 @@ where T: VariableLength {
   }
 }
 
-public typealias ArrowArrayUtf8 = ArrowArrayVariable<String>
-public typealias ArrowArrayBinary = ArrowArrayVariable<Data>
-
 /// An Arrow array of `Date`s with a resolution of 1 day.
-struct ArrowArrayDate32: ArrowArrayProtocol {
+struct ArrowArrayDate32<ValueBuffer>: ArrowArrayProtocol
+where
+  ValueBuffer: FixedWidthBufferProtocol<Int32>
+{
   typealias ItemType = Date
 
-  let array: ArrowArrayFixed<Date32>
+  let array: ArrowArrayFixed<Date32, ValueBuffer>
 
   var offset: Int {
     array.offset
@@ -182,10 +190,13 @@ struct ArrowArrayDate32: ArrowArrayProtocol {
 }
 
 /// An Arrow array of `Date`s with a resolution of 1 second.
-struct ArrowArrayDate64: ArrowArrayProtocol {
+struct ArrowArrayDate64<ValueBuffer>: ArrowArrayProtocol
+where
+  ValueBuffer: FixedWidthBufferProtocol<Int64>
+{
   typealias ItemType = Date
 
-  let array: ArrowArrayFixed<Date64>
+  let array: ArrowArrayFixed<Date64, ValueBuffer>
 
   var offset: Int {
     array.offset
@@ -212,17 +223,20 @@ struct ArrowArrayDate64: ArrowArrayProtocol {
   }
 }
 
-struct ArrowListArray<T>: ArrowArrayProtocol where T: ArrowArrayProtocol {
-
-  typealias ItemType = T
+/// An Arrow list array which may be nested arbitrarily.
+struct ArrowListArray<Element>: ArrowArrayProtocol
+where
+  Element: ArrowArrayProtocol
+{
+  typealias ItemType = Element
 
   let offset: Int
   let length: Int
   let nullBuffer: NullBuffer
   let offsetsBuffer: FixedWidthBuffer<Int32>
-  let values: T
+  let values: Element
 
-  subscript(index: Int) -> T? {
+  subscript(index: Int) -> Element? {
     precondition(index >= 0 && index < length, "Invalid index.")
     let offsetIndex = self.offset + index
     if !self.nullBuffer.isSet(offsetIndex) {
