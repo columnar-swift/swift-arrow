@@ -255,7 +255,7 @@ public struct ArrowReader {
           } else {
             throw ArrowError.notImplemented
           }
-          
+
         } else {
           throw ArrowError.notImplemented
         }
