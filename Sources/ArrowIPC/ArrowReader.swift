@@ -199,17 +199,12 @@ public struct ArrowReader {
   }
 
   func loadField(
-    //    schema: ArrowSchema,
     rbMessage: FRecordBatch,
     field: ArrowField,
     offset: Int64,
     nodeIndex: inout Int32,
     bufferIndex: inout Int32
   ) throws -> any ArrowArrayProtocol {
-
-    //    guard let field: FField = schema.fields(at: fieldIndex) else {
-    //      throw ArrowError.invalid("Missing field at index \(fieldIndex)")
-    //    }
 
     guard nodeIndex < rbMessage.nodesCount,
       let node = rbMessage.nodes(at: nodeIndex)
@@ -218,8 +213,6 @@ public struct ArrowReader {
     }
     nodeIndex += 1
     print("incremented node index to \(nodeIndex)")
-
-    //    let arrowType: ArrowType = try .type(for: field)
 
     let length = Int(node.length)
 
@@ -262,7 +255,6 @@ public struct ArrowReader {
     } else if arrowType.isNumeric {
       let buffer1 = try nextBuffer(
         message: rbMessage, index: &bufferIndex, offset: offset, data: data)
-
       switch arrowType {
       case .float32:
         return makeFixedArray(
@@ -275,7 +267,6 @@ public struct ArrowReader {
       default:
         throw ArrowError.notImplemented
       }
-
     } else if arrowType.isVariable {
       let buffer1 = try nextBuffer(
         message: rbMessage, index: &bufferIndex, offset: offset, data: data)
@@ -301,10 +292,30 @@ public struct ArrowReader {
       }
     } else if arrowType.isNested {
       switch arrowType {
+      case .list(let field):
+        let array: any ArrowArrayProtocol = try loadField(
+          rbMessage: rbMessage,
+          field: field,
+          offset: offset,
+          nodeIndex: &nodeIndex,
+          bufferIndex: &bufferIndex
+        )
+
+        let buffer1 = try nextBuffer(
+          message: rbMessage, index: &bufferIndex, offset: offset, data: data)
+        let offsetsBuffer = FixedWidthBufferIPC<Int32>(buffer: buffer1)
+
+        // This won't compile directly, so we need a helper
+        return makeListArray(
+          length: length,
+          nullBuffer: nullBuffer,
+          offsetsBuffer: offsetsBuffer,
+          values: array
+        )
+
       case .strct(let fields):
         var arrays: [(String, any ArrowArrayProtocol)] = []
         for field in fields {
-          //          print("loading field: \(field.name)")
           let array = try loadField(
             rbMessage: rbMessage,
             field: field,
@@ -354,6 +365,21 @@ public struct ArrowReader {
       nullBuffer: nullBuffer,
       valueBuffer: fixedBuffer
     )
+  }
+
+  func makeListArray<Element>(
+    length: Int,
+    nullBuffer: NullBuffer,
+    offsetsBuffer: FixedWidthBufferIPC<Int32>,
+    values: Element
+  ) -> AnyArrowListArray where Element: ArrowArrayProtocol {
+    let list = ArrowListArray(
+      length: length,
+      nullBuffer: nullBuffer,
+      offsetsBuffer: offsetsBuffer,
+      values: values
+    )
+    return AnyArrowListArray(list)
   }
 
   private func loadSchema(_ schema: FSchema) throws(ArrowError) -> ArrowSchema {

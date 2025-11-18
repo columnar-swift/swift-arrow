@@ -17,7 +17,6 @@ import Foundation
 
 /// A `Data` backed Arrow utf8 array.
 typealias ArrowArrayUtf8 = ArrowArrayVariable<
-  String,
   FixedWidthBufferIPC<Int32>,
   VariableLengthBufferIPC<String>
 >
@@ -49,7 +48,6 @@ extension ArrowArrayUtf8 {
 }
 
 typealias ArrowArrayBinary = ArrowArrayVariable<
-  Data,
   FixedWidthBufferIPC<Int32>,
   VariableLengthBufferIPC<Data>
 >

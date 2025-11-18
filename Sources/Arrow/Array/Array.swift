@@ -115,14 +115,15 @@ where
 }
 
 /// An Arrow array of variable-length types.
-public struct ArrowArrayVariable<Element, OffsetsBuffer, ValueBuffer>:
+public struct ArrowArrayVariable<OffsetsBuffer, ValueBuffer>:
   ArrowArrayProtocol
 where
-  Element: VariableLength,
   OffsetsBuffer: FixedWidthBufferProtocol<Int32>,
-  ValueBuffer: VariableLengthBufferProtocol<Element>
+ValueBuffer: VariableLengthBufferProtocol<ValueBuffer.ElementType>,
+ValueBuffer.ElementType: VariableLength
+
 {
-  public typealias ItemType = Element
+  public typealias ItemType = ValueBuffer.ElementType
   public let offset: Int
   public let length: Int
   let nullBuffer: NullBuffer
@@ -143,7 +144,7 @@ where
     self.valueBuffer = valueBuffer
   }
 
-  public subscript(index: Int) -> Element? {
+  public subscript(index: Int) -> ValueBuffer.ElementType? {
 
     let offsetIndex = self.offset + index
 
@@ -237,20 +238,35 @@ where
   }
 }
 
-/// An Arrow list array which may be nested arbitrarily.
-struct ArrowListArray<Element>: ArrowArrayProtocol
+/// A strongly-typed Arrow list array which may be nested arbitrarily.
+public struct ArrowListArray<Element, OffsetsBuffer>: ArrowArrayProtocol
 where
+  OffsetsBuffer: FixedWidthBufferProtocol<Int32>,
   Element: ArrowArrayProtocol
 {
-  typealias ItemType = Element
+  public typealias ItemType = Element
 
-  let offset: Int
-  let length: Int
+  public let offset: Int
+  public let length: Int
   let nullBuffer: NullBuffer
-  let offsetsBuffer: FixedWidthBuffer<Int32>
+  let offsetsBuffer: OffsetsBuffer
   let values: Element
 
-  subscript(index: Int) -> Element? {
+  public init(
+    offset: Int = 0,
+    length: Int,
+    nullBuffer: NullBuffer,
+    offsetsBuffer: OffsetsBuffer,
+    values: Element
+  ) {
+    self.offset = offset
+    self.length = length
+    self.nullBuffer = nullBuffer
+    self.offsetsBuffer = offsetsBuffer
+    self.values = values
+  }
+
+  public subscript(index: Int) -> Element? {
     precondition(index >= 0 && index < length, "Invalid index.")
     let offsetIndex = self.offset + index
     if !self.nullBuffer.isSet(offsetIndex) {
@@ -263,7 +279,7 @@ where
     return values.slice(offset: Int(startIndex), length: Int(length))
   }
 
-  func slice(offset: Int, length: Int) -> Self {
+  public func slice(offset: Int, length: Int) -> Self {
     .init(
       offset: self.offset + offset,
       length: length,
@@ -271,6 +287,40 @@ where
       offsetsBuffer: offsetsBuffer,
       values: values
     )
+  }
+}
+
+/// A type-erased wrapper for an Arrow list array
+public struct AnyArrowListArray: ArrowArrayProtocol {
+  public typealias ItemType = any ArrowArrayProtocol
+
+  private let _base: any ArrowArrayProtocol
+  private let _subscriptImpl: (Int) -> (any ArrowArrayProtocol)?
+  private let _sliceImpl: (Int, Int) -> AnyArrowListArray
+
+  public let offset: Int
+  public let length: Int
+
+  public init<Element, OffsetsBuffer>(
+    _ list: ArrowListArray<Element, OffsetsBuffer>
+  )
+  where
+    OffsetsBuffer: FixedWidthBufferProtocol<Int32>,
+    Element: ArrowArrayProtocol
+  {
+    self._base = list
+    self.offset = list.offset
+    self.length = list.length
+    self._subscriptImpl = { list[$0] }
+    self._sliceImpl = { AnyArrowListArray(list.slice(offset: $0, length: $1)) }
+  }
+
+  public subscript(index: Int) -> (any ArrowArrayProtocol)? {
+    _subscriptImpl(index)
+  }
+
+  public func slice(offset: Int, length: Int) -> AnyArrowListArray {
+    _sliceImpl(offset, length)
   }
 }
 

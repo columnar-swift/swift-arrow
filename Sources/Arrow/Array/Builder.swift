@@ -115,8 +115,7 @@ class ArrayBuilderFixedWidth<T: Numeric>: AnyArrayBuilder {
 
 /// A builder for Arrow arrays holding variable length types.
 class ArrayBuilderVariable<Element: VariableLength>: AnyArrayBuilder {
-  typealias ArrayType = ArrowArrayVariable<
-    Element, FixedWidthBuffer<Int32>, VariableLengthTypeBuffer<Element>
+  typealias ArrayType = ArrowArrayVariable<FixedWidthBuffer<Int32>, VariableLengthTypeBuffer<Element>
   >
 
   var length: Int
@@ -237,7 +236,7 @@ class ArrayBuilderList<T: AnyArrayBuilder>: AnyArrayBuilder {
 
   func append(_ value: T.ArrayType) {}
 
-  typealias ArrayType = ArrowListArray<T.ArrayType>
+  typealias ArrayType = ArrowListArray<T.ArrayType, FixedWidthBuffer<Int32>>
 
   var length: Int
   let nullBuilder: NullBufferBuilder
@@ -271,7 +270,7 @@ class ArrayBuilderList<T: AnyArrayBuilder>: AnyArrayBuilder {
     offsetsBuilder.append(Int32(valueBuilder.length))
   }
 
-  func finish() -> ArrowListArray<T.ArrayType> {
+  func finish() -> ArrayType {
     let nullBuffer = nullBuilder.finish()
     let offsetsBuffer = offsetsBuilder.finish()
     let valuesArray = valueBuilder.finish()
