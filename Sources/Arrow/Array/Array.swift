@@ -76,8 +76,6 @@ where
   ValueBuffer.ElementType: Numeric
 {
   public typealias ItemType = ValueBuffer.ElementType
-
-  //  public typealias ItemType = Element
   public let offset: Int
   public let length: Int
   let nullBuffer: NullBuffer
@@ -119,9 +117,8 @@ public struct ArrowArrayVariable<OffsetsBuffer, ValueBuffer>:
   ArrowArrayProtocol
 where
   OffsetsBuffer: FixedWidthBufferProtocol<Int32>,
-ValueBuffer: VariableLengthBufferProtocol<ValueBuffer.ElementType>,
-ValueBuffer.ElementType: VariableLength
-
+  ValueBuffer: VariableLengthBufferProtocol<ValueBuffer.ElementType>,
+  ValueBuffer.ElementType: VariableLength
 {
   public typealias ItemType = ValueBuffer.ElementType
   public let offset: Int
@@ -145,9 +142,7 @@ ValueBuffer.ElementType: VariableLength
   }
 
   public subscript(index: Int) -> ValueBuffer.ElementType? {
-
     let offsetIndex = self.offset + index
-
     if !self.nullBuffer.isSet(offsetIndex) {
       return nil
     }
@@ -176,7 +171,6 @@ where
   ValueBuffer: FixedWidthBufferProtocol<Int32>
 {
   typealias ItemType = Date
-
   let array: ArrowArrayFixed<ValueBuffer>
 
   var offset: Int {
@@ -210,7 +204,6 @@ where
   ValueBuffer: FixedWidthBufferProtocol<Date64>
 {
   typealias ItemType = Date
-
   let array: ArrowArrayFixed<ValueBuffer>
 
   var offset: Int {
@@ -290,7 +283,7 @@ where
   }
 }
 
-/// A type-erased wrapper for an Arrow list array
+/// A type-erased wrapper for an Arrow list array.
 public struct AnyArrowListArray: ArrowArrayProtocol {
   public typealias ItemType = any ArrowArrayProtocol
 

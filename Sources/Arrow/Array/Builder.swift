@@ -114,8 +114,9 @@ class ArrayBuilderFixedWidth<T: Numeric>: AnyArrayBuilder {
 }
 
 /// A builder for Arrow arrays holding variable length types.
-class ArrayBuilderVariable<Element: VariableLength>: AnyArrayBuilder {
-  typealias ArrayType = ArrowArrayVariable<FixedWidthBuffer<Int32>, VariableLengthTypeBuffer<Element>
+class ArrayBuilderVariableLength<Element: VariableLength>: AnyArrayBuilder {
+  typealias ArrayType = ArrowArrayVariable<
+    FixedWidthBuffer<Int32>, VariableLengthTypeBuffer<Element>
   >
 
   var length: Int
@@ -170,10 +171,10 @@ class ArrayBuilderVariable<Element: VariableLength>: AnyArrayBuilder {
 }
 
 /// A builder for Arrow arrays holding `String` values.
-typealias ArrayBuilderString = ArrayBuilderVariable<String>
+typealias ArrayBuilderString = ArrayBuilderVariableLength<String>
 
 /// A builder for Arrow arrays holding `Data` values.
-typealias ArrayBuilderBinary = ArrayBuilderVariable<Data>
+typealias ArrayBuilderBinary = ArrayBuilderVariableLength<Data>
 
 /// A builder for Arrow arrays holding `Date`s with a resolution of one day.
 struct ArrayBuilderDate32: AnyArrayBuilder {
@@ -318,7 +319,7 @@ class ArrayBuilderStruct: AnyArrayBuilder {
   func appendNull() {
     length += 1
     nullBuilder.appendValid(false)
-    // Still need to append nulls to all child builders to keep lengths aligned
+    // Need to append nulls to all child builders to keep lengths aligned.
     for (_, builder) in fields {
       builder.appendNull()
     }

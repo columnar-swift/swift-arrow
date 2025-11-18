@@ -89,6 +89,34 @@ struct ArrayTests2 {
     }
   }
 
+  @Test func int8Array() throws {
+
+    let expected: [Int8?] = [1, nil, 2, 3, nil, 4]
+
+    let arrayBuilder: ArrayBuilderFixedWidth<Int8> = .init()
+
+    for value in expected {
+      if let value {
+        arrayBuilder.append(value)
+      } else {
+        arrayBuilder.appendNull()
+      }
+    }
+
+    let array = arrayBuilder.finish()
+    for i in 0..<expected.count {
+      #expect(array[i] == expected[i])
+    }
+
+    //    for i in 0..<expected.count {
+    //      print("Buffer val: \(array.valueBuffer[i])")
+    //    }
+    //
+    //    let bitPacked = array.nullBuffer as! BitPackedNullBuffer
+    //    print(bitPacked.buffer[0])
+
+  }
+
   @Test func int64Array() throws {
     var rng = getSeededRNG()
     let count = Int.random(in: 0...100_000)
@@ -109,7 +137,7 @@ struct ArrayTests2 {
   }
 
   @Test func stringArray() throws {
-    let builder: ArrayBuilderVariable<String> = .init()
+    let builder: ArrayBuilderVariableLength<String> = .init()
 
     builder.appendNull()
     builder.append("abc")
@@ -150,7 +178,7 @@ struct ArrayTests2 {
       }
     }
 
-    let arrayBuilder: ArrayBuilderVariable<String> = .init()
+    let arrayBuilder: ArrayBuilderVariableLength<String> = .init()
     for value in testArray {
       if let value {
         arrayBuilder.append(value)
@@ -166,7 +194,7 @@ struct ArrayTests2 {
   }
 
   @Test func binaryStringArray() throws {
-    let arrayBuilder: ArrayBuilderVariable<Data> = .init()
+    let arrayBuilder: ArrayBuilderVariableLength<Data> = .init()
     for index in 0..<100 {
       if index % 10 == 9 {
         arrayBuilder.appendNull()
@@ -207,7 +235,7 @@ struct ArrayTests2 {
       }
     }
 
-    let arrayBuilder: ArrayBuilderVariable<Data> = .init()
+    let arrayBuilder: ArrayBuilderVariableLength<Data> = .init()
     for value in expected {
       if let value {
         arrayBuilder.append(value)
@@ -265,7 +293,7 @@ struct ArrayTests2 {
           expected[i] = randomString(length: length, using: &rng)
         }
       }
-      let arrayBuilder: ArrayBuilderVariable<String> = .init()
+      let arrayBuilder: ArrayBuilderVariableLength<String> = .init()
       for value in expected {
         if let value {
           arrayBuilder.append(value)
@@ -306,7 +334,7 @@ struct ArrayTests2 {
       }
     }
 
-    let arrayBuilder: ArrayBuilderVariable<String> = .init()
+    let arrayBuilder: ArrayBuilderVariableLength<String> = .init()
     for value in expected {
       if let value {
         arrayBuilder.append(value)
