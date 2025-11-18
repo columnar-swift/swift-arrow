@@ -19,12 +19,10 @@ import Testing
 
 struct ArrowReaderTests {
 
-  @Test func example() throws {
+  @Test func boolFile() throws {
 
     let url = try loadArrowResource(name: "testdata_bool")
-
     let arrowReader = try ArrowReader(url: url)
-
     let recordBatches = try arrowReader.read()
 
     for recordBatch in recordBatches {
@@ -63,4 +61,66 @@ struct ArrowReaderTests {
 
   }
 
+  @Test func doubleFile() throws {
+
+    let url = try loadArrowResource(name: "testdata_double")
+    let arrowReader = try ArrowReader(url: url)
+    let recordBatches = try arrowReader.read()
+
+    for recordBatch in recordBatches {
+
+      // Test the Float64 column (index 0)
+      guard
+        let doubleColumn = recordBatch.columns[0]
+          as? ArrowArrayFixed<FixedWidthBufferIPC<Double>>
+      else {
+        Issue.record("Failed to cast column 0 to ArrowArrayDouble")
+        return
+      }
+
+      #expect(doubleColumn.length == 5)
+      #expect(doubleColumn[0] == 1.1)
+      #expect(doubleColumn[1] == 2.2)
+      #expect(doubleColumn[2] == 3.3)
+      #expect(doubleColumn[3] == 4.4)
+      #expect(doubleColumn[4] == 5.5)
+
+      // Test the String column (index 1)
+      guard let stringColumn = recordBatch.columns[1] as? ArrowArrayUtf8 else {
+        Issue.record("Failed to cast column 1 to ArrowArrayString")
+        return
+      }
+
+      #expect(stringColumn.length == 5)
+      #expect(stringColumn[0] == "zero")
+      #expect(stringColumn[1] == nil)  // null value
+      #expect(stringColumn[2] == "two")
+      #expect(stringColumn[3] == "three")
+      #expect(stringColumn[4] == "four")
+    }
+  }
+
+  @Test func structFile() throws {
+    let url = try loadArrowResource(name: "testdata_struct")
+    let arrowReader = try ArrowReader(url: url)
+    let recordBatches = try arrowReader.read()
+    for recordBatch in recordBatches {
+      let structArray = try #require(
+        recordBatch.columns[0] as? ArrowStructArray)
+      #expect(structArray.fields[0].name == "my string")
+      #expect(structArray.fields[1].name == "my bool")
+      #expect(structArray.length == 3)
+      let row0 = try #require(structArray[0])
+      #expect(row0["my string"] as? String == "0")
+      #expect(row0["my bool"] as? Bool == false)
+      let row1 = try #require(structArray[1])
+      #expect(row1["my string"] as? String == "1")
+      #expect(row1["my bool"] as? Bool == true)
+      #expect(structArray[2] == nil)
+      let stringArray = structArray.fields[0].array
+      #expect(stringArray.length == 3)
+      let boolArray = structArray.fields[1].array
+      #expect(boolArray.length == 3)
+    }
+  }
 }

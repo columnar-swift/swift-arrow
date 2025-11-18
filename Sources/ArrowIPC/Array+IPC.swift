@@ -15,6 +15,7 @@
 import Arrow
 import Foundation
 
+/// A `Data` backed Arrow utf8 array.
 typealias ArrowArrayUtf8 = ArrowArrayVariable<
   String,
   FixedWidthBufferIPC<Int32>,
@@ -39,7 +40,6 @@ extension ArrowArrayUtf8 {
     let offsetsBufferTyped = FixedWidthBufferIPC<Int32>(buffer: offsetsBuffer)
     let valueBufferTyped = VariableLengthBufferIPC<String>(buffer: valueBuffer)
     return Self(
-      offset: 0,
       length: length,
       nullBuffer: nullBuffer,
       offsetsBuffer: offsetsBufferTyped,
@@ -72,7 +72,6 @@ extension ArrowArrayBinary {
     let offsetsBufferTyped = FixedWidthBufferIPC<Int32>(buffer: offsetsBuffer)
     let valueBufferTyped = VariableLengthBufferIPC<Data>(buffer: valueBuffer)
     return Self(
-      offset: 0,
       length: length,
       nullBuffer: nullBuffer,
       offsetsBuffer: offsetsBufferTyped,

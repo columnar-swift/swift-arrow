@@ -76,7 +76,7 @@ class ArrayBuilderBoolean: AnyArrayBuilder {
 /// A builder for Arrow arrays holding fixed-width types.
 class ArrayBuilderFixedWidth<T: Numeric>: AnyArrayBuilder {
 
-  typealias ArrayType = ArrowArrayFixed<T, FixedWidthBuffer<T>>
+  typealias ArrayType = ArrowArrayFixed<FixedWidthBuffer<T>>
 
   var length: Int
   let nullBuilder: NullBufferBuilder
