@@ -177,106 +177,17 @@ public struct ArrowReader {
       var arrays: [any ArrowArrayProtocol] = .init()
       var nodeIndex: Int32 = 0
       var bufferIndex: Int32 = 0
-      for fieldIndex in 0..<footerSchema.fieldsCount {
-        guard let field = schema.fields(at: fieldIndex) else {
-          throw ArrowError.invalid("Missing field at index \(fieldIndex)")
-        }
 
-        guard nodeIndex < rbMessage.nodesCount,
-          let node = rbMessage.nodes(at: nodeIndex)
-        else {
-          throw ArrowError.invalid("Missing node at index \(nodeIndex)")
-        }
-        nodeIndex += 1
+      for field in arrowSchema.fields {
 
-        let arrowType: ArrowType = try .type(for: field)
-
-        let length = Int(node.length)
-
-        let buffer0 = try nextBuffer(
-          message: rbMessage,
-          index: &bufferIndex,
+        let array = try loadField(
+          rbMessage: rbMessage,
+          field: field,
           offset: offset,
-          data: data
+          nodeIndex: &nodeIndex,
+          bufferIndex: &bufferIndex
         )
-
-        // MARK: Load arrays
-        let nullsPresent = node.nullCount > 0
-        let nullBuffer: NullBuffer
-        if nullsPresent {
-          if node.nullCount == 0 {
-            nullBuffer = AllValidNullBuffer(length: Int(node.length))
-          } else if node.length == 0 {
-            nullBuffer = AllValidNullBuffer(length: 0)
-          } else if node.nullCount == node.length {
-            nullBuffer = AllNullBuffer(length: Int(node.length))
-          } else {
-            nullBuffer = NullBufferIPC(buffer: buffer0)
-          }
-        } else {
-          nullBuffer = AllValidNullBuffer(length: Int(node.length))
-        }
-
-        if nullsPresent && !field.nullable {
-          print("Nullabity violated for field \(field.name ?? "<unknown>")")
-        }
-
-        if arrowType == .boolean {
-          let buffer1 = try nextBuffer(
-            message: rbMessage, index: &bufferIndex, offset: offset, data: data)
-          let valueBuffer = NullBufferIPC(buffer: buffer1)
-          let array = ArrowArrayBoolean(
-            offset: 0, length: length, nullBuffer: nullBuffer,
-            valueBuffer: valueBuffer)
-          arrays.append(array)
-        } else if arrowType.isNumeric {
-          let buffer1 = try nextBuffer(
-            message: rbMessage, index: &bufferIndex, offset: offset, data: data)
-
-          switch arrowType {
-          case .float32:
-            arrays.append(
-              makeFixedArray(
-                length: length, elementType: Float.self,
-                nullBuffer: nullBuffer, buffer: buffer1))
-          case .float64:
-            arrays.append(
-              makeFixedArray(
-                length: length, elementType: Double.self,
-                nullBuffer: nullBuffer, buffer: buffer1))
-          default:
-            throw ArrowError.notImplemented
-          }
-
-        } else if arrowType.isVariable {
-          let buffer1 = try nextBuffer(
-            message: rbMessage, index: &bufferIndex, offset: offset, data: data)
-          let buffer2 = try nextBuffer(
-            message: rbMessage, index: &bufferIndex, offset: offset, data: data)
-
-          if arrowType == .utf8 {
-            let stringArray = ArrowArrayVariable.utf8(
-              length: length,
-              nullBuffer: nullBuffer,
-              offsetsBuffer: buffer1,
-              valueBuffer: buffer2
-            )
-            arrays.append(stringArray)
-          } else if arrowType == .binary {
-            let stringArray = ArrowArrayVariable.binary(
-              length: length,
-              nullBuffer: nullBuffer,
-              offsetsBuffer: buffer1,
-              valueBuffer: buffer2
-            )
-            arrays.append(stringArray)
-          } else {
-            throw ArrowError.notImplemented
-          }
-
-        } else {
-          throw ArrowError.notImplemented
-        }
+        arrays.append(array)
       }
 
       let recordBatch = RecordBatch(arrowSchema, columns: arrays)
@@ -285,6 +196,135 @@ public struct ArrowReader {
 
     return recordBatches
 
+  }
+
+  func loadField(
+    //    schema: ArrowSchema,
+    rbMessage: FRecordBatch,
+    field: ArrowField,
+    offset: Int64,
+    nodeIndex: inout Int32,
+    bufferIndex: inout Int32
+  ) throws -> any ArrowArrayProtocol {
+
+    //    guard let field: FField = schema.fields(at: fieldIndex) else {
+    //      throw ArrowError.invalid("Missing field at index \(fieldIndex)")
+    //    }
+
+    guard nodeIndex < rbMessage.nodesCount,
+      let node = rbMessage.nodes(at: nodeIndex)
+    else {
+      throw ArrowError.invalid("Missing node at index \(nodeIndex)")
+    }
+    nodeIndex += 1
+    print("incremented node index to \(nodeIndex)")
+
+    //    let arrowType: ArrowType = try .type(for: field)
+
+    let length = Int(node.length)
+
+    let buffer0 = try nextBuffer(
+      message: rbMessage,
+      index: &bufferIndex,
+      offset: offset,
+      data: data
+    )
+
+    // MARK: Load arrays
+    let nullsPresent = node.nullCount > 0
+    let nullBuffer: NullBuffer
+    if nullsPresent {
+      if node.nullCount == 0 {
+        nullBuffer = AllValidNullBuffer(length: Int(node.length))
+      } else if node.length == 0 {
+        nullBuffer = AllValidNullBuffer(length: 0)
+      } else if node.nullCount == node.length {
+        nullBuffer = AllNullBuffer(length: Int(node.length))
+      } else {
+        nullBuffer = NullBufferIPC(buffer: buffer0)
+      }
+    } else {
+      nullBuffer = AllValidNullBuffer(length: Int(node.length))
+    }
+
+    if nullsPresent && !field.isNullable {
+      print("Nullabity violated for field \(field.name)")
+    }
+
+    let arrowType = field.type
+    if arrowType == .boolean {
+      let buffer1 = try nextBuffer(
+        message: rbMessage, index: &bufferIndex, offset: offset, data: data)
+      let valueBuffer = NullBufferIPC(buffer: buffer1)
+      return ArrowArrayBoolean(
+        offset: 0, length: length, nullBuffer: nullBuffer,
+        valueBuffer: valueBuffer)
+    } else if arrowType.isNumeric {
+      let buffer1 = try nextBuffer(
+        message: rbMessage, index: &bufferIndex, offset: offset, data: data)
+
+      switch arrowType {
+      case .float32:
+        return makeFixedArray(
+          length: length, elementType: Float.self,
+          nullBuffer: nullBuffer, buffer: buffer1)
+      case .float64:
+        return makeFixedArray(
+          length: length, elementType: Double.self,
+          nullBuffer: nullBuffer, buffer: buffer1)
+      default:
+        throw ArrowError.notImplemented
+      }
+
+    } else if arrowType.isVariable {
+      let buffer1 = try nextBuffer(
+        message: rbMessage, index: &bufferIndex, offset: offset, data: data)
+      let buffer2 = try nextBuffer(
+        message: rbMessage, index: &bufferIndex, offset: offset, data: data)
+
+      if arrowType == .utf8 {
+        return ArrowArrayVariable.utf8(
+          length: length,
+          nullBuffer: nullBuffer,
+          offsetsBuffer: buffer1,
+          valueBuffer: buffer2
+        )
+      } else if arrowType == .binary {
+        return ArrowArrayVariable.binary(
+          length: length,
+          nullBuffer: nullBuffer,
+          offsetsBuffer: buffer1,
+          valueBuffer: buffer2
+        )
+      } else {
+        throw ArrowError.notImplemented
+      }
+    } else if arrowType.isNested {
+      switch arrowType {
+      case .strct(let fields):
+        var arrays: [(String, any ArrowArrayProtocol)] = []
+        for field in fields {
+          //          print("loading field: \(field.name)")
+          let array = try loadField(
+            rbMessage: rbMessage,
+            field: field,
+            offset: offset,
+            nodeIndex: &nodeIndex,
+            bufferIndex: &bufferIndex
+          )
+          arrays.append((field.name, array))
+        }
+        return ArrowStructArray(
+          length: length,
+          nullBuffer: nullBuffer,
+          fields: arrays
+        )
+      default:
+        throw ArrowError.notImplemented
+      }
+    } else {
+      throw ArrowError.notImplemented
+    }
   }
 
   func nextBuffer(

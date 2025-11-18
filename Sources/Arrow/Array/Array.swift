@@ -273,3 +273,44 @@ where
     )
   }
 }
+
+/// An Arrow struct array.
+public struct ArrowStructArray: ArrowArrayProtocol {
+  public typealias ItemType = [String: Any]
+
+  let nullBuffer: NullBuffer
+  public let offset: Int
+  public let length: Int
+  public let fields: [(name: String, array: any ArrowArrayProtocol)]
+
+  public init(
+    offset: Int = 0,
+    length: Int,
+    nullBuffer: NullBuffer,
+    fields: [(name: String, array: any ArrowArrayProtocol)]
+  ) {
+    self.offset = offset
+    self.length = length
+    self.nullBuffer = nullBuffer
+    self.fields = fields
+  }
+
+  public subscript(index: Int) -> ItemType? {
+    guard nullBuffer.isSet(offset + index) else { return nil }
+
+    var result: [String: Any] = [:]
+    for (name, array) in fields {
+      result[name] = array.any(at: index)
+    }
+    return result
+  }
+
+  public func slice(offset newOffset: Int, length newLength: Int) -> Self {
+    .init(
+      offset: self.offset + newOffset,
+      length: newLength,
+      nullBuffer: nullBuffer,
+      fields: fields
+    )
+  }
+}
