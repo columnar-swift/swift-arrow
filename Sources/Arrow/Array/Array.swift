@@ -14,7 +14,7 @@
 
 import Foundation
 
-public protocol ArrowArrayProtocol<ItemType> {
+public protocol ArrowArrayProtocol {
   associatedtype ItemType
   subscript(_ index: Int) -> ItemType? { get }
   var offset: Int { get }
@@ -70,18 +70,32 @@ public struct ArrowArrayBoolean: ArrowArrayProtocol {
 }
 
 /// An Arrow array of fixed-width types.
-struct ArrowArrayFixed<Element, ValueBuffer>: ArrowArrayProtocol
+public struct ArrowArrayFixed<ValueBuffer>: ArrowArrayProtocol
 where
-  Element: Numeric,
-  ValueBuffer: FixedWidthBufferProtocol<Element>
+  ValueBuffer: FixedWidthBufferProtocol,
+  ValueBuffer.ElementType: Numeric
 {
-  typealias ItemType = Element
-  let offset: Int
-  let length: Int
+  public typealias ItemType = ValueBuffer.ElementType
+
+  //  public typealias ItemType = Element
+  public let offset: Int
+  public let length: Int
   let nullBuffer: NullBuffer
   let valueBuffer: ValueBuffer
 
-  subscript(index: Int) -> Element? {
+  public init(
+    offset: Int = 0,
+    length: Int,
+    nullBuffer: NullBuffer,
+    valueBuffer: ValueBuffer
+  ) {
+    self.offset = offset
+    self.length = length
+    self.nullBuffer = nullBuffer
+    self.valueBuffer = valueBuffer
+  }
+
+  public subscript(index: Int) -> ValueBuffer.ElementType? {
     precondition(index >= 0 && index < length, "Invalid index.")
     let offsetIndex = self.offset + index
     if !self.nullBuffer.isSet(offsetIndex) {
@@ -90,7 +104,7 @@ where
     return valueBuffer[offsetIndex]
   }
 
-  func slice(offset: Int, length: Int) -> Self {
+  public func slice(offset: Int, length: Int) -> Self {
     .init(
       offset: offset,
       length: length,
@@ -116,7 +130,7 @@ where
   let valueBuffer: ValueBuffer
 
   public init(
-    offset: Int,
+    offset: Int = 0,
     length: Int,
     nullBuffer: NullBuffer,
     offsetsBuffer: OffsetsBuffer,
@@ -162,7 +176,7 @@ where
 {
   typealias ItemType = Date
 
-  let array: ArrowArrayFixed<Date32, ValueBuffer>
+  let array: ArrowArrayFixed<ValueBuffer>
 
   var offset: Int {
     array.offset
@@ -192,11 +206,11 @@ where
 /// An Arrow array of `Date`s with a resolution of 1 second.
 struct ArrowArrayDate64<ValueBuffer>: ArrowArrayProtocol
 where
-  ValueBuffer: FixedWidthBufferProtocol<Int64>
+  ValueBuffer: FixedWidthBufferProtocol<Date64>
 {
   typealias ItemType = Date
 
-  let array: ArrowArrayFixed<Date64, ValueBuffer>
+  let array: ArrowArrayFixed<ValueBuffer>
 
   var offset: Int {
     array.offset

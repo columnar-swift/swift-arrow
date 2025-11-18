@@ -19,12 +19,10 @@ import Testing
 
 struct ArrowReaderTests {
 
-  @Test func example() throws {
+  @Test func boolFile() throws {
 
     let url = try loadArrowResource(name: "testdata_bool")
-
     let arrowReader = try ArrowReader(url: url)
-
     let recordBatches = try arrowReader.read()
 
     for recordBatch in recordBatches {
@@ -63,4 +61,42 @@ struct ArrowReaderTests {
 
   }
 
+  @Test func doubleFile() throws {
+
+    let url = try loadArrowResource(name: "testdata_double")
+    let arrowReader = try ArrowReader(url: url)
+    let recordBatches = try arrowReader.read()
+
+    for recordBatch in recordBatches {
+
+      // Test the Float64 column (index 0)
+      guard
+        let doubleColumn = recordBatch.columns[0]
+          as? ArrowArrayFixed<Double, FixedWidthBufferIPC<Double>>
+      else {
+        Issue.record("Failed to cast column 0 to ArrowArrayDouble")
+        return
+      }
+
+      #expect(doubleColumn.length == 5)
+      #expect(doubleColumn[0] == 1.1)
+      #expect(doubleColumn[1] == 2.2)
+      #expect(doubleColumn[2] == 3.3)
+      #expect(doubleColumn[3] == 4.4)
+      #expect(doubleColumn[4] == 5.5)
+
+      // Test the String column (index 1)
+      guard let stringColumn = recordBatch.columns[1] as? ArrowArrayUtf8 else {
+        Issue.record("Failed to cast column 1 to ArrowArrayString")
+        return
+      }
+
+      #expect(stringColumn.length == 5)
+      #expect(stringColumn[0] == "zero")
+      #expect(stringColumn[1] == nil)  // null value
+      #expect(stringColumn[2] == "two")
+      #expect(stringColumn[3] == "three")
+      #expect(stringColumn[4] == "four")
+    }
+  }
 }

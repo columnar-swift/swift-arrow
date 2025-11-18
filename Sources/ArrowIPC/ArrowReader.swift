@@ -46,7 +46,9 @@ struct NullBufferIPC: NullBuffer {
 
 /// A `Data` backed buffer for fixed-width types.
 struct FixedWidthBufferIPC<Element>: FixedWidthBufferProtocol
-where Element: Numeric, Element: BitwiseCopyable {
+where
+  Element: Numeric, Element: BitwiseCopyable
+{
 
   typealias ElementType = Element
 
@@ -56,10 +58,7 @@ where Element: Numeric, Element: BitwiseCopyable {
   }
 
   subscript(index: Int) -> Element {
-
-    let offsetIndex = buffer.range.lowerBound + index
-
-    return buffer.data.withUnsafeBytes { rawBuffer in
+    buffer.data.withUnsafeBytes { rawBuffer in
       let sub = rawBuffer[buffer.range]
       let span = Span<Element>(_unsafeBytes: sub)
       return span[index]
@@ -230,6 +229,25 @@ public struct ArrowReader {
             offset: 0, length: length, nullBuffer: nullBuffer,
             valueBuffer: valueBuffer)
           arrays.append(array)
+        } else if arrowType.isNumeric {
+          let buffer1 = try nextBuffer(
+            message: rbMessage, index: &bufferIndex, offset: offset, data: data)
+
+          switch arrowType {
+          case .float32:
+            arrays.append(
+              makeFixedArray(
+                length: length, elementType: Float.self,
+                nullBuffer: nullBuffer, buffer: buffer1))
+          case .float64:
+            arrays.append(
+              makeFixedArray(
+                length: length, elementType: Double.self,
+                nullBuffer: nullBuffer, buffer: buffer1))
+          default:
+            throw ArrowError.notImplemented
+          }
+
         } else if arrowType.isVariable {
           let buffer1 = try nextBuffer(
             message: rbMessage, index: &bufferIndex, offset: offset, data: data)
@@ -284,43 +302,19 @@ public struct ArrowReader {
     return fileDataBuffer
   }
 
-  //
-  //  private func loadPrimitiveData(
-  //    field: FField,
-  //    fieldNode: FFieldNode
-  //  )
-  //    -> any ArrowArrayProtocol
-  //  {
-  //
-  //    guard let nullBuffer = loadInfo.batchData.nextBuffer() else {
-  //      return .failure(.invalid("Null buffer not found"))
-  //    }
-  //
-  //    guard let valueBuffer = loadInfo.batchData.nextBuffer() else {
-  //      return .failure(.invalid("Value buffer not found"))
-  //    }
-  //
-  //    let nullLength = UInt(ceil(Double(node.length) / 8))
-  //    let arrowNullBuffer = makeBuffer(
-  //      nullBuffer,
-  //      fileData: loadInfo.fileData,
-  //      length: nullLength,
-  //      messageOffset: loadInfo.messageOffset
-  //    )
-  //    let arrowValueBuffer = makeBuffer(
-  //      valueBuffer,
-  //      fileData: loadInfo.fileData,
-  //      length: UInt(node.length),
-  //      messageOffset: loadInfo.messageOffset
-  //    )
-  //    return makeArrayHolder(
-  //      field,
-  //      buffers: [arrowNullBuffer, arrowValueBuffer],
-  //      nullCount: UInt(node.nullCount),
-  //      children: nil,
-  //      rbLength: UInt(loadInfo.batchData.recordBatch.length)
-  //    )
-  //  }
+  func makeFixedArray<T>(
+    length: Int,
+    elementType: T.Type,
+    nullBuffer: NullBuffer,
+    buffer: FileDataBuffer
+  ) -> ArrowArrayFixed<FixedWidthBufferIPC<T>> {
+    let fixedBuffer = FixedWidthBufferIPC<T>(buffer: buffer)
+    return ArrowArrayFixed(
+      length: length,
+      nullBuffer: nullBuffer,
+      valueBuffer: fixedBuffer
+    )
+  }
 
   private func loadSchema(_ schema: FSchema) throws(ArrowError) -> ArrowSchema {
     let builder = ArrowSchema.Builder()
