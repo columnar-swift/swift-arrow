@@ -33,9 +33,9 @@ public class FlightClient {
 
   private func readMessages(
     _ responseStream: GRPCAsyncResponseStream<ProtoFlightData>
-  ) async throws -> ArrowReader.ArrowReaderResult {
-    let reader = ArrowReader()
-    let arrowResult = ArrowReader.makeArrowReaderResult()
+  ) async throws -> ArrowReaderX.ArrowReaderResult {
+    let reader = ArrowReaderX()
+    let arrowResult = ArrowReaderX.makeArrowReaderResult()
     for try await data in responseStream {
       switch reader.fromMessage(
         data.dataHeader,
@@ -56,7 +56,7 @@ public class FlightClient {
   private func writeBatches(
     _ requestStream: GRPCAsyncRequestStreamWriter<ProtoFlightData>,
     descriptor: FlightDescriptor,
-    recordBatches: [RecordBatch]
+    recordBatches: [RecordBatchX]
   ) async throws {
     let writer = ArrowWriter()
     switch writer.toMessage(recordBatches[0].schema) {
@@ -121,7 +121,7 @@ public class FlightClient {
 
   public func doGet(
     _ ticket: FlightTicket,
-    readerResultClosure: (ArrowReader.ArrowReaderResult) throws -> Void
+    readerResultClosure: (ArrowReaderX.ArrowReaderResult) throws -> Void
   ) async throws {
     let getResult = client.makeDoGetCall(ticket.toProtocol())
     try readerResultClosure(try await readMessages(getResult.responseStream))
@@ -139,7 +139,7 @@ public class FlightClient {
 
   public func doPut(
     _ descriptor: FlightDescriptor,
-    recordBatches: [RecordBatch],
+    recordBatches: [RecordBatchX],
     closure: (FlightPutResult) throws -> Void
   ) async throws {
     if recordBatches.isEmpty {
@@ -180,8 +180,8 @@ public class FlightClient {
 
   public func doExchange(
     _ descriptor: FlightDescriptor,
-    recordBatches: [RecordBatch],
-    closure: (ArrowReader.ArrowReaderResult) throws -> Void
+    recordBatches: [RecordBatchX],
+    closure: (ArrowReaderX.ArrowReaderResult) throws -> Void
   ) async throws {
     if recordBatches.isEmpty {
       throw ArrowFlightError.emptyCollection

@@ -18,29 +18,36 @@ public protocol FixedWidthBufferProtocol<ElementType> {
   subscript(index: Int) -> ElementType { get }
 }
 
+public protocol Int32BufferProtocol {
+  var length: Int { get }
+  subscript(index: Int) -> Int32 { get }
+}
+
 /// A  buffer used in Arrow arrays that hold fixed-width types.
-final class FixedWidthBuffer<T>: FixedWidthBufferProtocol where T: Numeric {
-
-  typealias ElementType = T
-
-  var length: Int
+public final class FixedWidthBuffer<T>: FixedWidthBufferProtocol
+where T: Numeric {
+  public typealias ElementType = T
+  public var length: Int
   var capacity: Int
+  let valueCount: Int
   let ownsMemory: Bool
   var buffer: UnsafePointer<T>
 
   init(
     length: Int,
     capacity: Int,
+    valueCount: Int,
     ownsMemory: Bool,
     buffer: UnsafePointer<T>
   ) {
     self.length = length
     self.capacity = capacity
+    self.valueCount = valueCount
     self.ownsMemory = ownsMemory
     self.buffer = buffer
   }
 
-  subscript(index: Int) -> T {
+  public subscript(index: Int) -> T {
     buffer[index]
   }
 

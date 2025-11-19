@@ -15,33 +15,39 @@
 /// A type used to represent nulls and booleans in Arrow arrays.
 public protocol NullBuffer {
   var length: Int { get }
+  var valueCount: Int { get }
+  var nullCount: Int { get }
   func isSet(_ bit: Int) -> Bool
 }
 
 /// Represents an array with no nulls (all values valid).
 public struct AllValidNullBuffer: NullBuffer {
-  public let length: Int
+  public let valueCount: Int
+  public var length: Int { 0 }
+  public var nullCount: Int { 0 }
 
-  public init(length: Int) {
-    self.length = length
+  public init(valueCount: Int) {
+    self.valueCount = valueCount
   }
 
   public func isSet(_ bit: Int) -> Bool {
-    precondition(bit < length)
+    precondition(bit < valueCount)
     return true
   }
 }
 
 /// Represents an array with all nulls.
 public struct AllNullBuffer: NullBuffer {
-  public let length: Int
+  public let valueCount: Int
+  public var length: Int { 0 }
+  public var nullCount: Int { valueCount }
 
-  public init(length: Int) {
-    self.length = length
+  public init(valueCount: Int) {
+    self.valueCount = valueCount
   }
 
   public func isSet(_ bit: Int) -> Bool {
-    precondition(bit < length)
+    precondition(bit < valueCount)
     return false
   }
 }
@@ -50,17 +56,23 @@ public struct AllNullBuffer: NullBuffer {
 final class BitPackedNullBuffer: NullBuffer {
   let length: Int
   let capacity: Int
+  let valueCount: Int
   let ownsMemory: Bool
   let buffer: UnsafePointer<UInt8>
+  var nullCount: Int
 
   init(
     length: Int,
     capacity: Int,
+    valueCount: Int,
+    nullCount: Int,
     ownsMemory: Bool,
     buffer: UnsafePointer<UInt8>
   ) {
     self.length = length
     self.capacity = capacity
+    self.valueCount = valueCount
+    self.nullCount = nullCount
     self.ownsMemory = ownsMemory
     self.buffer = buffer
   }

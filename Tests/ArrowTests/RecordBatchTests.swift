@@ -30,7 +30,7 @@ struct RecordBatchTests {
 
     let intArray = try uint8Builder.finish()
     let stringArray = try stringBuilder.finish()
-    let result = RecordBatch.Builder()
+    let result = RecordBatchX.Builder()
       .addColumn("col1", arrowArray: intArray)
       .addColumn("col2", arrowArray: stringArray)
       .finish()
@@ -64,7 +64,7 @@ struct RecordBatchTests {
     let array = try stringBuilder.finish()
 
     let field = ArrowField(name: "col1", dataType: .utf8, isNullable: false)
-    let result = RecordBatch.Builder()
+    let result = RecordBatchX.Builder()
       .addColumn(field, arrowArray: array)
       .finish()
     if case .success(_) = result {

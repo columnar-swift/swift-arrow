@@ -62,7 +62,7 @@ struct BufferTests {
     }
 
     let buffer = builder.finish()
-    #expect(buffer.length == 10000)
+    #expect(buffer.length == 10_000 * MemoryLayout<Int64>.stride)
   }
 
   @Test func fixedWidthBufferTinyInitialCapacity() throws {

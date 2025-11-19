@@ -1,27 +1,27 @@
-// RecordBatch.swift
-// Arrow
+// Copyright 2025 The Columnar Swift Contributors
 //
-// Created by Will Temperley on 14/11/2025. All rights reserved.
-// Copyright 2025 Will Temperley.
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
 //
-// Copying or reproduction of this file via any medium requires prior express
-// written permission from the copyright holder.
-// -----------------------------------------------------------------------------
-///
-/// Implementation notes, links and internal documentation go here.
-///
-// -----------------------------------------------------------------------------
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 import Arrow
 
-struct RecordBatch {
+public struct RecordBatch {
 
   let schema: ArrowSchema
-  var columnCount: Int { Int(self.columns.count) }
+  var columnCount: Int { self.columns.count }
   let columns: [any ArrowArrayProtocol]
   let length: Int
 
-  public init(_ schema: ArrowSchema, columns: [any ArrowArrayProtocol]) {
+  public init(schema: ArrowSchema, columns: [any ArrowArrayProtocol]) {
     self.schema = schema
     self.columns = columns
     self.length = columns[0].length

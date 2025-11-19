@@ -57,7 +57,7 @@ public struct RecordBatchStreamWriter: Sendable {
     self.stream = stream
   }
 
-  public func write(_ rb: RecordBatch) async throws {
+  public func write(_ rb: RecordBatchX) async throws {
     // FIXME: this was moved here to make this sendable.
     let writer = ArrowWriter()
     switch writer.toMessage(rb.schema) {

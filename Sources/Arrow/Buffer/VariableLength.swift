@@ -44,6 +44,8 @@ extension Data: VariableLength {
 public protocol VariableLengthBufferProtocol<ElementType> {
   associatedtype ElementType: VariableLength
 
+  var length: Int { get }
+
   func loadVariable(
     at startIndex: Int,
     arrayLength: Int
@@ -52,11 +54,11 @@ public protocol VariableLengthBufferProtocol<ElementType> {
 }
 
 /// A buffer containing values with variable length, used in variable length type Arrow arrays.
-final class VariableLengthTypeBuffer<T: VariableLength>:
+public final class VariableLengthTypeBuffer<T: VariableLength>:
   VariableLengthBufferProtocol
 {
-  typealias ElementType = T
-  var length: Int
+  public typealias ElementType = T
+  public var length: Int
   var capacity: Int
   let ownsMemory: Bool
   var buffer: UnsafePointer<UInt8>
@@ -73,7 +75,7 @@ final class VariableLengthTypeBuffer<T: VariableLength>:
     self.buffer = buffer
   }
 
-  func loadVariable(
+  public func loadVariable(
     at startIndex: Int,
     arrayLength: Int
   ) -> T {

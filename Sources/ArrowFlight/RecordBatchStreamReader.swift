@@ -21,10 +21,10 @@ public struct RecordBatchStreamReader: AsyncSequence, AsyncIteratorProtocol,
   Sendable
 {
   public typealias AsyncIterator = RecordBatchStreamReader
-  public typealias Element = (Arrow.RecordBatch?, FlightDescriptor?)
-  let reader = ArrowReader()
+  public typealias Element = (Arrow.RecordBatchX?, FlightDescriptor?)
+  let reader = ArrowReaderX()
   // FIXME: this is hack to make this sendable
-  nonisolated(unsafe) var batches: [RecordBatch] = []
+  nonisolated(unsafe) var batches: [RecordBatchX] = []
   nonisolated(unsafe) var streamIterator: any AsyncIteratorProtocol
   var descriptor: FlightDescriptor?
   var batchIndex = 0
@@ -40,7 +40,7 @@ public struct RecordBatchStreamReader: AsyncSequence, AsyncIteratorProtocol,
   }
 
   public mutating func next() async throws -> (
-    Arrow.RecordBatch?, FlightDescriptor?
+    Arrow.RecordBatchX?, FlightDescriptor?
   )? {
     guard !Task.isCancelled else {
       return nil
@@ -52,7 +52,7 @@ public struct RecordBatchStreamReader: AsyncSequence, AsyncIteratorProtocol,
       return (batch, descriptor)
     }
 
-    let result = ArrowReader.makeArrowReaderResult()
+    let result = ArrowReaderX.makeArrowReaderResult()
     while true {
       let streamData = try await self.streamIterator.next()
       if streamData == nil {

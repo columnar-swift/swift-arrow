@@ -53,7 +53,8 @@ public struct ArrowData {
     let buffer = buffers[0]
     let pointer = buffer.rawPointer.assumingMemoryBound(to: UInt8.self)
     return BitPackedNullBuffer(
-      length: Int(buffer.length), capacity: 0, ownsMemory: false,
+      length: Int(buffer.length), capacity: 0, valueCount: -1, nullCount: -1,
+      ownsMemory: false,
       buffer: pointer)
   }
 

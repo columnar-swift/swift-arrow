@@ -34,13 +34,13 @@ public class ArrowEncoder: Encoder {
     self.byIndex = byIndex
   }
 
-  public static func encode<T: Encodable>(_ data: T) throws -> RecordBatch {
+  public static func encode<T: Encodable>(_ data: T) throws -> RecordBatchX {
     let encoder = try loadEncoder(data)
     try data.encode(to: encoder)
     return try encoder.finish()
   }
 
-  public static func encode<T: Encodable>(_ rows: [T]) throws -> RecordBatch? {
+  public static func encode<T: Encodable>(_ rows: [T]) throws -> RecordBatchX? {
     if rows.isEmpty {
       return nil
     }
@@ -68,9 +68,9 @@ public class ArrowEncoder: Encoder {
     }
   }
 
-  public func finish() throws(ArrowError) -> RecordBatch {
+  public func finish() throws(ArrowError) -> RecordBatchX {
     try throwIfInvalid()
-    let batchBuilder = RecordBatch.Builder()
+    let batchBuilder = RecordBatchX.Builder()
     for key in byIndex {
       guard let builder = builders[key] else {
         throw .invalid("Missing builder for \(key)")

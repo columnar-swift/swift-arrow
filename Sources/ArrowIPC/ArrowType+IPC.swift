@@ -19,7 +19,7 @@ extension ArrowType {
 
   /// Looks up the `ArrowType` equivalent for a FlatBuffers `Field`.
   /// - Parameter field: The FlatBuffers `Field`.
-  /// - Returns: The `ArrowType`
+  /// - Returns: The `ArrowType`, performing a recursive lookup for nested types..
   /// - Throws: An `ArrowError` if lookup fails.
   static func type(for field: FField) throws(ArrowError) -> Self {
     let type = field.typeType
@@ -143,4 +143,28 @@ extension ArrowType {
     }
   }
 
+  func fType() throws(ArrowError) -> FType {
+    switch self {
+    case .int8, .int16, .int32, .int64, .uint8, .uint16, .uint32, .uint64:
+      return .int
+    case .float16, .float32, .float64:
+      return .floatingpoint
+    case .utf8:
+      return .utf8
+    case .binary:
+      return .binary
+    case .boolean:
+      return .bool
+    case .date32, .date64:
+      return .date
+    case .time32, .time64:
+      return .time
+    case .timestamp:
+      return .timestamp
+    case .strct:
+      return .struct_
+    default:
+      throw .invalid("Unhandled field type: \(self)")
+    }
+  }
 }

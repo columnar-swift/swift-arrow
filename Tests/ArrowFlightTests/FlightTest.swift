@@ -34,7 +34,7 @@ func makeSchema() -> ArrowSchema {
     .finish()
 }
 
-func makeRecordBatch() throws -> RecordBatch {
+func makeRecordBatch() throws -> RecordBatchX {
   let doubleBuilder: NumberArrayBuilder<Double> =
     try ArrowArrayBuilders.loadNumberArrayBuilder()
   doubleBuilder.append(11.11)
@@ -56,7 +56,7 @@ func makeRecordBatch() throws -> RecordBatch {
   let doubleArray = try doubleBuilder.finish()
   let stringArray = try stringBuilder.finish()
   let date32Array = try date32Builder.finish()
-  let result = RecordBatch.Builder()
+  let result = RecordBatchX.Builder()
     .addColumn("col1", arrowArray: doubleArray)
     .addColumn("col2", arrowArray: stringArray)
     .addColumn("col3", arrowArray: date32Array)
@@ -295,8 +295,8 @@ public class FlightClientTester {
   func doGetTestFlightData(_ flightData: Data) async throws {
     let ticket = FlightTicket(flightData)
     var numCall = 0
-    let reader = ArrowReader()
-    let arrowResult = ArrowReader.makeArrowReaderResult()
+    let reader = ArrowReaderX()
+    let arrowResult = ArrowReaderX.makeArrowReaderResult()
     try await client?.doGet(
       ticket,
       flightDataClosure: { flightData in
