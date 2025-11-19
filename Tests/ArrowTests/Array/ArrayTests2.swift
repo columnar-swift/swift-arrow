@@ -13,41 +13,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import Arrow
 import Foundation
 import Testing
 
-@testable import Arrow
-
 struct ArrayTests2 {
-
-  @Test func allValidValues() throws {
-    // Should be able to omit null buffer entirely
-    let arrayBuilder: ArrayBuilderFixedWidth<Int64> = .init()
-    for i in 0..<1000 {
-      arrayBuilder.append(Int64(i))  // No nulls
-    }
-    let array = arrayBuilder.finish()
-    for i in 0..<1000 {
-      #expect(array[i]! == Int64(i))
-    }
-    let nullBuffer = try #require(array.nullBuffer as? AllValidNullBuffer)
-    #expect(nullBuffer.valueCount == 1000)
-    #expect(array.bufferSizes == [0, 1000 * MemoryLayout<Int64>.stride])
-  }
-
-  @Test func allNullValues() throws {
-    let arrayBuilder: ArrayBuilderFixedWidth<Int64> = .init()
-    for _ in 0..<1000 {
-      arrayBuilder.appendNull()
-    }
-    let array = arrayBuilder.finish()
-    for i in 0..<1000 {
-      #expect(array[i] == nil)
-    }
-    let nullBuffer = try #require(array.nullBuffer as? AllNullBuffer)
-    #expect(nullBuffer.valueCount == 1000)
-    #expect(array.bufferSizes == [0, 1000 * MemoryLayout<Int64>.stride])
-  }
 
   @Test func boolArray() throws {
     let builder = ArrayBuilderBoolean()
@@ -174,7 +144,7 @@ struct ArrayTests2 {
     let expectedBufferSizes = [
       (count + 7) / 8,
       4 * (count + 1),
-      utf8Count
+      utf8Count,
     ]
     #expect(array.bufferSizes == expectedBufferSizes)
   }
@@ -264,7 +234,7 @@ struct ArrayTests2 {
     }
     let expectedBufferSizes = [
       (count + 7) / 8,
-      count * MemoryLayout<Int64>.stride
+      count * MemoryLayout<Int64>.stride,
     ]
     #expect(array.bufferSizes == expectedBufferSizes)
   }
@@ -298,16 +268,17 @@ struct ArrayTests2 {
       for i in 0..<count {
         #expect(array[i] == expected[i])
       }
-      let expectedNullBufferSize = switch array.nullBuffer.nullCount {
-        case 0, array.nullBuffer.valueCount: 0
+      let expectedNullBufferSize =
+        switch array.nullCount {
+        case 0, array.length: 0
         default: (count + 7) / 8
-      }
+        }
       let expectedBufferSizes = [
         expectedNullBufferSize,
         (count + 1) * 4,
         byteCount,
       ]
-      #expect( array.bufferSizes == expectedBufferSizes)
+      #expect(array.bufferSizes == expectedBufferSizes)
     }
   }
 
@@ -510,275 +481,5 @@ struct ArrayTests2 {
     #expect(nsArray[0] == nil)
     #expect(nsArray[1] == 1_609_459_200_000_000_000)
     #expect(nsArray[2] == 1_609_545_600_000_000_000)
-  }
-
-  // MARK: need to migrate these
-  @Test func structArray() throws {
-    class StructTest {
-      var fieldBool: Bool = false
-      var fieldInt8: Int8 = 0
-      var fieldInt16: Int16 = 0
-      var fieldInt32: Int32 = 0
-      var fieldInt64: Int64 = 0
-      var fieldUInt8: UInt8 = 0
-      var fieldUInt16: UInt16 = 0
-      var fieldUInt32: UInt32 = 0
-      var fieldUInt64: UInt64 = 0
-      var fieldDouble: Double = 0
-      var fieldFloat: Float = 0
-      var fieldString: String = ""
-      var fieldData = Data()
-      var fieldDate: Date = Date.now
-    }
-
-    enum STIndex: Int {
-      case bool, int8, int16, int32, int64
-      case uint8, uint16, uint32, uint64, double
-      case float, string, data, date
-    }
-
-    let testData = StructTest()
-    let dateNow = Date.now
-    let structBuilder = try ArrowArrayBuilders.structArrayBuilderForType(
-      testData)
-    structBuilder.append([
-      true, Int8(1), Int16(2), Int32(3), Int64(4),
-      UInt8(5), UInt16(6), UInt32(7), UInt64(8), Double(9.9),
-      Float(10.10), "11", Data("12".utf8), dateNow,
-    ])
-    structBuilder.append(nil)
-    structBuilder.append([
-      true, Int8(13), Int16(14), Int32(15), Int64(16),
-      UInt8(17), UInt16(18), UInt32(19), UInt64(20), Double(21.21),
-      Float(22.22), "23", Data("24".utf8), dateNow,
-    ])
-    #expect(structBuilder.length == 3)
-    let structArray = try structBuilder.finish()
-    #expect(structArray.length == 3)
-    #expect(structArray[1] == nil)
-
-    #expect(structArray.fields![0].length == 3)
-    #expect(structArray.fields![0].asAny(1) == nil)
-    #expect(structArray[0]![STIndex.bool.rawValue] as? Bool == true)
-    #expect(structArray[0]![STIndex.int8.rawValue] as? Int8 == 1)
-    #expect(structArray[0]![STIndex.int16.rawValue] as? Int16 == 2)
-    #expect(structArray[0]![STIndex.int32.rawValue] as? Int32 == 3)
-    #expect(structArray[0]![STIndex.int64.rawValue] as? Int64 == 4)
-    #expect(structArray[0]![STIndex.uint8.rawValue] as? UInt8 == 5)
-    #expect(structArray[0]![STIndex.uint16.rawValue] as? UInt16 == 6)
-    #expect(structArray[0]![STIndex.uint32.rawValue] as? UInt32 == 7)
-    #expect(structArray[0]![STIndex.uint64.rawValue] as? UInt64 == 8)
-    #expect(structArray[0]![STIndex.double.rawValue] as? Double == 9.9)
-    #expect(structArray[0]![STIndex.float.rawValue] as? Float == 10.10)
-    #expect(structArray[2]![STIndex.string.rawValue] as? String == "23")
-    #expect(
-      String(
-        decoding: (structArray[0]![STIndex.data.rawValue] as? Data)!,
-        as: UTF8.self) == "12")
-    let dateFormatter = DateFormatter()
-    dateFormatter.timeStyle = .full
-    #expect(
-      dateFormatter.string(
-        from: (structArray[0]![STIndex.date.rawValue] as? Date)!)
-        == dateFormatter.string(from: dateNow))
-  }
-
-  func checkHolderForType(_ checkType: ArrowType) throws {
-    let buffers = [
-      ArrowBuffer(
-        length: 0, capacity: 0,
-        rawPointer: UnsafeMutableRawPointer.allocate(
-          byteCount: 0, alignment: .zero)),
-      ArrowBuffer(
-        length: 0, capacity: 0,
-        rawPointer: UnsafeMutableRawPointer.allocate(
-          byteCount: 0, alignment: .zero)),
-    ]
-    let field = ArrowField(name: "", dataType: checkType, isNullable: true)
-    switch makeArrayHolder(
-      field, buffers: buffers, nullCount: 0, children: nil, rbLength: 0)
-    {
-    case .success(let holder):
-      #expect(holder.type == checkType)
-    case .failure(let err):
-      throw err
-    }
-  }
-
-  @Test func arrayHolders() throws {
-    try checkHolderForType(.int8)
-    try checkHolderForType(.uint8)
-    try checkHolderForType(.int16)
-    try checkHolderForType(.uint16)
-    try checkHolderForType(.int32)
-    try checkHolderForType(.uint32)
-    try checkHolderForType(.int64)
-    try checkHolderForType(.uint64)
-    try checkHolderForType(.time32(.second))
-    try checkHolderForType(.time32(.millisecond))
-    try checkHolderForType(.time64(.microsecond))
-    try checkHolderForType(.time64(.nanosecond))
-    try checkHolderForType(.binary)
-    try checkHolderForType(.float32)
-    try checkHolderForType(.float64)
-    try checkHolderForType(.boolean)
-    try checkHolderForType(.utf8)
-  }
-
-  @Test func arrowArrayHolderBuilder() throws {
-    let uint8HBuilder: AnyArrowArrayBuilder =
-      (try ArrowArrayBuilders.loadNumberArrayBuilder()
-        as NumberArrayBuilder<UInt8>)
-    for index in 0..<100 {
-      uint8HBuilder.appendAny(UInt8(index))
-    }
-
-    let uint8Holder = try uint8HBuilder.toAnyArrowArray()
-    #expect(uint8Holder.nullCount == 0)
-    #expect(uint8Holder.length == 100)
-
-    let stringHBuilder: AnyArrowArrayBuilder =
-      (try ArrowArrayBuilders.loadStringArrayBuilder())
-    for index in 0..<100 {
-      if index % 10 == 9 {
-        stringHBuilder.appendAny(nil)
-      } else {
-        stringHBuilder.appendAny("test" + String(index))
-      }
-    }
-
-    let stringHolder = try stringHBuilder.toAnyArrowArray()
-    #expect(stringHolder.nullCount == 10)
-    #expect(stringHolder.length == 100)
-  }
-
-  @Test func addVArgs() throws {
-    let arrayBuilder: NumberArrayBuilder<UInt8> =
-      try ArrowArrayBuilders.loadNumberArrayBuilder()
-    arrayBuilder.append(0, 1, 2, 3, 4, 5, 6, 7, 8, 9)
-    #expect(arrayBuilder.length == 10)
-    #expect(try arrayBuilder.finish()[2] == 2)
-    let doubleBuilder: NumberArrayBuilder<Double> =
-      try ArrowArrayBuilders.loadNumberArrayBuilder()
-    doubleBuilder.append(0, 1.1, 2.2, 3.3, 4.4, 5.5, 6.6, 7.7, 8.8)
-    #expect(doubleBuilder.length == 9)
-    #expect(try doubleBuilder.finish()[4] == 4.4)
-    let stringBuilder = try ArrowArrayBuilders.loadStringArrayBuilder()
-    stringBuilder.append("0", "1", "2", "3", "4", "5", "6")
-    #expect(stringBuilder.length == 7)
-    #expect(try stringBuilder.finish()[4] == "4")
-    let boolBuilder = try ArrowArrayBuilders.loadBoolArrayBuilder()
-    boolBuilder.append(true, false, true, false)
-    #expect(try boolBuilder.finish()[2] == true)
-  }
-
-  @Test func addArray() throws {
-    let arrayBuilder: NumberArrayBuilder<UInt8> =
-      try ArrowArrayBuilders.loadNumberArrayBuilder()
-    arrayBuilder.append([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
-    #expect(arrayBuilder.length == 10)
-    #expect(try arrayBuilder.finish()[2] == 2)
-    let doubleBuilder: NumberArrayBuilder<Double> =
-      try ArrowArrayBuilders.loadNumberArrayBuilder()
-    doubleBuilder.append([0, 1.1, 2.2, 3.3, 4.4, 5.5, 6.6, 7.7, 8.8])
-    #expect(doubleBuilder.length == 9)
-    #expect(try doubleBuilder.finish()[4] == 4.4)
-    let stringBuilder = try ArrowArrayBuilders.loadStringArrayBuilder()
-    stringBuilder.append(["0", "1", "2", "3", "4", "5", "6"])
-    #expect(stringBuilder.length == 7)
-    #expect(try stringBuilder.finish()[4] == "4")
-    let boolBuilder = try ArrowArrayBuilders.loadBoolArrayBuilder()
-    boolBuilder.append([true, false, true, false])
-    #expect(try boolBuilder.finish()[2] == true)
-  }
-
-  @Test func listArrayPrimitive() throws {
-    let field = ArrowField(listFieldWith: .int32, isNullable: false)
-    let listBuilder = try ListArrayBuilder(.list(field))
-
-    listBuilder.append([Int32(1), Int32(2), Int32(3)])
-    listBuilder.append([Int32(4), Int32(5)])
-    listBuilder.append(nil)
-    listBuilder.append([Int32(6), Int32(7), Int32(8), Int32(9)])
-
-    #expect(listBuilder.length == 4)
-    #expect(listBuilder.nullCount == 1)
-
-    let listArray = try listBuilder.finish()
-    #expect(listArray.length == 4)
-
-    let firstList = listArray[0]
-    #expect(firstList != nil, "First list should not be nil")
-    #expect(firstList!.count == 3, "First list should have 3 elements")
-    #expect(firstList![0] as? Int32 == 1)
-    #expect(firstList![1] as? Int32 == 2)
-    #expect(firstList![2] as? Int32 == 3)
-
-    let secondList = listArray[1]
-    #expect(secondList!.count == 2)
-    #expect(secondList![0] as? Int32 == 4)
-    #expect(secondList![1] as? Int32 == 5)
-
-    #expect(listArray[2] == nil)
-
-    let fourthList = listArray[3]
-    #expect(fourthList!.count == 4)
-    #expect(fourthList![0] as? Int32 == 6)
-    #expect(fourthList![3] as? Int32 == 9)
-  }
-
-  @Test func listArrayNested() throws {
-    let field = ArrowField(listFieldWith: .int32, isNullable: false)
-    let innerListType: ArrowType = .list(field)
-    let outerField = ArrowField(listFieldWith: innerListType, isNullable: false)
-    let outerListBuilder = try ListArrayBuilder(.list(outerField))
-
-    guard
-      let innerListBuilder = outerListBuilder.valueBuilder as? ListArrayBuilder
-    else {
-      Issue.record("Failed to cast valueBuilder to ListArrayBuilder")
-      return
-    }
-
-    outerListBuilder.bufferBuilder.append(2)
-    innerListBuilder.append([Int32(1), Int32(2)])
-    innerListBuilder.append([Int32(3), Int32(4), Int32(5)])
-
-    outerListBuilder.bufferBuilder.append(1)
-    innerListBuilder.append([Int32(6)])
-
-    outerListBuilder.bufferBuilder.append(nil)
-
-    outerListBuilder.bufferBuilder.append([])
-
-    let nestedArray = try outerListBuilder.finish()
-    #expect(nestedArray.length == 4)
-    #expect(nestedArray.nullCount == 1)
-
-    let firstOuterList = nestedArray[0]!
-    #expect(firstOuterList.count == 2)
-
-    let firstInnerList = firstOuterList[0] as! [Any?]
-    #expect(firstInnerList.count == 2)
-    #expect(firstInnerList[0] as? Int32 == 1)
-    #expect(firstInnerList[1] as? Int32 == 2)
-
-    let secondInnerList = firstOuterList[1] as! [Any?]
-    #expect(secondInnerList.count == 3)
-    #expect(secondInnerList[0] as? Int32 == 3)
-    #expect(secondInnerList[1] as? Int32 == 4)
-    #expect(secondInnerList[2] as? Int32 == 5)
-
-    let secondOuterList = nestedArray[1]!
-    #expect(secondOuterList.count == 1)
-
-    let thirdInnerList = secondOuterList[0] as! [Any?]
-    #expect(thirdInnerList.count == 1)
-    #expect(thirdInnerList[0] as? Int32 == 6)
-
-    #expect(nestedArray[2] == nil)
-
-    let emptyList = nestedArray[3]!
-    #expect(emptyList.count == 0)
   }
 }

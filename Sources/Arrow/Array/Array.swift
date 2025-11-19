@@ -19,6 +19,7 @@ public protocol ArrowArrayProtocol {
   subscript(_ index: Int) -> ItemType? { get }
   var offset: Int { get }
   var length: Int { get }
+  var nullCount: Int { get }
   func slice(offset: Int, length: Int) -> Self
   func any(at index: Int) -> Any?
   var bufferSizes: [Int] { get }
@@ -36,6 +37,8 @@ public struct ArrowArrayBoolean: ArrowArrayProtocol {
   public typealias ItemType = Bool
   public let offset: Int
   public let length: Int
+  public var bufferSizes: [Int] { [nullBuffer.length, valueBuffer.length] }
+  public var nullCount: Int { nullBuffer.nullCount }
   let nullBuffer: NullBuffer
   let valueBuffer: NullBuffer
 
@@ -49,10 +52,6 @@ public struct ArrowArrayBoolean: ArrowArrayProtocol {
     self.length = length
     self.nullBuffer = nullBuffer
     self.valueBuffer = valueBuffer
-  }
-
-  public var bufferSizes: [Int] {
-    [nullBuffer.length, valueBuffer.length]
   }
 
   public subscript(index: Int) -> Bool? {
@@ -85,6 +84,7 @@ where
   public let offset: Int
   public let length: Int
   public var bufferSizes: [Int] { [nullBuffer.length, valueBuffer.length] }
+  public var nullCount: Int { nullBuffer.nullCount }
   let nullBuffer: NullBuffer
   let valueBuffer: ValueBuffer
 
@@ -133,6 +133,7 @@ where
   public var bufferSizes: [Int] {
     [nullBuffer.length, offsetsBuffer.length, valueBuffer.length]
   }
+  public var nullCount: Int { nullBuffer.nullCount }
   let nullBuffer: NullBuffer
   let offsetsBuffer: OffsetsBuffer
   let valueBuffer: ValueBuffer
@@ -176,24 +177,18 @@ where
 }
 
 /// An Arrow array of `Date`s with a resolution of 1 day.
-struct ArrowArrayDate32<ValueBuffer>: ArrowArrayProtocol
+public struct ArrowArrayDate32<ValueBuffer>: ArrowArrayProtocol
 where
   ValueBuffer: FixedWidthBufferProtocol<Int32>
 {
-
-  typealias ItemType = Date
+  public typealias ItemType = Date
   public var bufferSizes: [Int] { array.bufferSizes }
+  public var nullCount: Int { array.nullCount }
+  public var offset: Int { array.offset }
+  public var length: Int { array.length }
   let array: ArrowArrayFixed<ValueBuffer>
 
-  var offset: Int {
-    array.offset
-  }
-
-  var length: Int {
-    array.length
-  }
-
-  subscript(index: Int) -> Date? {
+  public subscript(index: Int) -> Date? {
     precondition(index >= 0 && index < length, "Invalid index.")
     let offsetIndex = self.offset + index
     let days: Int32? = array[offsetIndex]
@@ -204,30 +199,25 @@ where
     }
   }
 
-  func slice(offset: Int, length: Int) -> Self {
+  public func slice(offset: Int, length: Int) -> Self {
     let internalSlice = array.slice(offset: offset, length: length)
     return .init(array: internalSlice)
   }
 }
 
 /// An Arrow array of `Date`s with a resolution of 1 second.
-struct ArrowArrayDate64<ValueBuffer>: ArrowArrayProtocol
+public struct ArrowArrayDate64<ValueBuffer>: ArrowArrayProtocol
 where
   ValueBuffer: FixedWidthBufferProtocol<Date64>
 {
-  typealias ItemType = Date
+  public typealias ItemType = Date
   public var bufferSizes: [Int] { array.bufferSizes }
+  public var nullCount: Int { array.nullCount }
+  public var offset: Int { array.offset }
+  public var length: Int { array.length }
   let array: ArrowArrayFixed<ValueBuffer>
 
-  var offset: Int {
-    array.offset
-  }
-
-  var length: Int {
-    array.length
-  }
-
-  subscript(index: Int) -> Date? {
+  public subscript(index: Int) -> Date? {
     precondition(index >= 0 && index < length, "Invalid index.")
     let offsetIndex = self.offset + index
     let milliseconds: Int64? = array[offsetIndex]
@@ -238,7 +228,7 @@ where
     }
   }
 
-  func slice(offset: Int, length: Int) -> Self {
+  public func slice(offset: Int, length: Int) -> Self {
     let internalSlice = array.slice(offset: offset, length: length)
     return .init(array: internalSlice)
   }
@@ -256,6 +246,7 @@ where
   public var bufferSizes: [Int] {
     [nullBuffer.length, offsetsBuffer.length, values.length]
   }
+  public var nullCount: Int { nullBuffer.nullCount }
   let nullBuffer: NullBuffer
   let offsetsBuffer: OffsetsBuffer
   let values: Element
@@ -301,7 +292,6 @@ where
 /// A type-erased wrapper for an Arrow list array.
 public struct AnyArrowListArray: ArrowArrayProtocol {
 
-
   public typealias ItemType = any ArrowArrayProtocol
   public var bufferSizes: [Int] {
     _base.bufferSizes
@@ -313,6 +303,7 @@ public struct AnyArrowListArray: ArrowArrayProtocol {
 
   public let offset: Int
   public let length: Int
+  public var nullCount: Int { _base.nullCount }
 
   public init<Element, OffsetsBuffer>(
     _ list: ArrowListArray<Element, OffsetsBuffer>
@@ -344,6 +335,7 @@ public struct ArrowStructArray: ArrowArrayProtocol {
   public let length: Int
   public let fields: [(name: String, array: any ArrowArrayProtocol)]
   public var bufferSizes: [Int] { [nullBuffer.length] }
+  public var nullCount: Int { nullBuffer.nullCount }
   let nullBuffer: NullBuffer
 
   public init(

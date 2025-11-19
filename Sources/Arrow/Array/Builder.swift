@@ -35,15 +35,15 @@ extension AnyArrayBuilder {
 }
 
 /// A builder for Arrow arrays using the three-valued logical model (true / false / null).
-class ArrayBuilderBoolean: AnyArrayBuilder {
+public class ArrayBuilderBoolean: AnyArrayBuilder {
 
-  typealias ArrayType = ArrowArrayBoolean
+  public typealias ArrayType = ArrowArrayBoolean
 
   var length: Int
   let nullBuilder: NullBufferBuilder
   let valueBuilder: NullBufferBuilder
 
-  init() {
+  public init() {
     self.length = 0
     self.nullBuilder = NullBufferBuilder()
     self.valueBuilder = NullBufferBuilder()
@@ -55,7 +55,7 @@ class ArrayBuilderBoolean: AnyArrayBuilder {
     valueBuilder.appendValid(value)
   }
 
-  func appendNull() {
+  public func appendNull() {
     length += 1
     nullBuilder.appendValid(false)
   }
@@ -74,15 +74,15 @@ class ArrayBuilderBoolean: AnyArrayBuilder {
 }
 
 /// A builder for Arrow arrays holding fixed-width types.
-class ArrayBuilderFixedWidth<T: Numeric>: AnyArrayBuilder {
+public class ArrayBuilderFixedWidth<T: Numeric>: AnyArrayBuilder {
 
-  typealias ArrayType = ArrowArrayFixed<FixedWidthBuffer<T>>
+  public typealias ArrayType = ArrowArrayFixed<FixedWidthBuffer<T>>
 
-  var length: Int
+  public var length: Int
   let nullBuilder: NullBufferBuilder
   let valueBuilder: FixedWidthBufferBuilder<T>
 
-  init() {
+  public init() {
     self.length = 0
     self.nullBuilder = NullBufferBuilder()
     self.valueBuilder = FixedWidthBufferBuilder<T>()
@@ -94,7 +94,7 @@ class ArrayBuilderFixedWidth<T: Numeric>: AnyArrayBuilder {
     valueBuilder.append(value)
   }
 
-  func appendNull() {
+  public func appendNull() {
     length += 1
     nullBuilder.appendValid(false)
     valueBuilder.append(T.zero)
@@ -114,8 +114,10 @@ class ArrayBuilderFixedWidth<T: Numeric>: AnyArrayBuilder {
 }
 
 /// A builder for Arrow arrays holding variable length types.
-class ArrayBuilderVariableLength<Element: VariableLength>: AnyArrayBuilder {
-  typealias ArrayType = ArrowArrayVariable<
+public class ArrayBuilderVariableLength<Element: VariableLength>:
+  AnyArrayBuilder
+{
+  public typealias ArrayType = ArrowArrayVariable<
     FixedWidthBuffer<Int32>, VariableLengthTypeBuffer<Element>
   >
 
@@ -124,7 +126,7 @@ class ArrayBuilderVariableLength<Element: VariableLength>: AnyArrayBuilder {
   let offsetsBuilder: FixedWidthBufferBuilder<Int32>
   let valueBuilder: VariableLengthTypeBufferBuilder<Element>
 
-  init() {
+  public init() {
     self.length = 0
     self.nullBuilder = NullBufferBuilder()
     self.offsetsBuilder = FixedWidthBufferBuilder<Int32>()
@@ -149,7 +151,7 @@ class ArrayBuilderVariableLength<Element: VariableLength>: AnyArrayBuilder {
     offsetsBuilder.append(newOffset)
   }
 
-  func appendNull() {
+  public func appendNull() {
     length += 1
     nullBuilder.appendValid(false)
     let newOffset = Int32(valueBuilder.length)
@@ -177,12 +179,13 @@ typealias ArrayBuilderString = ArrayBuilderVariableLength<String>
 typealias ArrayBuilderBinary = ArrayBuilderVariableLength<Data>
 
 /// A builder for Arrow arrays holding `Date`s with a resolution of one day.
-struct ArrayBuilderDate32: AnyArrayBuilder {
-  typealias ArrayType = ArrowArrayDate32<FixedWidthBuffer<Date32>>
-
+public struct ArrayBuilderDate32: AnyArrayBuilder {
+  public typealias ArrayType = ArrowArrayDate32<FixedWidthBuffer<Date32>>
   let builder: ArrayBuilderFixedWidth<Date32> = .init()
 
-  var length: Int {
+  public init() {}
+
+  public var length: Int {
     builder.length
   }
 
@@ -191,26 +194,27 @@ struct ArrayBuilderDate32: AnyArrayBuilder {
     self.builder.append(daysSinceEpoch)
   }
 
-  func appendNull() {
+  public func appendNull() {
     builder.appendNull()
   }
 
-  func finish() -> ArrayType {
+  public func finish() -> ArrayType {
     .init(array: builder.finish())
   }
 }
 
 /// A builder for Arrow arrays holding `Date`s with a resolution of one day.
-struct ArrayBuilderDate64: AnyArrayBuilder {
-  typealias ArrayType = ArrowArrayDate64<FixedWidthBuffer<Date64>>
-
+public struct ArrayBuilderDate64: AnyArrayBuilder {
+  public typealias ArrayType = ArrowArrayDate64<FixedWidthBuffer<Date64>>
   let builder: ArrayBuilderFixedWidth<Date64> = .init()
+
+  public init() {}
 
   var length: Int {
     builder.length
   }
 
-  func appendNull() {
+  public func appendNull() {
     self.builder.appendNull()
   }
 
@@ -219,19 +223,19 @@ struct ArrayBuilderDate64: AnyArrayBuilder {
     self.builder.append(millisecondsSinceEpoch)
   }
 
-  func finish() -> ArrayType {
+  public func finish() -> ArrayType {
     .init(array: builder.finish())
   }
 }
 
 /// A builder for Arrow arrays holding Time32 values.
-typealias ArrayBuilderTime32 = ArrayBuilderFixedWidth<Time32>
+public typealias ArrayBuilderTime32 = ArrayBuilderFixedWidth<Time32>
 
 /// A builder for Arrow arrays holding Time64 values.
-typealias ArrayBuilderTime64 = ArrayBuilderFixedWidth<Time64>
+public typealias ArrayBuilderTime64 = ArrayBuilderFixedWidth<Time64>
 
 /// A builder for Arrow arrays holding Timestamp values.
-typealias ArrayBuilderTimestamp = ArrayBuilderFixedWidth<Timestamp>
+public typealias ArrayBuilderTimestamp = ArrayBuilderFixedWidth<Timestamp>
 
 class ArrayBuilderList<T: AnyArrayBuilder>: AnyArrayBuilder {
 

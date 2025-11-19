@@ -41,7 +41,7 @@ struct NullBufferIPC: NullBuffer {
   func isSet(_ bit: Int) -> Bool {
     precondition(bit < valueCount, "Bit index \(bit) out of range")
     let byteIndex = bit / 8
-//    precondition(length > byteIndex, "Bit index \(bit) out of range")
+    //    precondition(length > byteIndex, "Bit index \(bit) out of range")
     let offsetIndex = buffer.range.lowerBound + byteIndex
     let byte = self.buffer.data[offsetIndex]
     return byte & (1 << (bit % 8)) > 0
