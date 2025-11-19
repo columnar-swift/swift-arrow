@@ -26,6 +26,14 @@ public struct ArrowWriter {
     write(bytes: fileMarker, alignment: 8)
   }
 
+  func padded(byteCount: Int, alignment: Int = 8) -> Int {
+    let padding = byteCount % alignment
+    if padding > 0 {
+      return byteCount + alignment - padding
+    }
+    return byteCount
+  }
+
   mutating func write(bytes: [UInt8], alignment: Int) {
     data.append(contentsOf: fileMarker)
     let remainder = bytes.count % alignment

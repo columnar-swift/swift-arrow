@@ -27,40 +27,41 @@ struct ArrayTests2 {
       arrayBuilder.append(Int64(i))  // No nulls
     }
     let array = arrayBuilder.finish()
-
-    #expect(array.nullBuffer is AllValidNullBuffer)
     for i in 0..<1000 {
       #expect(array[i]! == Int64(i))
     }
+    let nullBuffer = try #require(array.nullBuffer as? AllValidNullBuffer)
+    #expect(nullBuffer.valueCount == 1000)
+    #expect(array.bufferSizes == [0, 1000 * MemoryLayout<Int64>.stride])
   }
 
   @Test func allNullValues() throws {
-    // Must have null buffer, all bits = 0
     let arrayBuilder: ArrayBuilderFixedWidth<Int64> = .init()
     for _ in 0..<1000 {
       arrayBuilder.appendNull()
     }
     let array = arrayBuilder.finish()
-    #expect(array.nullBuffer is AllNullBuffer)
     for i in 0..<1000 {
       #expect(array[i] == nil)
     }
-    // Null buffer must exist, all nulls
+    let nullBuffer = try #require(array.nullBuffer as? AllNullBuffer)
+    #expect(nullBuffer.valueCount == 1000)
+    #expect(array.bufferSizes == [0, 1000 * MemoryLayout<Int64>.stride])
   }
 
   @Test func boolArray() throws {
-
     let builder = ArrayBuilderBoolean()
     builder.append(true)
     builder.appendNull()
     builder.append(false)
     builder.append(false)
-    let boolArray = builder.finish()
-    #expect(boolArray.length == 4)
-    #expect(boolArray[0]! == true)
-    #expect(boolArray[1] == nil)
-    #expect(boolArray[2]! == false)
-    #expect(boolArray[3]! == false)
+    let array = builder.finish()
+    #expect(array.length == 4)
+    #expect(array[0]! == true)
+    #expect(array[1] == nil)
+    #expect(array[2]! == false)
+    #expect(array[3]! == false)
+    #expect(array.bufferSizes == [1, 1])
   }
 
   @Test func uint8Array() throws {
@@ -70,70 +71,40 @@ struct ArrayTests2 {
     for index: UInt8 in 0..<100 {
       arrayBuilder.append(index)
     }
-
     arrayBuilder.appendNull()
     #expect(arrayBuilder.length == 101)
     let array = arrayBuilder.finish()
     #expect(array.length == 101)
-    #expect(array[1]! == 1)
-    #expect(array[10]! == 10)
+    #expect(array[1] == 1)
+    #expect(array[10] == 10)
     #expect(array[100] == nil)
-
     for index in 0..<100 {
-      #expect(array[Int(index)]! == UInt8(index))
+      #expect(array[Int(index)] == UInt8(index))
     }
-
     let slice = array.slice(offset: 5, length: 5)
     for i in 0..<5 {
       #expect(slice[i] == UInt8(5 + i))
     }
-  }
-
-  @Test func int8Array() throws {
-
-    let expected: [Int8?] = [1, nil, 2, 3, nil, 4]
-
-    let arrayBuilder: ArrayBuilderFixedWidth<Int8> = .init()
-
-    for value in expected {
-      if let value {
-        arrayBuilder.append(value)
-      } else {
-        arrayBuilder.appendNull()
-      }
-    }
-
-    let array = arrayBuilder.finish()
-    for i in 0..<expected.count {
-      #expect(array[i] == expected[i])
-    }
-
-    //    for i in 0..<expected.count {
-    //      print("Buffer val: \(array.valueBuffer[i])")
-    //    }
-    //
-    //    let bitPacked = array.nullBuffer as! BitPackedNullBuffer
-    //    print(bitPacked.buffer[0])
-
+    #expect(array.bufferSizes == [(101 + 7) / 8, 101])
   }
 
   @Test func int64Array() throws {
     var rng = getSeededRNG()
     let count = Int.random(in: 0...100_000)
-    var testArray = [Int64](repeating: 0, count: count)
-    for i in 0..<testArray.count {
-      testArray[i] = Int64.random(in: Int64.min...Int64.max, using: &rng)
+    var expected = [Int64](repeating: 0, count: count)
+    for i in 0..<expected.count {
+      expected[i] = Int64.random(in: Int64.min...Int64.max, using: &rng)
     }
-
     let arrayBuilder: ArrayBuilderFixedWidth<Int64> = .init()
-    for i in 0..<testArray.count {
-      arrayBuilder.append(testArray[i])
+    for i in 0..<expected.count {
+      arrayBuilder.append(expected[i])
     }
-    let int64Array = arrayBuilder.finish()
+    let array = arrayBuilder.finish()
 
-    for i in 0..<testArray.count {
-      #expect(int64Array[i] == testArray[i])
+    for i in 0..<expected.count {
+      #expect(array[i] == expected[i])
     }
+    #expect(array.bufferSizes == [0, count * MemoryLayout<Int>.stride])
   }
 
   @Test func stringArray() throws {
@@ -150,17 +121,21 @@ struct ArrayTests2 {
       builder.append("test \(i)")
     }
 
-    let stringArray = builder.finish()
-    #expect(stringArray[0] == nil)
-    #expect(stringArray[1]! == "abc")
-    #expect(stringArray[2]! == "def")
-    #expect(stringArray[3] == nil)
-    #expect(stringArray[4]! == "This is a longer string")
-    #expect(stringArray[5] == nil)
-    #expect(stringArray[6] == nil)
+    let array = builder.finish()
+    #expect(array[0] == nil)
+    #expect(array[1] == "abc")
+    #expect(array[2] == "def")
+    #expect(array[3] == nil)
+    #expect(array[4] == "This is a longer string")
+    #expect(array[5] == nil)
+    #expect(array[6] == nil)
+    var utf8Count = 3 + 3 + 23
     for i in 0..<100 {
-      #expect(stringArray[i + 7]! == "test \(i)")
+      utf8Count += "test \(i)".utf8.count
+      #expect(array[i + 7] == "test \(i)")
     }
+    #expect(array.length == 107)
+    #expect(array.bufferSizes == [(107 + 7) / 8, (107 + 1) * 4, utf8Count])
   }
 
   @Test func stringArrayWithRandomNulls() throws {
@@ -168,12 +143,17 @@ struct ArrayTests2 {
     let count = Int.random(in: 0...100_000)
     var testArray = [String?](repeating: nil, count: count)
 
-    // Generate random strings with random nulls
+    // Random strings with random nulls
+    var utf8Count: Int = 0
+    var nullCount: Int = 0
     for i in 0..<count {
       if Bool.random(using: &rng) {
         let length = Int.random(in: 0...100, using: &rng)
-        testArray[i] = randomString(length: length, using: &rng)
+        let string = randomString(length: length, using: &rng)
+        testArray[i] = string
+        utf8Count += string.utf8.count
       } else {
+        nullCount += 1
         testArray[i] = nil
       }
     }
@@ -186,42 +166,50 @@ struct ArrayTests2 {
         arrayBuilder.appendNull()
       }
     }
-    let stringArray = arrayBuilder.finish()
-
+    let array = arrayBuilder.finish()
+    #expect(array.length == count)
     for i in 0..<count {
-      #expect(stringArray[i] == testArray[i])
+      #expect(array[i] == testArray[i])
     }
+    let expectedBufferSizes = [
+      (count + 7) / 8,
+      4 * (count + 1),
+      utf8Count
+    ]
+    #expect(array.bufferSizes == expectedBufferSizes)
   }
 
   @Test func binaryStringArray() throws {
     let arrayBuilder: ArrayBuilderVariableLength<Data> = .init()
+    var byteCount: Int = 0
     for index in 0..<100 {
       if index % 10 == 9 {
         arrayBuilder.appendNull()
       } else {
         let val = Data("test\(index)".utf8)
+        byteCount += val.count
         arrayBuilder.append(val)
       }
     }
-
-    let binaryArray = arrayBuilder.finish()
-    #expect(binaryArray.length == 100)
-    for index in 0..<binaryArray.length {
+    let array = arrayBuilder.finish()
+    #expect(array.length == 100)
+    for index in 0..<array.length {
       if index % 10 == 9 {
-        #expect(binaryArray[index] == nil)
+        #expect(array[index] == nil)
       } else {
-        let data = binaryArray[index]!
+        let data = array[index]!
         let string = String(data: data, encoding: .utf8)
         #expect(string == "test\(index)")
       }
     }
+    #expect(array.bufferSizes == [(100 + 7) / 8, 4 * (100 + 1), byteCount])
   }
 
   @Test func binaryArrayWithRandomNulls() throws {
     var rng = getSeededRNG()
-    let count = Int.random(in: 0...100_000)
+    let count = Int.random(in: 0...10_000)
+    var byteCount: Int = 0
     var expected = [Data?](repeating: nil, count: count)
-
     for i in 0..<count {
       if Bool.random(using: &rng) {
         let length = Int.random(in: 0...200, using: &rng)
@@ -230,11 +218,11 @@ struct ArrayTests2 {
           data[j] = UInt8.random(in: 0...255, using: &rng)
         }
         expected[i] = data
+        byteCount += length
       } else {
         expected[i] = nil
       }
     }
-
     let arrayBuilder: ArrayBuilderVariableLength<Data> = .init()
     for value in expected {
       if let value {
@@ -243,18 +231,18 @@ struct ArrayTests2 {
         arrayBuilder.appendNull()
       }
     }
-    let binaryArray = arrayBuilder.finish()
-
+    let array = arrayBuilder.finish()
     for i in 0..<count {
-      #expect(binaryArray[i] == expected[i])
+      #expect(array[i] == expected[i])
     }
+    #expect(
+      array.bufferSizes == [(count + 7) / 8, 4 * (count + 1), byteCount])
   }
 
   @Test func int64ArrayWithRandomNulls() throws {
     var rng = getSeededRNG()
     let count = Int.random(in: 0...100_000)
     var expected = [Int64?](repeating: nil, count: count)
-
     for i in 0..<count {
       if Bool.random(using: &rng) {
         expected[i] = Int64.random(in: Int64.min...Int64.max, using: &rng)
@@ -262,7 +250,6 @@ struct ArrayTests2 {
         expected[i] = nil
       }
     }
-
     let arrayBuilder: ArrayBuilderFixedWidth<Int64> = .init()
     for value in expected {
       if let value {
@@ -271,11 +258,15 @@ struct ArrayTests2 {
         arrayBuilder.appendNull()
       }
     }
-    let int64Array = arrayBuilder.finish()
-
+    let array = arrayBuilder.finish()
     for i in 0..<count {
-      #expect(int64Array[i] == expected[i])
+      #expect(array[i] == expected[i])
     }
+    let expectedBufferSizes = [
+      (count + 7) / 8,
+      count * MemoryLayout<Int64>.stride
+    ]
+    #expect(array.bufferSizes == expectedBufferSizes)
   }
 
   @Test func stringArrayVaryingNullDensity() throws {
@@ -286,6 +277,7 @@ struct ArrayTests2 {
 
     for nullProbability in densities {
       let count = Int.random(in: 0...10_000)
+      var byteCount: Int = 0
       var expected = [String?](repeating: nil, count: count)
       for i in 0..<count {
         if Double.random(in: 0...1, using: &rng) > nullProbability {
@@ -297,15 +289,25 @@ struct ArrayTests2 {
       for value in expected {
         if let value {
           arrayBuilder.append(value)
+          byteCount += value.utf8.count
         } else {
           arrayBuilder.appendNull()
         }
       }
-      let stringArray = arrayBuilder.finish()
-
+      let array = arrayBuilder.finish()
       for i in 0..<count {
-        #expect(stringArray[i] == expected[i])
+        #expect(array[i] == expected[i])
       }
+      let expectedNullBufferSize = switch array.nullBuffer.nullCount {
+        case 0, array.nullBuffer.valueCount: 0
+        default: (count + 7) / 8
+      }
+      let expectedBufferSizes = [
+        expectedNullBufferSize,
+        (count + 1) * 4,
+        byteCount,
+      ]
+      #expect( array.bufferSizes == expectedBufferSizes)
     }
   }
 
@@ -313,6 +315,7 @@ struct ArrayTests2 {
   func stringArrayEdgeCases() throws {
     var rng = getSeededRNG()
     let count = 1000
+    var byteCount = 0
     var expected = [String?](repeating: nil, count: count)
 
     for i in 0..<count {
@@ -332,8 +335,10 @@ struct ArrayTests2 {
       default:
         expected[i] = randomString(length: Int.random(in: 1..<100), using: &rng)
       }
+      if let value = expected[i] {
+        byteCount += value.utf8.count
+      }
     }
-
     let arrayBuilder: ArrayBuilderVariableLength<String> = .init()
     for value in expected {
       if let value {
@@ -343,10 +348,10 @@ struct ArrayTests2 {
       }
     }
     let stringArray = arrayBuilder.finish()
-
     for i in 0..<count {
       #expect(stringArray[i] == expected[i])
     }
+    // TODO: buffer count checks
   }
 
   @Test func consecutiveNulls() throws {

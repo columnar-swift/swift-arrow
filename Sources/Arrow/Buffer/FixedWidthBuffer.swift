@@ -24,59 +24,32 @@ public protocol Int32BufferProtocol {
 }
 
 /// A  buffer used in Arrow arrays that hold fixed-width types.
-final class Int32Buffer: Int32BufferProtocol {
-
-  var length: Int
-  var capacity: Int
-  let ownsMemory: Bool
-  var buffer: UnsafePointer<Int32>
-
-  init(
-    length: Int,
-    capacity: Int,
-    ownsMemory: Bool,
-    buffer: UnsafePointer<Int32>
-  ) {
-    self.length = length
-    self.capacity = capacity
-    self.ownsMemory = ownsMemory
-    self.buffer = buffer
-  }
-
-  subscript(index: Int) -> Int32 {
-    buffer[index]
-  }
-
-  deinit {
-    if ownsMemory {
-      buffer.deallocate()
-    }
-  }
-}
-
-/// A  buffer used in Arrow arrays that hold fixed-width types.
 final class FixedWidthBuffer<T>: FixedWidthBufferProtocol where T: Numeric {
 
   typealias ElementType = T
 
   var length: Int
   var capacity: Int
+  let valueCount: Int
   let ownsMemory: Bool
   var buffer: UnsafePointer<T>
 
   init(
     length: Int,
     capacity: Int,
+    valueCount: Int,
     ownsMemory: Bool,
     buffer: UnsafePointer<T>
   ) {
     self.length = length
     self.capacity = capacity
+    self.valueCount = valueCount
     self.ownsMemory = ownsMemory
     self.buffer = buffer
   }
 
   subscript(index: Int) -> T {
+
     buffer[index]
   }
 

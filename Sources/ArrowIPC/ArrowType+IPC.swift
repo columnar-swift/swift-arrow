@@ -142,7 +142,7 @@ extension ArrowType {
       throw .invalid("Unhandled field type: \(field.typeType)")
     }
   }
-  
+
   func fType() throws(ArrowError) -> FType {
     switch self {
     case .int8, .int16, .int32, .int64, .uint8, .uint16, .uint32, .uint64:

@@ -44,6 +44,8 @@ extension Data: VariableLength {
 public protocol VariableLengthBufferProtocol<ElementType> {
   associatedtype ElementType: VariableLength
 
+  var length: Int { get }
+
   func loadVariable(
     at startIndex: Int,
     arrayLength: Int

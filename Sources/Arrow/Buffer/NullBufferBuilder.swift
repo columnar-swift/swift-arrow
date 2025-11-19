@@ -92,9 +92,9 @@ final class NullBufferBuilder {
     precondition(ownsMemory, "Buffer already finished.")
 
     if nullCount == 0 {
-      return AllValidNullBuffer(length: valueCount)
+      return AllValidNullBuffer(valueCount: valueCount)
     } else if nullCount == valueCount {
-      return AllNullBuffer(length: valueCount)
+      return AllNullBuffer(valueCount: valueCount)
     } else {
       ownsMemory = false
       let newCapacity = (length + 63) & ~63
@@ -107,6 +107,8 @@ final class NullBufferBuilder {
       return BitPackedNullBuffer(
         length: length,
         capacity: newCapacity,
+        valueCount: valueCount,
+        nullCount: nullCount,
         ownsMemory: true,
         buffer: newBuffer
       )

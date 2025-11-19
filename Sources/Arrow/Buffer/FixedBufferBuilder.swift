@@ -13,8 +13,8 @@
 // limitations under the License.
 
 final class FixedWidthBufferBuilder<T: Numeric> {
-  var length: Int
-  var capacity: Int
+  var valueCount: Int
+  var valueCapacity: Int
   private var buffer: UnsafeMutablePointer<T>
   private var ownsMemory: Bool
   private var bitOffset: Int8 = 0
@@ -22,32 +22,32 @@ final class FixedWidthBufferBuilder<T: Numeric> {
   init(
     minCapacity: Int = 1024
   ) {
-    self.length = 0
+    self.valueCount = 0
     // Ensure at least 1 element capacity
-    self.capacity = max(1, minCapacity / MemoryLayout<T>.size)
-    self.buffer = .allocate(capacity: capacity)
+    self.valueCapacity = max(1, minCapacity / MemoryLayout<T>.size)
+    self.buffer = .allocate(capacity: valueCapacity)
     self.ownsMemory = true
   }
 
   func append(_ val: T) {
-    if length >= capacity {
-      var newCapacity = capacity * 2
-      while length >= newCapacity {
+    if valueCount >= valueCapacity {
+      var newCapacity = valueCapacity * 2
+      while valueCount >= newCapacity {
         newCapacity *= 2
       }
       resize(to: newCapacity)
     }
-    buffer[length] = val
-    length += 1
+    buffer[valueCount] = val
+    valueCount += 1
   }
 
   private func resize(to newCapacity: Int) {
-    precondition(newCapacity > capacity)
+    precondition(newCapacity > valueCapacity)
     let newBuffer = UnsafeMutablePointer<T>.allocate(capacity: newCapacity)
-    newBuffer.initialize(from: buffer, count: length)
+    newBuffer.initialize(from: buffer, count: valueCount)
     buffer.deallocate()
     buffer = newBuffer
-    capacity = newCapacity
+    valueCapacity = newCapacity
   }
 
   deinit {
@@ -64,17 +64,18 @@ final class FixedWidthBufferBuilder<T: Numeric> {
   func finish() -> FixedWidthBuffer<T> {
     precondition(ownsMemory, "Buffer already finished.")
     ownsMemory = false
-    let byteCount = length * MemoryLayout<T>.size
+    let byteCount = valueCount * MemoryLayout<T>.size
     let newCapacity = (byteCount + 63) & ~63
     let newBuffer = UnsafeMutableRawPointer.allocate(
       byteCount: newCapacity,
       alignment: 64
     ).bindMemory(to: T.self, capacity: newCapacity)
-    newBuffer.initialize(from: buffer, count: length)
+    newBuffer.initialize(from: buffer, count: valueCount)
     buffer.deallocate()
     return FixedWidthBuffer(
-      length: length,
+      length: byteCount,
       capacity: newCapacity,
+      valueCount: valueCount,
       ownsMemory: true,
       buffer: newBuffer
     )

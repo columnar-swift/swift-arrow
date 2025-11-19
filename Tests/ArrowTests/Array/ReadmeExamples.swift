@@ -58,22 +58,22 @@ struct ReadmeExamples {
     #expect(arrowArray[3] == "")
     #expect(arrowArray[4] == ".")
 
-//    for i in 0..<arrowArray.offsetsBuffer.length {
-//      print("offsets[i]: \(arrowArray.offsetsBuffer[i])")
-//    }
-//
-//    var x: [UInt8] = []
-//    for i in 0..<4 {
-//      x.append(arrowArray.valueBuffer.buffer[i])
-//    }
-//
-//    let values: [UInt8] = [97, 98, 99, 46]
-//    print(values[0..<2])  // [97, 98]
-//    print(values[2..<2])  // []
-//    print(values[2..<3])  // [99]
-//    print(values[3..<4])  // [46]
+    //    for i in 0..<arrowArray.offsetsBuffer.length {
+    //      print("offsets[i]: \(arrowArray.offsetsBuffer[i])")
+    //    }
+    //
+    //    var x: [UInt8] = []
+    //    for i in 0..<4 {
+    //      x.append(arrowArray.valueBuffer.buffer[i])
+    //    }
+    //
+    //    let values: [UInt8] = [97, 98, 99, 46]
+    //    print(values[0..<2])  // [97, 98]
+    //    print(values[2..<2])  // []
+    //    print(values[2..<3])  // [99]
+    //    print(values[3..<4])  // [46]
 
-//    print(String(data: Data(values[0..<2]), encoding: .utf8))
+    //    print(String(data: Data(values[0..<2]), encoding: .utf8))
 
   }
 }

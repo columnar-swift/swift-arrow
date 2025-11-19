@@ -58,7 +58,7 @@ struct ArrowWriterTests {
       .appending(path: "bool-test.arrow")
     let writer = ArrowWriter(url: outputUrl)
 
-//    writer.write(recordBatch: recordBatch)
+    //    writer.write(recordBatch: recordBatch)
 
     //    func writeBoolData() {
     //      alloc := memory.NewGoAllocator()
