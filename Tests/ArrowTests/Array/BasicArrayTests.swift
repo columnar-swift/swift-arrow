@@ -18,7 +18,7 @@ import Foundation
 import Testing
 
 struct BasicArrayTests {
-  
+
   @Test func boolArray() throws {
     let builder = ArrayBuilderBoolean()
     builder.append(true)
@@ -103,7 +103,7 @@ struct BasicArrayTests {
     #expect(array.length == 107)
     #expect(array.bufferSizes == [(107 + 7) / 8, (107 + 1) * 4, utf8Count])
   }
-  
+
   @Test func doubleArray() throws {
     let builder: ArrayBuilderFixedWidth<Double> = .init()
     builder.append(14)

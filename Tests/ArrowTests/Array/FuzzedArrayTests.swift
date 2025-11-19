@@ -285,7 +285,7 @@ struct FuzzedArrayTests {
     let expectedBufferSizes = [
       expectedNullBufferSize,
       (count + 1) * 4,
-      byteCount
+      byteCount,
     ]
     #expect(array.bufferSizes == expectedBufferSizes)
   }
@@ -328,7 +328,7 @@ struct FuzzedArrayTests {
       }
     let expectedBufferSizes = [
       expectedNullBufferSize,
-      count * MemoryLayout<Int64>.stride
+      count * MemoryLayout<Int64>.stride,
     ]
     #expect(array.bufferSizes == expectedBufferSizes)
   }
