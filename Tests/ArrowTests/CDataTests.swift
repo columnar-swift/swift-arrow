@@ -120,7 +120,7 @@ struct CDataTests {
     let importer = ArrowCImporter()
     switch importer.importArray(UnsafePointer(cArrayMutPtr), arrowType: .utf8) {
     case .success(let holder):
-      let builder = RecordBatch.Builder()
+      let builder = RecordBatchX.Builder()
       switch builder
         .addColumn("test", arrowArray: holder)
         .finish()

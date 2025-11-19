@@ -190,7 +190,7 @@ public struct ArrowReader {
         arrays.append(array)
       }
 
-      let recordBatch = RecordBatch(arrowSchema, columns: arrays)
+      let recordBatch = RecordBatch(schema: arrowSchema, columns: arrays)
       recordBatches.append(recordBatch)
     }
 

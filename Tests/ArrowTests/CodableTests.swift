@@ -90,7 +90,7 @@ struct CodableTests {
     doubleBuilder.append(101.1, nil, nil)
     stringBuilder.append("test0", "test1", "test2")
     dateBuilder.append(date1, date1, date1)
-    let result = RecordBatch.Builder()
+    let result = RecordBatchX.Builder()
       .addColumn("propBool", arrowArray: try boolBuilder.finish())
       .addColumn("propInt8", arrowArray: try int8Builder.finish())
       .addColumn("propInt16", arrowArray: try int16Builder.finish())
@@ -138,7 +138,7 @@ struct CodableTests {
     let int8Builder: NumberArrayBuilder<Int8> =
       try ArrowArrayBuilders.loadNumberArrayBuilder()
     int8Builder.append(10, 11, 12)
-    let result = RecordBatch.Builder()
+    let result = RecordBatchX.Builder()
       .addColumn("propInt8", arrowArray: try int8Builder.finish())
       .finish()
     switch result {
@@ -158,7 +158,7 @@ struct CodableTests {
     let int8WNilBuilder: NumberArrayBuilder<Int8> =
       try ArrowArrayBuilders.loadNumberArrayBuilder()
     int8WNilBuilder.append(10, nil, 12, nil)
-    let resultWNil = RecordBatch.Builder()
+    let resultWNil = RecordBatchX.Builder()
       .addColumn(
         "propInt8",
         arrowArray: try int8WNilBuilder.finish()
@@ -187,7 +187,7 @@ struct CodableTests {
     let stringBuilder = try ArrowArrayBuilders.loadStringArrayBuilder()
     int8Builder.append(10, 11, 12, 13)
     stringBuilder.append("test10", "test11", "test12", "test13")
-    switch RecordBatch.Builder()
+    switch RecordBatchX.Builder()
       .addColumn("propInt8", arrowArray: try int8Builder.finish())
       .addColumn("propString", arrowArray: try stringBuilder.finish())
       .finish()
@@ -202,7 +202,7 @@ struct CodableTests {
       throw err
     }
 
-    switch RecordBatch.Builder()
+    switch RecordBatchX.Builder()
       .addColumn("propString", arrowArray: try stringBuilder.finish())
       .addColumn("propInt8", arrowArray: try int8Builder.finish())
       .finish()
@@ -224,7 +224,7 @@ struct CodableTests {
     let stringWNilBuilder = try ArrowArrayBuilders.loadStringArrayBuilder()
     int8Builder.append(10, 11, 12, 13)
     stringWNilBuilder.append(nil, "test11", nil, "test13")
-    let resultWNil = RecordBatch.Builder()
+    let resultWNil = RecordBatchX.Builder()
       .addColumn("propInt8", arrowArray: try int8Builder.finish())
       .addColumn("propString", arrowArray: try stringWNilBuilder.finish())
       .finish()
@@ -245,7 +245,7 @@ struct CodableTests {
     }
   }
 
-  func getArrayValue<T>(_ rb: RecordBatch, colIndex: Int, rowIndex: UInt) -> T?
+  func getArrayValue<T>(_ rb: RecordBatchX, colIndex: Int, rowIndex: UInt) -> T?
   {
     let anyArray = rb.columns[colIndex]
     return anyArray.asAny(UInt(rowIndex)) as? T

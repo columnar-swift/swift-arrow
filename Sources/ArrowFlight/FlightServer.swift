@@ -53,8 +53,8 @@ public func schemaFromMessage(_ schemaData: Data) throws(ArrowFlightError)
   let startIndex = schemaData.count - Int(messageLength)
   let schema = schemaData[startIndex...]
 
-  let reader = ArrowReader()
-  let result = ArrowReader.makeArrowReaderResult()
+  let reader = ArrowReaderX()
+  let result = ArrowReaderX.makeArrowReaderResult()
   switch reader.fromMessage(schema, dataBody: Data(), result: result) {
   case .success:
     if let resultSchema = result.schema {

@@ -56,12 +56,12 @@ public class ArrowWriter {
   public class Info {
     let type: FMessageHeader
     public let schema: ArrowSchema
-    public let batches: [RecordBatch]
+    public let batches: [RecordBatchX]
 
     init(
       _ type: FMessageHeader,
       schema: ArrowSchema,
-      batches: [RecordBatch]
+      batches: [RecordBatchX]
     ) {
       self.type = type
       self.schema = schema
@@ -69,7 +69,7 @@ public class ArrowWriter {
     }
 
     convenience init(_ type: FMessageHeader, schema: ArrowSchema) {
-      self.init(type, schema: schema, batches: [RecordBatch]())
+      self.init(type, schema: schema, batches: [RecordBatchX]())
     }
   }
 
@@ -143,7 +143,7 @@ public class ArrowWriter {
 
   private func writeRecordBatches(
     _ writer: inout DataWriter,
-    batches: [RecordBatch]
+    batches: [RecordBatchX]
   ) -> Result<[FBlock], ArrowError> {
     var rbBlocks: [FBlock] = .init()
     for batch in batches {
@@ -249,7 +249,7 @@ public class ArrowWriter {
   }
 
   private func writeRecordBatch(
-    batch: RecordBatch
+    batch: RecordBatchX
   ) -> Result<(Data, Offset), ArrowError> {
     let schema = batch.schema
     var fbb = FlatBufferBuilder()
@@ -482,7 +482,7 @@ public class ArrowWriter {
     return .success(true)
   }
 
-  public func toMessage(_ batch: RecordBatch) -> Result<[Data], ArrowError> {
+  public func toMessage(_ batch: RecordBatchX) -> Result<[Data], ArrowError> {
     var writer: any DataWriter = InMemDataWriter()
     switch writeRecordBatch(batch: batch) {
     case .success(let message):

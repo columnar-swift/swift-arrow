@@ -53,7 +53,7 @@ public class ArrowTable {
   /// - Returns: An `ArrowResult` holding an `ArrowTable` on success, or an`ArrowError`
   ///   on failure.
   public static func from(
-    recordBatches: [RecordBatch]
+    recordBatches: [RecordBatchX]
   ) -> Result<ArrowTable, ArrowError> {
     if recordBatches.isEmpty {
       return .failure(.arrayHasNoElements)
@@ -206,7 +206,7 @@ public class ArrowTable {
   }
 }
 
-public class RecordBatch {
+public class RecordBatchX {
   public let schema: ArrowSchema
   public var columnCount: UInt { UInt(self.columns.count) }
   public let columns: [AnyArrowArray]
@@ -261,7 +261,7 @@ public class RecordBatch {
       return self
     }
 
-    public func finish() -> Result<RecordBatch, ArrowError> {
+    public func finish() -> Result<RecordBatchX, ArrowError> {
       if columns.count > 0 {
         let columnLength = columns[0].length
         for column in columns {
@@ -282,7 +282,7 @@ public class RecordBatch {
         }
       }
       return .success(
-        RecordBatch(self.schemaBuilder.finish(), columns: self.columns)
+        RecordBatchX(self.schemaBuilder.finish(), columns: self.columns)
       )
     }
   }

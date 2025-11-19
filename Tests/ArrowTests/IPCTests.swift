@@ -51,9 +51,9 @@ func loadArrowResource(name: String) throws(ArrowError) -> URL {
 
 @discardableResult
 func checkBoolRecordBatch(
-  _ result: Result<ArrowReader.ArrowReaderResult, ArrowError>
-) throws(ArrowError) -> [RecordBatch] {
-  let recordBatches: [RecordBatch]
+  _ result: Result<ArrowReaderX.ArrowReaderResult, ArrowError>
+) throws(ArrowError) -> [RecordBatchX] {
+  let recordBatches: [RecordBatchX]
   switch result {
   case .success(let result):
     recordBatches = result.batches
@@ -89,9 +89,9 @@ func checkBoolRecordBatch(
 
 @discardableResult
 func checkStructRecordBatch(
-  _ result: Result<ArrowReader.ArrowReaderResult, ArrowError>
-) throws(ArrowError) -> [RecordBatch] {
-  let recordBatches: [RecordBatch]
+  _ result: Result<ArrowReaderX.ArrowReaderResult, ArrowError>
+) throws(ArrowError) -> [RecordBatchX] {
+  let recordBatches: [RecordBatchX]
   switch result {
   case .success(let result):
     recordBatches = result.batches
@@ -165,7 +165,7 @@ func makeStructSchema() throws -> ArrowSchema {
     .finish()
 }
 
-func makeStructRecordBatch() throws -> RecordBatch {
+func makeStructRecordBatch() throws -> RecordBatchX {
   let testData = StructTest()
   let dateNow = Date.now
   let structBuilder = try ArrowArrayBuilders.structArrayBuilderForType(
@@ -183,7 +183,7 @@ func makeStructRecordBatch() throws -> RecordBatch {
     Float(22.22), "23", Data("24".utf8), dateNow,
   ])
   let structArray = try structBuilder.finish()
-  let result = RecordBatch.Builder()
+  let result = RecordBatchX.Builder()
     .addColumn("struct1", arrowArray: structArray)
     .finish()
   switch result {
@@ -194,7 +194,7 @@ func makeStructRecordBatch() throws -> RecordBatch {
   }
 }
 
-func makeRecordBatch() throws -> RecordBatch {
+func makeRecordBatch() throws -> RecordBatchX {
   let uint8Builder: NumberArrayBuilder<UInt8> =
     try ArrowArrayBuilders.loadNumberArrayBuilder()
   uint8Builder.append(10)
@@ -231,7 +231,7 @@ func makeRecordBatch() throws -> RecordBatch {
   let date32Array = try date32Builder.finish()
   let int32Array = try int32Builder.finish()
   let floatArray = try floatBuilder.finish()
-  let result = RecordBatch.Builder()
+  let result = RecordBatchX.Builder()
     .addColumn("col1", arrowArray: uint8Array)
     .addColumn("col2", arrowArray: stringArray)
     .addColumn("col3", arrowArray: date32Array)
@@ -256,7 +256,7 @@ struct IPCStreamReaderTests {
       .recordbatch, schema: schema, batches: [recordBatch])
     switch arrowWriter.writeStreaming(writerInfo) {
     case .success(let writeData):
-      let arrowReader = ArrowReader()
+      let arrowReader = ArrowReaderX()
       switch arrowReader.readStreaming(writeData) {
       case .success(let result):
         let recordBatches = result.batches
@@ -300,9 +300,9 @@ struct IPCStreamReaderTests {
 struct IPCFileReaderTests {
   @Test func fileReader_double() throws {
     let fileURL = try loadArrowResource(name: "testdata_double")
-    let arrowReader = ArrowReader()
+    let arrowReader = ArrowReaderX()
     let result = arrowReader.fromFile(fileURL)
-    let recordBatches: [RecordBatch]
+    let recordBatches: [RecordBatchX]
     switch result {
     case .success(let result):
       recordBatches = result.batches
@@ -335,14 +335,14 @@ struct IPCFileReaderTests {
 
   @Test func fileReader_bool() throws {
     let fileURL = try loadArrowResource(name: "testdata_bool")
-    let arrowReader = ArrowReader()
+    let arrowReader = ArrowReaderX()
     try checkBoolRecordBatch(arrowReader.fromFile(fileURL))
   }
 
   @Test func fileWriter_bool() throws {
     // read existing file
     let fileURL = try loadArrowResource(name: "testdata_bool")
-    let arrowReader = ArrowReader()
+    let arrowReader = ArrowReaderX()
     let fileRBs = try checkBoolRecordBatch(arrowReader.fromFile(fileURL))
     let arrowWriter = ArrowWriter()
     // write data from file to a stream
@@ -368,14 +368,14 @@ struct IPCFileReaderTests {
 
   @Test func fileReader_struct() throws {
     let fileURL = try loadArrowResource(name: "testdata_struct")
-    let arrowReader = ArrowReader()
+    let arrowReader = ArrowReaderX()
     try checkStructRecordBatch(arrowReader.fromFile(fileURL))
   }
 
   @Test func fileWriter_struct() throws {
     // read existing file
     let fileURL = try loadArrowResource(name: "testdata_struct")
-    let arrowReader = ArrowReader()
+    let arrowReader = ArrowReaderX()
     let fileRBs = try checkStructRecordBatch(arrowReader.fromFile(fileURL))
     let arrowWriter = ArrowWriter()
     // write data from file to a stream
@@ -408,7 +408,7 @@ struct IPCFileReaderTests {
       .recordbatch, schema: schema, batches: [recordBatch])
     switch arrowWriter.writeFile(writerInfo) {
     case .success(let writeData):
-      let arrowReader = ArrowReader()
+      let arrowReader = ArrowReaderX()
       switch arrowReader.readFile(writeData) {
       case .success(let result):
         let recordBatches = result.batches
@@ -455,7 +455,7 @@ struct IPCFileReaderTests {
     let writerInfo = ArrowWriter.Info(.schema, schema: schema)
     switch arrowWriter.writeFile(writerInfo) {
     case .success(let writeData):
-      let arrowReader = ArrowReader()
+      let arrowReader = ArrowReaderX()
       switch arrowReader.readFile(writeData) {
       case .success(let result):
         #expect(result.schema != nil)
@@ -479,7 +479,7 @@ struct IPCFileReaderTests {
     }
   }
 
-  func makeBinaryDataset() throws -> (ArrowSchema, RecordBatch) {
+  func makeBinaryDataset() throws -> (ArrowSchema, RecordBatchX) {
     let schemaBuilder = ArrowSchema.Builder()
     let schema = schemaBuilder.addField(
       "binary", type: .binary, isNullable: false
@@ -493,7 +493,7 @@ struct IPCFileReaderTests {
     binaryBuilder.append("test44".data(using: .utf8))
 
     let binaryArray = try binaryBuilder.finish()
-    let result = RecordBatch.Builder()
+    let result = RecordBatchX.Builder()
       .addColumn("binary", arrowArray: binaryArray)
       .finish()
     switch result {
@@ -504,7 +504,7 @@ struct IPCFileReaderTests {
     }
   }
 
-  func makeTimeDataset() throws -> (ArrowSchema, RecordBatch) {
+  func makeTimeDataset() throws -> (ArrowSchema, RecordBatchX) {
     let schemaBuilder = ArrowSchema.Builder()
     let schema = schemaBuilder.addField(
       "time64", type: .time64(.microsecond), isNullable: false
@@ -528,7 +528,7 @@ struct IPCFileReaderTests {
     time32Builder.append(3)
     let time64Array = try time64Builder.finish()
     let time32Array = try time32Builder.finish()
-    let result = RecordBatch.Builder()
+    let result = RecordBatchX.Builder()
       .addColumn("time64", arrowArray: time64Array)
       .addColumn("time32", arrowArray: time32Array)
       .finish()
@@ -552,7 +552,7 @@ struct IPCFileReaderTests {
     )
     switch arrowWriter.writeStreaming(writerInfo) {
     case .success(let writeData):
-      let arrowReader = ArrowReader()
+      let arrowReader = ArrowReaderX()
       switch arrowReader.readStreaming(writeData) {
       case .success(let result):
         let recordBatches = result.batches
@@ -611,7 +611,7 @@ struct IPCFileReaderTests {
     let arrowWriter = ArrowWriter()
     switch arrowWriter.writeFile(writerInfo) {
     case .success(let writeData):
-      let arrowReader = ArrowReader()
+      let arrowReader = ArrowReaderX()
       switch arrowReader.readFile(writeData) {
       case .success(let result):
         #expect(result.schema != nil)
@@ -644,7 +644,7 @@ struct IPCFileReaderTests {
     let arrowWriter = ArrowWriter()
     switch arrowWriter.writeFile(writerInfo) {
     case .success(let writeData):
-      let arrowReader = ArrowReader()
+      let arrowReader = ArrowReaderX()
       switch arrowReader.readFile(writeData) {
       case .success(let result):
         #expect(result.schema != nil)

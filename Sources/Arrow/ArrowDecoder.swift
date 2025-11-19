@@ -19,7 +19,7 @@ public class ArrowDecoder: Decoder {
   var singleRBCol: Int = 0
   public var codingPath: [CodingKey] = []
   public var userInfo: [CodingUserInfoKey: Any] = [:]
-  public let rb: RecordBatch
+  public let rb: RecordBatchX
   public let nameToCol: [String: AnyArrowArray]
   public let columns: [AnyArrowArray]
 
@@ -32,7 +32,7 @@ public class ArrowDecoder: Decoder {
     self.rbIndex = decoder.rbIndex
   }
 
-  public init(_ rb: RecordBatch) {
+  public init(_ rb: RecordBatchX) {
     self.rb = rb
     var colMapping: [String: AnyArrowArray] = [:]
     var columns: [AnyArrowArray] = []

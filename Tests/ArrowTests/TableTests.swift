@@ -207,7 +207,7 @@ struct TableTests {
     stringBuilder.append("test22")
     let intArray = try uint8Builder.finish()
     let stringArray = try stringBuilder.finish()
-    let result = RecordBatch.Builder()
+    let result = RecordBatchX.Builder()
       .addColumn("col1", arrowArray: intArray)
       .addColumn("col2", arrowArray: stringArray)
       .finish().flatMap({ rb in

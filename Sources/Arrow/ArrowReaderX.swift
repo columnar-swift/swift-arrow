@@ -19,7 +19,7 @@ import Foundation
 let fileMarker = Data("ARROW1".utf8)
 let continuationMarker = UInt32(0xFFFF_FFFF)
 
-public struct ArrowReader: Sendable {
+public struct ArrowReaderX: Sendable {
 
   func makeBuffer(
     _ buffer: FBuffer,
@@ -84,7 +84,7 @@ public struct ArrowReader: Sendable {
   public class ArrowReaderResult {
     fileprivate var messageSchema: FSchema?
     public var schema: ArrowSchema?
-    public var batches: [RecordBatch] = []
+    public var batches: [RecordBatchX] = []
   }
 
   public init() {}
@@ -301,7 +301,7 @@ public struct ArrowReader: Sendable {
     arrowSchema: ArrowSchema,
     data: Data,
     messageEndOffset: Int64
-  ) -> Result<RecordBatch, ArrowError> {
+  ) -> Result<RecordBatchX, ArrowError> {
     var columns: [AnyArrowArray] = []
     let batchData = RecordBatchData(recordBatch, schema: schema)
     let loadInfo = DataLoadInfo(
@@ -321,7 +321,7 @@ public struct ArrowReader: Sendable {
         return .failure(error)
       }
     }
-    return .success(RecordBatch(arrowSchema, columns: columns))
+    return .success(RecordBatchX(arrowSchema, columns: columns))
   }
 
   /// This is for reading the Arrow streaming format.
