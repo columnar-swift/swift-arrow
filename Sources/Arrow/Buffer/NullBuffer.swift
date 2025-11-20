@@ -13,7 +13,7 @@
 // limitations under the License.
 
 /// A type used to represent nulls and booleans in Arrow arrays.
-public protocol NullBuffer {
+public protocol NullBuffer: ArrowBufferProtocol {
   var length: Int { get }
   var valueCount: Int { get }
   var nullCount: Int { get }
@@ -21,7 +21,7 @@ public protocol NullBuffer {
 }
 
 /// Represents an array with no nulls (all values valid).
-public struct AllValidNullBuffer: NullBuffer {
+public struct AllValidNullBuffer: NullBuffer, ArrowBufferEmpty {
   public let valueCount: Int
   public var length: Int { 0 }
   public var nullCount: Int { 0 }
@@ -37,7 +37,7 @@ public struct AllValidNullBuffer: NullBuffer {
 }
 
 /// Represents an array with all nulls.
-public struct AllNullBuffer: NullBuffer {
+public struct AllNullBuffer: NullBuffer, ArrowBufferEmpty {
   public let valueCount: Int
   public var length: Int { 0 }
   public var nullCount: Int { valueCount }
@@ -53,7 +53,7 @@ public struct AllNullBuffer: NullBuffer {
 }
 
 /// A  bit-packed buffer used to represent nulls and booleans in Arrow arrays.
-final class BitPackedNullBuffer: NullBuffer {
+final class BitPackedNullBuffer: NullBuffer, ArrowBufferUInt8 {
   let length: Int
   let capacity: Int
   let valueCount: Int

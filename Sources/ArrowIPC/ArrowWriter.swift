@@ -58,6 +58,21 @@ public struct ArrowWriter {
 
   }
 
+  mutating func toMessage(_ schema: ArrowSchema) throws(ArrowError) -> Data {
+    let schemaSize: Int32 = 0
+    var fbb = FlatBufferBuilder()
+    let offset = try write(schema: schema, to: &fbb)
+
+    let startMessage = FMessage.startMessage(&fbb)
+    FMessage.add(bodyLength: Int64(0), &fbb)
+    FMessage.add(headerType: .schema, &fbb)
+    FMessage.add(header: Offset(offset: UOffset(schemaSize)), &fbb)
+    FMessage.add(version: .max, &fbb)
+    let messageOffset = FMessage.endMessage(&fbb, start: startMessage)
+    fbb.finish(offset: messageOffset)
+    return fbb.data
+  }
+
   mutating func write(schema: ArrowSchema) throws(ArrowError) {
     var fbb: FlatBufferBuilder = .init()
     let schemaOffset = try write(schema: schema, to: &fbb)

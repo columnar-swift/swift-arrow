@@ -14,15 +14,21 @@
 
 import Foundation
 
-public protocol ArrowArrayProtocol {
-  associatedtype ItemType
-  subscript(_ index: Int) -> ItemType? { get }
+public protocol AnyArrowArrayProtocol {
+
   var offset: Int { get }
   var length: Int { get }
   var nullCount: Int { get }
   func slice(offset: Int, length: Int) -> Self
   func any(at index: Int) -> Any?
   var bufferSizes: [Int] { get }
+  var buffers: [ArrowBufferProtocol] { get }
+
+}
+
+public protocol ArrowArrayProtocol: AnyArrowArrayProtocol {
+  associatedtype ItemType
+  subscript(_ index: Int) -> ItemType? { get }
 }
 
 // This exists to support type-erased struct arrays.
@@ -38,6 +44,7 @@ public struct ArrowArrayBoolean: ArrowArrayProtocol {
   public let offset: Int
   public let length: Int
   public var bufferSizes: [Int] { [nullBuffer.length, valueBuffer.length] }
+  public var buffers: [ArrowBufferProtocol] { [nullBuffer, valueBuffer] }
   public var nullCount: Int { nullBuffer.nullCount }
   let nullBuffer: NullBuffer
   let valueBuffer: NullBuffer
@@ -84,6 +91,7 @@ where
   public let offset: Int
   public let length: Int
   public var bufferSizes: [Int] { [nullBuffer.length, valueBuffer.length] }
+  public var buffers: [ArrowBufferProtocol] { [nullBuffer, valueBuffer] }
   public var nullCount: Int { nullBuffer.nullCount }
   let nullBuffer: NullBuffer
   let valueBuffer: ValueBuffer
@@ -132,6 +140,9 @@ where
   public let length: Int
   public var bufferSizes: [Int] {
     [nullBuffer.length, offsetsBuffer.length, valueBuffer.length]
+  }
+  public var buffers: [ArrowBufferProtocol] {
+    [nullBuffer, offsetsBuffer, valueBuffer]
   }
   public var nullCount: Int { nullBuffer.nullCount }
   let nullBuffer: NullBuffer
@@ -183,6 +194,7 @@ where
 {
   public typealias ItemType = Date
   public var bufferSizes: [Int] { array.bufferSizes }
+  public var buffers: [ArrowBufferProtocol] { array.buffers }
   public var nullCount: Int { array.nullCount }
   public var offset: Int { array.offset }
   public var length: Int { array.length }
@@ -212,6 +224,7 @@ where
 {
   public typealias ItemType = Date
   public var bufferSizes: [Int] { array.bufferSizes }
+  public var buffers: [ArrowBufferProtocol] { array.buffers }
   public var nullCount: Int { array.nullCount }
   public var offset: Int { array.offset }
   public var length: Int { array.length }
@@ -244,7 +257,10 @@ where
   public let offset: Int
   public let length: Int
   public var bufferSizes: [Int] {
-    [nullBuffer.length, offsetsBuffer.length, values.length]
+    [nullBuffer.length, offsetsBuffer.length]
+  }
+  public var buffers: [ArrowBufferProtocol] {
+    [nullBuffer, offsetsBuffer]
   }
   public var nullCount: Int { nullBuffer.nullCount }
   let nullBuffer: NullBuffer
@@ -296,6 +312,9 @@ public struct AnyArrowListArray: ArrowArrayProtocol {
   public var bufferSizes: [Int] {
     _base.bufferSizes
   }
+  public var buffers: [ArrowBufferProtocol] {
+    _base.buffers
+  }
 
   private let _base: any ArrowArrayProtocol
   private let _subscriptImpl: (Int) -> (any ArrowArrayProtocol)?
@@ -335,6 +354,7 @@ public struct ArrowStructArray: ArrowArrayProtocol {
   public let length: Int
   public let fields: [(name: String, array: any ArrowArrayProtocol)]
   public var bufferSizes: [Int] { [nullBuffer.length] }
+  public var buffers: [ArrowBufferProtocol] { [nullBuffer] }
   public var nullCount: Int { nullBuffer.nullCount }
   let nullBuffer: NullBuffer
 

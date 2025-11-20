@@ -19,13 +19,107 @@ import Foundation
 
 extension ArrowWriter {
 
+  private mutating func writeRecordBatches(
+    batches: [RecordBatch]
+  ) throws -> [FBlock] {
+    var rbBlocks: [FBlock] = .init()
+    for batch in batches {
+
+      let startIndex = data.count
+
+      let message = try write(batch: batch)
+      var buffer = Data()
+      withUnsafeBytes(of: continuationMarker.littleEndian) { val in
+        buffer.append(contentsOf: val)
+      }
+      withUnsafeBytes(of: UInt32(message.count).littleEndian) { val in
+        buffer.append(contentsOf: val)
+      }
+      // padded
+      write(data: buffer)
+      let metadataLength = data.count - startIndex
+      let bodyStart = data.count
+
+    }
+    ////          {
+    //        case .success(let rbResult):
+    //          withUnsafeBytes(of: continuationMarker.littleEndian) {
+    //            writer.append(Data($0))
+    //          }
+    //          withUnsafeBytes(of: UInt32(rbResult.count).littleEndian) {
+    //            writer.append(Data($0))
+    //          }
+    //          writer.append(rbResult)
+    //          addPadForAlignment(&writer)
+    //          let metadataLength = writer.count - startIndex
+    //          let bodyStart = writer.count
+    //          switch writeRecordBatchData(
+    //            &writer,
+    //            fields: batch.schema.fields,
+    //            columns: batch.columns
+    //          ) {
+    //          case .success:
+    //            let bodyLength = writer.count - bodyStart
+    //            let expectedSize = startIndex + metadataLength + bodyLength
+    //            guard expectedSize == writer.count else {
+    //              return .failure(
+    //                .invalid(
+    //                  "Invalid Block. Expected \(expectedSize), got \(writer.count)"
+    //                ))
+    //            }
+    //            rbBlocks.append(
+    //              FBlock(
+    //                offset: Int64(startIndex),
+    //                metaDataLength: Int32(metadataLength),
+    //                bodyLength: Int64(bodyLength)
+    //              )
+    //            )
+    //          case .failure(let error):
+    //            return .failure(error)
+    //          }
+    //        case .failure(let error):
+    //          return .failure(error)
+    //        }
+    //      }
+    //
+    //      return .success(rbBlocks)
+    fatalError()
+  }
+
+  private mutating func writeRecordBatchData(
+    fields: [ArrowField],
+    columns: [any ArrowArrayProtocol]
+  ) throws {
+    for index in 0..<fields.count {
+      let column = columns[index]
+      let field = fields[index]
+      //      let colBufferData = column.bufferData
+      // FIXME: Maybe separate data and array protocols
+      let colBufferData: [Data] = [Data()]
+      for bufferData in colBufferData {
+        write(data: bufferData)
+        if case .strct(let fields) = field.type {
+          guard let nestedArray = column as? ArrowStructArray
+          else {
+            throw ArrowError.invalid(
+              "Struct type array expected for nested type")
+          }
+          try writeRecordBatchData(
+            fields: fields,
+            columns: nestedArray.fields.map(\.array)
+          )
+        }
+      }
+    }
+  }
+
   private func write(
     batch: RecordBatch
-  ) throws -> Offset {
+  ) throws -> Data {
     let schema = batch.schema
     var fbb = FlatBufferBuilder()
 
-    // write out field nodes
+    // MARK: Field nodes.
     var fieldNodeOffsets: [Offset] = []
     fbb.startVector(
       schema.fields.count,
@@ -38,7 +132,8 @@ extension ArrowWriter {
       fbb: &fbb
     )
     let nodeOffset = fbb.endVector(len: fieldNodeOffsets.count)
-    // write out buffers
+
+    // MARK: Buffers.
     var buffers: [FBuffer] = .init()
     var bufferOffset: Int = 0
     writeBufferInfo(
@@ -67,8 +162,7 @@ extension ArrowWriter {
     FMessage.add(header: recordBatchOffset, &fbb)
     let messageOffset = FMessage.endMessage(&fbb, start: startMessage)
     fbb.finish(offset: messageOffset)
-    //    return .success((fbb.data, Offset(offset: UInt32(fbb.data.count))))
-    fatalError()
+    return fbb.data
   }
 
   private func writeFieldNodes(
@@ -77,27 +171,25 @@ extension ArrowWriter {
     offsets: inout [Offset],
     fbb: inout FlatBufferBuilder
   ) {
-    fatalError()
-    //    for index in (0..<fields.count).reversed() {
-    //      let column = columns[index]
-    //      let field = fields[index]
-    //      let fieldNode = FFieldNode(
-    //        length: Int64(column.length),
-    //        nullCount: Int64(column.nullCount)
-    //      )
-    //      offsets.append(fbb.create(struct: fieldNode))
-    //      if case .strct(let fields) = field.type {
-    //
-    //        if let column = column as? ArrowStructArray {
-    //          writeFieldNodes(
-    //            fields: fields,
-    //            columns: column.fields.map(\.array),
-    //            offsets: &offsets,
-    //            fbb: &fbb
-    //          )
-    //        }
-    //      }
-    //    }
+    for index in (0..<fields.count).reversed() {
+      let column = columns[index]
+      let field = fields[index]
+      let fieldNode = FFieldNode(
+        length: Int64(column.length),
+        nullCount: Int64(column.nullCount)
+      )
+      offsets.append(fbb.create(struct: fieldNode))
+      if case .strct(let fields) = field.type {
+        if let column = column as? ArrowStructArray {
+          writeFieldNodes(
+            fields: fields,
+            columns: column.fields.map(\.array),
+            offsets: &offsets,
+            fbb: &fbb
+          )
+        }
+      }
+    }
   }
 
   private func writeBufferInfo(
@@ -107,27 +199,29 @@ extension ArrowWriter {
     buffers: inout [FBuffer],
     fbb: inout FlatBufferBuilder
   ) {
-    fatalError()
-    //    for index in 0..<fields.count {
-    //      let column = columns[index]
-    //      let field = fields[index]
-    //      for var bufferDataSize in column.bufferDataSizes {
-    //
-    //        bufferDataSize = getPadForAlignment(bufferDataSize)
-    //        let buffer = FBuffer(
-    //          offset: Int64(bufferOffset), length: Int64(bufferDataSize))
-    //        buffers.append(buffer)
-    //        bufferOffset += bufferDataSize
-    //
-    //        if case .strct(let fields) = column.type {
-    //          let nestedArray = column as? NestedArray
-    //          if let nestedFields = nestedArray?.fields {
-    //            writeBufferInfo(
-    //              fields, columns: nestedFields,
-    //              bufferOffset: &bufferOffset, buffers: &buffers, fbb: &fbb)
-    //          }
-    //        }
-    //      }
-    //    }
+    for index in 0..<fields.count {
+      let column = columns[index]
+      let field = fields[index]
+      for var bufferDataSize in column.bufferSizes {
+        bufferDataSize = padded(byteCount: bufferDataSize)
+        let buffer = FBuffer(
+          offset: Int64(bufferOffset), length: Int64(bufferDataSize))
+        buffers.append(buffer)
+        bufferOffset += bufferDataSize
+
+        if case .strct(let fields) = field.type {
+
+          if let column = column as? ArrowStructArray {
+
+            writeBufferInfo(
+              fields,
+              columns: column.fields.map(\.array),
+              bufferOffset: &bufferOffset,
+              buffers: &buffers, fbb: &fbb
+            )
+          }
+        }
+      }
+    }
   }
 }

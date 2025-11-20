@@ -27,8 +27,26 @@ struct FileDataBuffer {
   let range: Range<Int>
 }
 
+/// An Arrow buffer backed by file data.
+internal protocol ArrowBufferIPC: ArrowBufferProtocol {
+  var buffer: FileDataBuffer { get }
+}
+
+extension ArrowBufferIPC {
+  public func withUnsafeBytes<R>(
+    _ body: (UnsafeRawBufferPointer) throws -> R
+  ) rethrows -> R {
+    try buffer.data.withUnsafeBytes { dataPtr in
+      let rangedPtr = UnsafeRawBufferPointer(
+        rebasing: dataPtr[buffer.range]
+      )
+      return try body(rangedPtr)
+    }
+  }
+}
+
 /// A `Data` backed buffer for null bitmaps and boolean arrays.
-struct NullBufferIPC: NullBuffer {
+struct NullBufferIPC: NullBuffer, ArrowBufferIPC {
 
   let buffer: FileDataBuffer
   var valueCount: Int
@@ -49,7 +67,7 @@ struct NullBufferIPC: NullBuffer {
 }
 
 /// A `Data` backed buffer for fixed-width types.
-struct FixedWidthBufferIPC<Element>: FixedWidthBufferProtocol
+struct FixedWidthBufferIPC<Element>: FixedWidthBufferProtocol, ArrowBufferIPC
 where
   Element: Numeric, Element: BitwiseCopyable
 {
@@ -72,7 +90,7 @@ where
 
 /// A `Data` backed buffer for variable-length types.
 struct VariableLengthBufferIPC<Element: VariableLength>:
-  VariableLengthBufferProtocol
+  VariableLengthBufferProtocol, ArrowBufferIPC
 {
   typealias ElementType = Element
 
