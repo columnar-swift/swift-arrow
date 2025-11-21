@@ -18,6 +18,16 @@ import Testing
 
 @testable import ArrowIPC
 
+func printTestJSON(_ value: ArrowTestingFormat) throws {
+  let encoder = JSONEncoder()
+  encoder.outputFormatting = .prettyPrinted
+  let result = try encoder.encode(value)
+  guard let formattedString = String(data: result, encoding: .utf8) else {
+    throw ArrowError.unknownError("Unable to encode JSON.")
+  }
+  print(formattedString)
+}
+
 func loadArrowResource(name: String) throws(ArrowError) -> URL {
   if let resource = Bundle.module.url(
     forResource: name,

@@ -14,6 +14,7 @@
 
 import Foundation
 
+/// The JSON structure used to validate Arrow test files.
 struct ArrowTestingFormat: Codable {
   let schema: Schema
   let batches: [Batch]
@@ -60,9 +61,9 @@ struct ArrowTestingFormat: Codable {
   struct Column: Codable {
     let name: String
     let count: Int
-    let validity: [Int]?  // VALIDITY - array of 0s and 1s
-    let offset: [Int]?  // OFFSET - for variable-length types
-    let data: [String]?  // DATA - hex strings for binary, or actual values
+    let validity: [Int]?
+    let offset: [Int]?
+    let data: [String]?
     let children: [Column]?
 
     enum CodingKeys: String, CodingKey {
@@ -75,7 +76,6 @@ struct ArrowTestingFormat: Codable {
     }
   }
 
-  // Value can be various types - might need custom decoding
   enum Value: Codable {
     case int(Int)
     case string(String)

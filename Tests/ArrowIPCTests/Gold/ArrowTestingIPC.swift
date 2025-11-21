@@ -22,22 +22,30 @@ struct ArrowTestingIPC {
 
   @Test func generatedBinary() throws {
 
-    let url = URL(
-      fileURLWithPath: "/Users/will/Downloads/generated_binary.json")
-    let data = try Data(contentsOf: url)
-    let testCase = try JSONDecoder().decode(ArrowTestingFormat.self, from: data)
+    guard
+      let resourceURL = Bundle.module.url(
+        forResource: "Resources/integration/cpp-21.0.0/generated_binary.json",
+        withExtension: "lz4"
+      )
+    else {
+      throw ArrowError.invalid("Unable to locate generated_binary.json")
+    }
 
-    //    let encoder = JSONEncoder()
-    //    encoder.outputFormatting = .prettyPrinted
-    //    let result = try encoder.encode(testCase)
-    //    print(String(data: result, encoding: .utf8)!)
+    let lz4Data = try Data(contentsOf: resourceURL)
+    let lz4 = try LZ4(parsing: lz4Data)
+    let testCase = try JSONDecoder().decode(
+      ArrowTestingFormat.self, from: lz4.data)
 
-    let testDirectory = URL(
-      fileURLWithPath:
-        "/Users/will/columnar-swift/arrow-testing/data/arrow-ipc-stream/integration/cpp-21.0.0"
-    )
-    let testFile = testDirectory.appendingPathComponent(
-      "generated_binary.arrow_file")
+    //    try printTestJSON(testCase)
+
+    guard
+      let testFile = Bundle.module.url(
+        forResource: "Resources/integration/cpp-21.0.0/generated_binary",
+        withExtension: "arrow_file"
+      )
+    else {
+      throw ArrowError.invalid("Unable to locate arrow file.")
+    }
 
     let arrowReader = try ArrowReader(url: testFile)
     let (arrowSchema, recordBatches) = try arrowReader.read()
