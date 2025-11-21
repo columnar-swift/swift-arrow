@@ -374,7 +374,7 @@ public class ArrowWriter {
     case .success(let rbBlocks):
       switch writeFooter(schema: info.schema, rbBlocks: rbBlocks) {
       case .success(let footerData):
-        fbb.finish(offset: Offset(offset: fbb.buffer.size))
+        //        fbb.finish(offset: Offset(offset: fbb.buffer.size))
         let footerOffset = writer.count
         writer.append(footerData)
         addPadForAlignment(&writer)

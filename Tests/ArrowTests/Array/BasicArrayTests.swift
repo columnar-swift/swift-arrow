@@ -20,17 +20,21 @@ import Testing
 struct BasicArrayTests {
 
   @Test func boolArray() throws {
+
     let builder = ArrayBuilderBoolean()
     builder.append(true)
+    builder.append(false)
     builder.appendNull()
     builder.append(false)
-    builder.append(false)
+    builder.append(true)
     let array = builder.finish()
-    #expect(array.length == 4)
-    #expect(array[0]! == true)
-    #expect(array[1] == nil)
-    #expect(array[2]! == false)
-    #expect(array[3]! == false)
+    #expect(array.length == 5)
+
+    #expect(array[0] == true)
+    #expect(array[1] == false)
+    #expect(array[2] == nil)
+    #expect(array[3] == false)
+    #expect(array[4] == true)
     #expect(array.bufferSizes == [1, 1])
   }
 

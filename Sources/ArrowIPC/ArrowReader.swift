@@ -185,7 +185,8 @@ public struct ArrowReader {
       }
 
       guard message.headerType == .recordbatch else {
-        throw ArrowError.invalid("Expected RecordBatch message.")
+        throw ArrowError.invalid(
+          "Expected RecordBatch message, got: \(message.headerType).")
       }
 
       guard let rbMessage = message.header(type: FRecordBatch.self) else {
@@ -196,7 +197,7 @@ public struct ArrowReader {
       }
 
       // MARK: Load arrays
-      var arrays: [any ArrowArrayProtocol] = .init()
+      var arrays: [AnyArrowArrayProtocol] = .init()
       var nodeIndex: Int32 = 0
       var bufferIndex: Int32 = 0
 
@@ -226,7 +227,7 @@ public struct ArrowReader {
     offset: Int64,
     nodeIndex: inout Int32,
     bufferIndex: inout Int32
-  ) throws -> any ArrowArrayProtocol {
+  ) throws -> AnyArrowArrayProtocol {
 
     guard nodeIndex < rbMessage.nodesCount,
       let node = rbMessage.nodes(at: nodeIndex)
@@ -317,7 +318,7 @@ public struct ArrowReader {
     } else if arrowType.isNested {
       switch arrowType {
       case .list(let field):
-        let array: any ArrowArrayProtocol = try loadField(
+        let array: AnyArrowArrayProtocol = try loadField(
           rbMessage: rbMessage,
           field: field,
           offset: offset,
@@ -338,7 +339,7 @@ public struct ArrowReader {
         )
 
       case .strct(let fields):
-        var arrays: [(String, any ArrowArrayProtocol)] = []
+        var arrays: [(String, AnyArrowArrayProtocol)] = []
         for field in fields {
           let array = try loadField(
             rbMessage: rbMessage,
@@ -396,14 +397,16 @@ public struct ArrowReader {
     nullBuffer: NullBuffer,
     offsetsBuffer: FixedWidthBufferIPC<Int32>,
     values: Element
-  ) -> AnyArrowListArray where Element: ArrowArrayProtocol {
+  ) -> AnyArrowListArray where Element: AnyArrowArrayProtocol {
     let list = ArrowListArray(
       length: length,
       nullBuffer: nullBuffer,
       offsetsBuffer: offsetsBuffer,
       values: values
     )
-    return AnyArrowListArray(list)
+    // FIXME: Need to fix list types.
+    fatalError()
+    //    return AnyArrowListArray(list)
   }
 
   private func loadSchema(_ schema: FSchema) throws(ArrowError) -> ArrowSchema {

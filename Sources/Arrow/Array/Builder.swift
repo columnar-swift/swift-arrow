@@ -58,6 +58,7 @@ public class ArrayBuilderBoolean: AnyArrayBuilder {
   public func appendNull() {
     length += 1
     nullBuilder.appendValid(false)
+    valueBuilder.appendValid(false)
   }
 
   public func finish() -> ArrayType {

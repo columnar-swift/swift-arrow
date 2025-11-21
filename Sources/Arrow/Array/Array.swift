@@ -15,7 +15,6 @@
 import Foundation
 
 public protocol AnyArrowArrayProtocol {
-
   var offset: Int { get }
   var length: Int { get }
   var nullCount: Int { get }
@@ -23,10 +22,9 @@ public protocol AnyArrowArrayProtocol {
   func any(at index: Int) -> Any?
   var bufferSizes: [Int] { get }
   var buffers: [ArrowBufferProtocol] { get }
-
 }
 
-public protocol ArrowArrayProtocol: AnyArrowArrayProtocol {
+internal protocol ArrowArrayProtocol: AnyArrowArrayProtocol {
   associatedtype ItemType
   subscript(_ index: Int) -> ItemType? { get }
 }
@@ -37,6 +35,11 @@ extension ArrowArrayProtocol {
     self[index] as Any?
   }
 }
+
+public protocol ArrowArrayOfString {
+  subscript(index: Int) -> String? { get }
+}
+extension ArrowArrayVariable: ArrowArrayOfString where ItemType == String {}
 
 /// An Arrow array of booleans using the three-valued logical model (true / false / null).
 public struct ArrowArrayBoolean: ArrowArrayProtocol {
@@ -251,7 +254,7 @@ where
 public struct ArrowListArray<Element, OffsetsBuffer>: ArrowArrayProtocol
 where
   OffsetsBuffer: FixedWidthBufferProtocol<Int32>,
-  Element: ArrowArrayProtocol
+  Element: AnyArrowArrayProtocol
 {
   public typealias ItemType = Element
   public let offset: Int
@@ -308,7 +311,7 @@ where
 /// A type-erased wrapper for an Arrow list array.
 public struct AnyArrowListArray: ArrowArrayProtocol {
 
-  public typealias ItemType = any ArrowArrayProtocol
+  public typealias ItemType = AnyArrowArrayProtocol
   public var bufferSizes: [Int] {
     _base.bufferSizes
   }
@@ -317,14 +320,14 @@ public struct AnyArrowListArray: ArrowArrayProtocol {
   }
 
   private let _base: any ArrowArrayProtocol
-  private let _subscriptImpl: (Int) -> (any ArrowArrayProtocol)?
+  private let _subscriptImpl: (Int) -> AnyArrowArrayProtocol?
   private let _sliceImpl: (Int, Int) -> AnyArrowListArray
 
   public let offset: Int
   public let length: Int
   public var nullCount: Int { _base.nullCount }
 
-  public init<Element, OffsetsBuffer>(
+  init<Element, OffsetsBuffer>(
     _ list: ArrowListArray<Element, OffsetsBuffer>
   )
   where
@@ -338,7 +341,7 @@ public struct AnyArrowListArray: ArrowArrayProtocol {
     self._sliceImpl = { AnyArrowListArray(list.slice(offset: $0, length: $1)) }
   }
 
-  public subscript(index: Int) -> (any ArrowArrayProtocol)? {
+  public subscript(index: Int) -> AnyArrowArrayProtocol? {
     _subscriptImpl(index)
   }
 
@@ -352,7 +355,7 @@ public struct ArrowStructArray: ArrowArrayProtocol {
   public typealias ItemType = [String: Any]
   public let offset: Int
   public let length: Int
-  public let fields: [(name: String, array: any ArrowArrayProtocol)]
+  public let fields: [(name: String, array: AnyArrowArrayProtocol)]
   public var bufferSizes: [Int] { [nullBuffer.length] }
   public var buffers: [ArrowBufferProtocol] { [nullBuffer] }
   public var nullCount: Int { nullBuffer.nullCount }
@@ -362,7 +365,7 @@ public struct ArrowStructArray: ArrowArrayProtocol {
     offset: Int = 0,
     length: Int,
     nullBuffer: NullBuffer,
-    fields: [(name: String, array: any ArrowArrayProtocol)]
+    fields: [(name: String, array: AnyArrowArrayProtocol)]
   ) {
     self.offset = offset
     self.length = length
