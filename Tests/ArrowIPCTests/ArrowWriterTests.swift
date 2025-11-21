@@ -54,56 +54,22 @@ struct ArrowWriterTests {
 
     let recordBatch = RecordBatch(schema: schema, columns: [one, two])
 
+    checkBoolRecordBatch(recordBatch: recordBatch)
+
     let outputUrl = FileManager.default.temporaryDirectory
       .appending(path: "bool-test.arrow")
-    let writer = ArrowWriter(url: outputUrl)
+    var writer = ArrowWriter(url: outputUrl)
+    try writer.write(schema: schema, recordBatches: [recordBatch])
+    try writer.finish()
 
-    //    writer.write(recordBatch: recordBatch)
+    let arrowReader = try ArrowReader(url: outputUrl)
+    let (arrowSchema, recordBatches) = try arrowReader.read()
 
-    //    func writeBoolData() {
-    //      alloc := memory.NewGoAllocator()
-    //      schema := arrow.NewSchema([]arrow.Field{
-    //        {Name: "one", Type: arrow.FixedWidthTypes.Boolean},
-    //        {Name: "two", Type: arrow.BinaryTypes.String},
-    //      }, nil)
-    //
-    //      b := array.NewRecordBuilder(alloc, schema)
-    //      defer b.Release()
-    //
-    //      b.Field(0).(*array.BooleanBuilder).AppendValues([]bool{true, false}, nil)
-    //      b.Field(0).(*array.BooleanBuilder).AppendNull()
-    //      b.Field(0).(*array.BooleanBuilder).AppendValues([]bool{false, true}, nil)
-    //      b.Field(1).(*array.StringBuilder).AppendValues([]string{"zero", "one", "two", "three", "four"}, nil)
-    //      rec := b.NewRecord()
-    //      defer rec.Release()
-    //
-    //      writeBytes(rec, "testdata_bool.arrow")
-    //    }
+    for recordBatch in recordBatches {
+      checkBoolRecordBatch(recordBatch: recordBatch)
+    }
+    //    try FileManager.default.copyItem(at: outputUrl, to: URL(fileURLWithPath: "/tmp/bool-test-swift.arrow"))
 
-    //    // read existing file
-    //    let fileURL = try loadArrowResource(name: "testdata_bool")
-    //    let arrowReader = ArrowReader()
-    ////    let fileRBs = try checkBoolRecordBatch(arrowReader.fromFile(fileURL))
-    //    let arrowWriter = ArrowWriter()
-    //    // write data from file to a stream
-    //    let writerInfo = ArrowWriter.Info(
-    //      .recordbatch, schema: fileRBs[0].schema, batches: fileRBs)
-    //    switch arrowWriter.writeFile(writerInfo) {
-    //    case .success(let writeData):
-    //      // read stream back into recordbatches
-    //      try checkBoolRecordBatch(arrowReader.readFile(writeData))
-    //    case .failure(let error):
-    //      throw error
-    //    }
-    //    // write file record batches to another file
-    //    let outputUrl = FileManager.default.temporaryDirectory
-    //      .appending(path: "testfilewriter_bool.arrow")
-    //    switch arrowWriter.toFile(outputUrl, info: writerInfo) {
-    //    case .success:
-    //      try checkBoolRecordBatch(arrowReader.fromFile(outputUrl))
-    //    case .failure(let error):
-    //      throw error
-    //    }
   }
 
 }

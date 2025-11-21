@@ -27,8 +27,26 @@ struct FileDataBuffer {
   let range: Range<Int>
 }
 
+/// An Arrow buffer backed by file data.
+internal protocol ArrowBufferIPC: ArrowBufferProtocol {
+  var buffer: FileDataBuffer { get }
+}
+
+extension ArrowBufferIPC {
+  public func withUnsafeBytes<R>(
+    _ body: (UnsafeRawBufferPointer) throws -> R
+  ) rethrows -> R {
+    try buffer.data.withUnsafeBytes { dataPtr in
+      let rangedPtr = UnsafeRawBufferPointer(
+        rebasing: dataPtr[buffer.range]
+      )
+      return try body(rangedPtr)
+    }
+  }
+}
+
 /// A `Data` backed buffer for null bitmaps and boolean arrays.
-struct NullBufferIPC: NullBuffer {
+struct NullBufferIPC: NullBuffer, ArrowBufferIPC {
 
   let buffer: FileDataBuffer
   var valueCount: Int
@@ -49,7 +67,7 @@ struct NullBufferIPC: NullBuffer {
 }
 
 /// A `Data` backed buffer for fixed-width types.
-struct FixedWidthBufferIPC<Element>: FixedWidthBufferProtocol
+struct FixedWidthBufferIPC<Element>: FixedWidthBufferProtocol, ArrowBufferIPC
 where
   Element: Numeric, Element: BitwiseCopyable
 {
@@ -72,7 +90,7 @@ where
 
 /// A `Data` backed buffer for variable-length types.
 struct VariableLengthBufferIPC<Element: VariableLength>:
-  VariableLengthBufferProtocol
+  VariableLengthBufferProtocol, ArrowBufferIPC
 {
   typealias ElementType = Element
 
@@ -121,7 +139,7 @@ public struct ArrowReader {
     }
   }
 
-  func read() throws -> [RecordBatch] {
+  func read() throws -> (ArrowSchema, [RecordBatch]) {
 
     let footerData = try data.withParserSpan { input in
       let count = input.count
@@ -167,7 +185,8 @@ public struct ArrowReader {
       }
 
       guard message.headerType == .recordbatch else {
-        throw ArrowError.invalid("Expected RecordBatch message.")
+        throw ArrowError.invalid(
+          "Expected RecordBatch message, got: \(message.headerType).")
       }
 
       guard let rbMessage = message.header(type: FRecordBatch.self) else {
@@ -178,7 +197,7 @@ public struct ArrowReader {
       }
 
       // MARK: Load arrays
-      var arrays: [any ArrowArrayProtocol] = .init()
+      var arrays: [AnyArrowArrayProtocol] = .init()
       var nodeIndex: Int32 = 0
       var bufferIndex: Int32 = 0
 
@@ -198,8 +217,7 @@ public struct ArrowReader {
       recordBatches.append(recordBatch)
     }
 
-    return recordBatches
-
+    return (arrowSchema, recordBatches)
   }
 
   func loadField(
@@ -208,16 +226,13 @@ public struct ArrowReader {
     offset: Int64,
     nodeIndex: inout Int32,
     bufferIndex: inout Int32
-  ) throws -> any ArrowArrayProtocol {
-
+  ) throws -> AnyArrowArrayProtocol {
     guard nodeIndex < rbMessage.nodesCount,
       let node = rbMessage.nodes(at: nodeIndex)
     else {
       throw ArrowError.invalid("Missing node at index \(nodeIndex)")
     }
     nodeIndex += 1
-    print("incremented node index to \(nodeIndex)")
-
     let buffer0 = try nextBuffer(
       message: rbMessage,
       index: &bufferIndex,
@@ -299,7 +314,7 @@ public struct ArrowReader {
     } else if arrowType.isNested {
       switch arrowType {
       case .list(let field):
-        let array: any ArrowArrayProtocol = try loadField(
+        let array: AnyArrowArrayProtocol = try loadField(
           rbMessage: rbMessage,
           field: field,
           offset: offset,
@@ -311,16 +326,14 @@ public struct ArrowReader {
           message: rbMessage, index: &bufferIndex, offset: offset, data: data)
         let offsetsBuffer = FixedWidthBufferIPC<Int32>(buffer: buffer1)
 
-        // This won't compile directly, so we need a helper
         return makeListArray(
           length: length,
           nullBuffer: nullBuffer,
           offsetsBuffer: offsetsBuffer,
           values: array
         )
-
       case .strct(let fields):
-        var arrays: [(String, any ArrowArrayProtocol)] = []
+        var arrays: [(String, AnyArrowArrayProtocol)] = []
         for field in fields {
           let array = try loadField(
             rbMessage: rbMessage,
@@ -340,6 +353,19 @@ public struct ArrowReader {
         throw ArrowError.notImplemented
       }
     } else {
+      // MARK: Unclassifiable types.
+      if case .fixedSizeBinary(let byteWidth) = arrowType {
+        let valueBuffer = try nextBuffer(
+          message: rbMessage, index: &bufferIndex, offset: offset, data: data)
+        let valueBufferTyped = VariableLengthBufferIPC<Data>(
+          buffer: valueBuffer)
+        return ArrowArrayFixedSizeBinary(
+          length: length,
+          byteWidth: Int(byteWidth),
+          nullBuffer: nullBuffer,
+          valueBuffer: valueBufferTyped
+        )
+      }
       throw ArrowError.notImplemented
     }
   }
@@ -378,14 +404,16 @@ public struct ArrowReader {
     nullBuffer: NullBuffer,
     offsetsBuffer: FixedWidthBufferIPC<Int32>,
     values: Element
-  ) -> AnyArrowListArray where Element: ArrowArrayProtocol {
+  ) -> AnyArrowListArray where Element: AnyArrowArrayProtocol {
     let list = ArrowListArray(
       length: length,
       nullBuffer: nullBuffer,
       offsetsBuffer: offsetsBuffer,
       values: values
     )
-    return AnyArrowListArray(list)
+    // FIXME: Need to fix list types.
+    fatalError()
+    //    return AnyArrowListArray(list)
   }
 
   private func loadSchema(_ schema: FSchema) throws(ArrowError) -> ArrowSchema {

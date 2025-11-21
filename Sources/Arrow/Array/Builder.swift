@@ -58,6 +58,7 @@ public class ArrayBuilderBoolean: AnyArrayBuilder {
   public func appendNull() {
     length += 1
     nullBuilder.appendValid(false)
+    valueBuilder.appendValid(false)
   }
 
   public func finish() -> ArrayType {
@@ -107,6 +108,62 @@ public class ArrayBuilderFixedWidth<T: Numeric>: AnyArrayBuilder {
     return .init(
       offset: 0,
       length: length,
+      nullBuffer: nullBuffer,
+      valueBuffer: valueBuffer
+    )
+  }
+}
+
+/// A builder for Arrow arrays holding variable length types.
+public class ArrayBuilderFixedSizedBinary:
+  AnyArrayBuilder
+{
+  public typealias ArrayType = ArrowArrayFixedSizeBinary<
+    VariableLengthTypeBuffer<Data>
+  >
+
+  var length: Int
+  let byteWidth: Int
+  let nullBuilder: NullBufferBuilder
+  let valueBuilder: VariableLengthTypeBufferBuilder<Data>
+  let nullValue: Data
+
+  public init(byteWidth: Int) {
+    self.length = 0
+    self.byteWidth = byteWidth
+    self.nullBuilder = NullBufferBuilder()
+    self.valueBuilder = VariableLengthTypeBufferBuilder<Data>()
+    self.nullValue = Data(repeating: 0, count: byteWidth)
+  }
+
+  public func append(_ value: Data) {
+    length += 1
+    nullBuilder.appendValid(true)
+    precondition(value.count == byteWidth, "Incorrect byte width.")
+    let requiredCapacity = valueBuilder.length + value.count
+    if requiredCapacity > valueBuilder.capacity {
+      var newCapacity = valueBuilder.capacity
+      while newCapacity < requiredCapacity {
+        newCapacity *= 2
+      }
+      valueBuilder.increaseCapacity(to: newCapacity)
+    }
+    valueBuilder.append(value)
+  }
+
+  public func appendNull() {
+    length += 1
+    nullBuilder.appendValid(false)
+    valueBuilder.append(nullValue)
+  }
+
+  public func finish() -> ArrayType {
+    let nullBuffer = nullBuilder.finish()
+    let valueBuffer = valueBuilder.finish()
+    return .init(
+      offset: 0,
+      length: length,
+      byteWidth: byteWidth,
       nullBuffer: nullBuffer,
       valueBuffer: valueBuffer
     )

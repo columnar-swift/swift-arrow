@@ -17,13 +17,12 @@ import Arrow
 public struct RecordBatch {
 
   let schema: ArrowSchema
-  var columnCount: Int { self.columns.count }
-  let columns: [any ArrowArrayProtocol]
+  let arrays: [AnyArrowArrayProtocol]
   let length: Int
 
-  public init(schema: ArrowSchema, columns: [any ArrowArrayProtocol]) {
+  public init(schema: ArrowSchema, columns: [AnyArrowArrayProtocol]) {
     self.schema = schema
-    self.columns = columns
+    self.arrays = columns
     self.length = columns[0].length
   }
 

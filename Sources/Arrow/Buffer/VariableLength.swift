@@ -41,7 +41,7 @@ extension Data: VariableLength {
   }
 }
 
-public protocol VariableLengthBufferProtocol<ElementType> {
+public protocol VariableLengthBufferProtocol<ElementType>: ArrowBufferProtocol {
   associatedtype ElementType: VariableLength
 
   var length: Int { get }
@@ -55,7 +55,7 @@ public protocol VariableLengthBufferProtocol<ElementType> {
 
 /// A buffer containing values with variable length, used in variable length type Arrow arrays.
 public final class VariableLengthTypeBuffer<T: VariableLength>:
-  VariableLengthBufferProtocol
+  VariableLengthBufferProtocol, ArrowBufferUInt8
 {
   public typealias ElementType = T
   public var length: Int

@@ -16,6 +16,18 @@ import Arrow
 import Foundation
 import Testing
 
+@testable import ArrowIPC
+
+func printTestJSON(_ value: ArrowTestingFormat) throws {
+  let encoder = JSONEncoder()
+  encoder.outputFormatting = .prettyPrinted
+  let result = try encoder.encode(value)
+  guard let formattedString = String(data: result, encoding: .utf8) else {
+    throw ArrowError.unknownError("Unable to encode JSON.")
+  }
+  print(formattedString)
+}
+
 func loadArrowResource(name: String) throws(ArrowError) -> URL {
   if let resource = Bundle.module.url(
     forResource: name,
@@ -25,5 +37,58 @@ func loadArrowResource(name: String) throws(ArrowError) -> URL {
     return resource
   } else {
     throw .runtimeError("Couldn't find \(name).arrow in the test resources.")
+  }
+}
+
+func checkBoolRecordBatch(recordBatch: RecordBatch) {
+
+  #expect(recordBatch.length == 5)
+  #expect(recordBatch.arrays.count == 2)
+  #expect(recordBatch.schema.fields.count == 2)
+  #expect(recordBatch.schema.fields[0].name == "one")
+  #expect(recordBatch.schema.fields[0].type == .boolean)
+  #expect(recordBatch.schema.fields[1].name == "two")
+  #expect(recordBatch.schema.fields[1].type == .utf8)
+
+  guard let one = recordBatch.arrays[0] as? ArrowArrayBoolean
+  else {
+    Issue.record("Failed to cast column to ArrowBooleanArray")
+    return
+  }
+  #expect(one[0] == true)
+  #expect(one[1] == false)
+  #expect(one[2] == nil)
+  #expect(one[3] == false)
+  #expect(one[4] == true)
+
+  guard
+    let utf8Column = recordBatch.arrays[1] as? ArrowArrayOfString
+  else {
+    Issue.record("Failed to cast column to ArrowUtf8Array")
+    return
+  }
+
+  #expect(utf8Column[0] == "zero")
+  #expect(utf8Column[1] == "one")
+  #expect(utf8Column[2] == "two")
+  #expect(utf8Column[3] == "three")
+  #expect(utf8Column[4] == "four")
+}
+
+extension Data {
+  init?(hex: String) {
+    let len = hex.count / 2
+    var data = Data(capacity: len)
+    var index = hex.startIndex
+    for _ in 0..<len {
+      let nextIndex = hex.index(index, offsetBy: 2)
+      if let byte = UInt8(hex[index..<nextIndex], radix: 16) {
+        data.append(byte)
+      } else {
+        return nil
+      }
+      index = nextIndex
+    }
+    self = data
   }
 }

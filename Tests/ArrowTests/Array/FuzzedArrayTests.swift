@@ -19,6 +19,25 @@ import Testing
 
 struct FuzzedArrayTests {
 
+  @Test func int64Array() throws {
+    var rng = getSeededRNG()
+    let count = Int.random(in: 0...100_000)
+    var expected = [Int64](repeating: 0, count: count)
+    for i in 0..<expected.count {
+      expected[i] = Int64.random(in: Int64.min...Int64.max, using: &rng)
+    }
+    let arrayBuilder: ArrayBuilderFixedWidth<Int64> = .init()
+    for i in 0..<expected.count {
+      arrayBuilder.append(expected[i])
+    }
+    let array = arrayBuilder.finish()
+
+    for i in 0..<expected.count {
+      #expect(array[i] == expected[i])
+    }
+    #expect(array.bufferSizes == [0, count * MemoryLayout<Int>.stride])
+  }
+
   @Test func stringArrayWithRandomNulls() throws {
     var rng = getSeededRNG()
     let count = Int.random(in: 0...100_000)

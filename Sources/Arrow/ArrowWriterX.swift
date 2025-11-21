@@ -153,10 +153,10 @@ public class ArrowWriter {
         withUnsafeBytes(of: continuationMarker.littleEndian) {
           writer.append(Data($0))
         }
-        withUnsafeBytes(of: rbResult.1.o.littleEndian) {
+        withUnsafeBytes(of: UInt32(rbResult.count).littleEndian) {
           writer.append(Data($0))
         }
-        writer.append(rbResult.0)
+        writer.append(rbResult)
         addPadForAlignment(&writer)
         let metadataLength = writer.count - startIndex
         let bodyStart = writer.count
@@ -250,7 +250,7 @@ public class ArrowWriter {
 
   private func writeRecordBatch(
     batch: RecordBatchX
-  ) -> Result<(Data, Offset), ArrowError> {
+  ) -> Result<Data, ArrowError> {
     let schema = batch.schema
     var fbb = FlatBufferBuilder()
 
@@ -296,7 +296,7 @@ public class ArrowWriter {
     FMessage.add(header: recordBatchOffset, &fbb)
     let messageOffset = FMessage.endMessage(&fbb, start: startMessage)
     fbb.finish(offset: messageOffset)
-    return .success((fbb.data, Offset(offset: UInt32(fbb.data.count))))
+    return .success(fbb.data)
   }
 
   private func writeRecordBatchData(
@@ -374,7 +374,7 @@ public class ArrowWriter {
     case .success(let rbBlocks):
       switch writeFooter(schema: info.schema, rbBlocks: rbBlocks) {
       case .success(let footerData):
-        fbb.finish(offset: Offset(offset: fbb.buffer.size))
+        //        fbb.finish(offset: Offset(offset: fbb.buffer.size))
         let footerOffset = writer.count
         writer.append(footerData)
         addPadForAlignment(&writer)
@@ -486,7 +486,7 @@ public class ArrowWriter {
     var writer: any DataWriter = InMemDataWriter()
     switch writeRecordBatch(batch: batch) {
     case .success(let message):
-      writer.append(message.0)
+      writer.append(message)
       addPadForAlignment(&writer)
       var dataWriter: any DataWriter = InMemDataWriter()
       switch writeRecordBatchData(

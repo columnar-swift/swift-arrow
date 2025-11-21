@@ -12,20 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-public protocol FixedWidthBufferProtocol<ElementType> {
+public protocol FixedWidthBufferProtocol<ElementType>: ArrowBufferProtocol {
   associatedtype ElementType: Numeric
   var length: Int { get }
   subscript(index: Int) -> ElementType { get }
 }
 
-public protocol Int32BufferProtocol {
-  var length: Int { get }
-  subscript(index: Int) -> Int32 { get }
-}
-
 /// A  buffer used in Arrow arrays that hold fixed-width types.
 public final class FixedWidthBuffer<T>: FixedWidthBufferProtocol
 where T: Numeric {
+
   public typealias ElementType = T
   public var length: Int
   var capacity: Int
@@ -49,6 +45,15 @@ where T: Numeric {
 
   public subscript(index: Int) -> T {
     buffer[index]
+  }
+
+  public func withUnsafeBytes<R>(
+    _ body: (UnsafeRawBufferPointer) throws -> R
+  ) rethrows -> R {
+    let rawPointer = UnsafeRawPointer(buffer)
+    let byteCount = valueCount * MemoryLayout<T>.stride
+    let buffer = UnsafeRawBufferPointer(start: rawPointer, count: byteCount)
+    return try body(buffer)
   }
 
   deinit {
