@@ -64,6 +64,11 @@ extension ArrowType {
       return .utf8
     case .binary:
       return .binary
+    case .fixedsizebinary:
+      guard let fType = field.type(type: FFixedSizeBinary.self) else {
+        throw .invalid("Could not get byteWidth from fixed binary field.")
+      }
+      return .fixedSizeBinary(fType.byteWidth)
     case .date:
       guard let dateType = field.type(type: FDate.self) else {
         throw .invalid("Could not get date type from field")

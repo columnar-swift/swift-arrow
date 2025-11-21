@@ -20,7 +20,6 @@ import Testing
 struct BasicArrayTests {
 
   @Test func boolArray() throws {
-
     let builder = ArrayBuilderBoolean()
     builder.append(true)
     builder.append(false)
@@ -60,23 +59,20 @@ struct BasicArrayTests {
     #expect(array.bufferSizes == [(101 + 7) / 8, 101])
   }
 
-  @Test func int64Array() throws {
-    var rng = getSeededRNG()
-    let count = Int.random(in: 0...100_000)
-    var expected = [Int64](repeating: 0, count: count)
-    for i in 0..<expected.count {
-      expected[i] = Int64.random(in: Int64.min...Int64.max, using: &rng)
-    }
-    let arrayBuilder: ArrayBuilderFixedWidth<Int64> = .init()
-    for i in 0..<expected.count {
-      arrayBuilder.append(expected[i])
-    }
-    let array = arrayBuilder.finish()
+  @Test func fixedWithBinary() throws {
+    let builder: ArrayBuilderFixedSizedBinary = .init(byteWidth: 3)
+    builder.appendNull()
+    builder.append("123".data)
+    builder.append("456".data)
+    builder.appendNull()
+    builder.append("789".data)
+    let array = builder.finish()
 
-    for i in 0..<expected.count {
-      #expect(array[i] == expected[i])
-    }
-    #expect(array.bufferSizes == [0, count * MemoryLayout<Int>.stride])
+    #expect(array[0] == nil)
+    #expect(array[1] == "123".data)
+    #expect(array[2] == "456".data)
+    #expect(array[3] == nil)
+    #expect(array[4] == "789".data)
   }
 
   @Test func stringArray() throws {

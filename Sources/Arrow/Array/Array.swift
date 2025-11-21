@@ -36,10 +36,18 @@ extension ArrowArrayProtocol {
   }
 }
 
+// MARK: Capability protocols.
+
 public protocol ArrowArrayOfString {
   subscript(index: Int) -> String? { get }
 }
 extension ArrowArrayVariable: ArrowArrayOfString where ItemType == String {}
+
+public protocol ArrowArrayOfData {
+  subscript(index: Int) -> Data? { get }
+}
+extension ArrowArrayFixedSizeBinary: ArrowArrayOfData where ItemType == Data {}
+extension ArrowArrayVariable: ArrowArrayOfData where ItemType == Data {}
 
 /// An Arrow array of booleans using the three-valued logical model (true / false / null).
 public struct ArrowArrayBoolean: ArrowArrayProtocol {
@@ -124,6 +132,54 @@ where
     .init(
       offset: offset,
       length: length,
+      nullBuffer: nullBuffer,
+      valueBuffer: valueBuffer
+    )
+  }
+}
+
+public struct ArrowArrayFixedSizeBinary<ValueBuffer>: ArrowArrayProtocol
+where
+  ValueBuffer: VariableLengthBufferProtocol<Data>
+{
+  public typealias ItemType = Data
+  public let offset: Int
+  public let length: Int
+  public let byteWidth: Int
+
+  public var bufferSizes: [Int] { [nullBuffer.length, valueBuffer.length] }
+  public var buffers: [ArrowBufferProtocol] { [nullBuffer, valueBuffer] }
+
+  public var nullCount: Int { nullBuffer.nullCount }
+
+  let nullBuffer: NullBuffer
+  let valueBuffer: ValueBuffer
+
+  public init(
+    offset: Int = 0,
+    length: Int,
+    byteWidth: Int,
+    nullBuffer: NullBuffer,
+    valueBuffer: ValueBuffer
+  ) {
+    self.offset = offset
+    self.length = length
+    self.byteWidth = byteWidth
+    self.nullBuffer = nullBuffer
+    self.valueBuffer = valueBuffer
+  }
+
+  public subscript(index: Int) -> ValueBuffer.ElementType? {
+    guard nullBuffer.isSet(index) else { return nil }
+    let startIndex = index * byteWidth
+    return valueBuffer.loadVariable(at: startIndex, arrayLength: byteWidth)
+  }
+
+  public func slice(offset: Int, length: Int) -> Self {
+    .init(
+      offset: self.offset + offset,  // relative to current offset
+      length: length,
+      byteWidth: byteWidth,
       nullBuffer: nullBuffer,
       valueBuffer: valueBuffer
     )
@@ -292,7 +348,6 @@ where
     }
     let startIndex = offsetsBuffer[offsetIndex]
     let endIndex = offsetsBuffer[offsetIndex + 1]
-
     let length = endIndex - startIndex
     return values.slice(offset: Int(startIndex), length: Int(length))
   }
@@ -375,7 +430,6 @@ public struct ArrowStructArray: ArrowArrayProtocol {
 
   public subscript(index: Int) -> ItemType? {
     guard nullBuffer.isSet(offset + index) else { return nil }
-
     var result: [String: Any] = [:]
     for (name, array) in fields {
       result[name] = array.any(at: index)

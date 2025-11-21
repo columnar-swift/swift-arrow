@@ -170,7 +170,7 @@ public struct ArrowWriter {
 
       try writeRecordBatchData(
         fields: recordBatch.schema.fields,
-        arrays: recordBatch.columns
+        arrays: recordBatch.arrays
       )
       precondition(data.count % 8 == 0)
 
@@ -236,7 +236,7 @@ public struct ArrowWriter {
     )
     writeFieldNodes(
       fields: schema.fields,
-      columns: batch.columns,
+      columns: batch.arrays,
       offsets: &fieldNodeOffsets,
       fbb: &fbb
     )
@@ -246,7 +246,7 @@ public struct ArrowWriter {
     var buffers: [FBuffer] = .init()
     var bufferOffset: Int = 0
     writeBufferInfo(
-      schema.fields, columns: batch.columns,
+      schema.fields, columns: batch.arrays,
       bufferOffset: &bufferOffset, buffers: &buffers,
       fbb: &fbb
     )

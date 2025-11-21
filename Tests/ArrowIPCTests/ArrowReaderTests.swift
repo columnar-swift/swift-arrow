@@ -22,7 +22,7 @@ struct ArrowReaderTests {
   @Test func boolFile() throws {
     let url = try loadArrowResource(name: "testdata_bool")
     let arrowReader = try ArrowReader(url: url)
-    let recordBatches = try arrowReader.read()
+    let (arrowSchema, recordBatches) = try arrowReader.read()
     for recordBatch in recordBatches {
       checkBoolRecordBatch(recordBatch: recordBatch)
     }
@@ -32,13 +32,13 @@ struct ArrowReaderTests {
 
     let url = try loadArrowResource(name: "testdata_double")
     let arrowReader = try ArrowReader(url: url)
-    let recordBatches = try arrowReader.read()
+    let (arrowSchema, recordBatches) = try arrowReader.read()
 
     for recordBatch in recordBatches {
 
       // Test the Float64 column (index 0)
       guard
-        let doubleColumn = recordBatch.columns[0]
+        let doubleColumn = recordBatch.arrays[0]
           as? ArrowArrayFixed<FixedWidthBufferIPC<Double>>
       else {
         Issue.record("Failed to cast column 0 to ArrowArrayDouble")
@@ -53,7 +53,7 @@ struct ArrowReaderTests {
       #expect(doubleColumn[4] == 5.5)
 
       // Test the String column (index 1)
-      guard let stringColumn = recordBatch.columns[1] as? ArrowArrayUtf8 else {
+      guard let stringColumn = recordBatch.arrays[1] as? ArrowArrayUtf8 else {
         Issue.record("Failed to cast column 1 to ArrowArrayString")
         return
       }
@@ -70,10 +70,10 @@ struct ArrowReaderTests {
   @Test func structFile() throws {
     let url = try loadArrowResource(name: "testdata_struct")
     let arrowReader = try ArrowReader(url: url)
-    let recordBatches = try arrowReader.read()
+    let (arrowSchema, recordBatches) = try arrowReader.read()
     for recordBatch in recordBatches {
       let structArray = try #require(
-        recordBatch.columns[0] as? ArrowStructArray)
+        recordBatch.arrays[0] as? ArrowStructArray)
       #expect(structArray.fields[0].name == "my string")
       #expect(structArray.fields[1].name == "my bool")
       #expect(structArray.length == 3)

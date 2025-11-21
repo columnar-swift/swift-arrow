@@ -63,9 +63,9 @@ struct ArrowWriterTests {
     try writer.finish()
 
     let arrowReader = try ArrowReader(url: outputUrl)
-    let batches = try arrowReader.read()
+    let (arrowSchema, recordBatches) = try arrowReader.read()
 
-    for recordBatch in batches {
+    for recordBatch in recordBatches {
       checkBoolRecordBatch(recordBatch: recordBatch)
     }
     //    try FileManager.default.copyItem(at: outputUrl, to: URL(fileURLWithPath: "/tmp/bool-test-swift.arrow"))

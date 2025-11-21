@@ -139,7 +139,7 @@ public struct ArrowReader {
     }
   }
 
-  func read() throws -> [RecordBatch] {
+  func read() throws -> (ArrowSchema, [RecordBatch]) {
 
     let footerData = try data.withParserSpan { input in
       let count = input.count
@@ -217,8 +217,7 @@ public struct ArrowReader {
       recordBatches.append(recordBatch)
     }
 
-    return recordBatches
-
+    return (arrowSchema, recordBatches)
   }
 
   func loadField(
@@ -228,15 +227,12 @@ public struct ArrowReader {
     nodeIndex: inout Int32,
     bufferIndex: inout Int32
   ) throws -> AnyArrowArrayProtocol {
-
     guard nodeIndex < rbMessage.nodesCount,
       let node = rbMessage.nodes(at: nodeIndex)
     else {
       throw ArrowError.invalid("Missing node at index \(nodeIndex)")
     }
     nodeIndex += 1
-    print("incremented node index to \(nodeIndex)")
-
     let buffer0 = try nextBuffer(
       message: rbMessage,
       index: &bufferIndex,
@@ -330,14 +326,12 @@ public struct ArrowReader {
           message: rbMessage, index: &bufferIndex, offset: offset, data: data)
         let offsetsBuffer = FixedWidthBufferIPC<Int32>(buffer: buffer1)
 
-        // This won't compile directly, so we need a helper
         return makeListArray(
           length: length,
           nullBuffer: nullBuffer,
           offsetsBuffer: offsetsBuffer,
           values: array
         )
-
       case .strct(let fields):
         var arrays: [(String, AnyArrowArrayProtocol)] = []
         for field in fields {
@@ -359,6 +353,19 @@ public struct ArrowReader {
         throw ArrowError.notImplemented
       }
     } else {
+      // MARK: Unclassifiable types.
+      if case .fixedSizeBinary(let byteWidth) = arrowType {
+        let valueBuffer = try nextBuffer(
+          message: rbMessage, index: &bufferIndex, offset: offset, data: data)
+        let valueBufferTyped = VariableLengthBufferIPC<Data>(
+          buffer: valueBuffer)
+        return ArrowArrayFixedSizeBinary(
+          length: length,
+          byteWidth: Int(byteWidth),
+          nullBuffer: nullBuffer,
+          valueBuffer: valueBufferTyped
+        )
+      }
       throw ArrowError.notImplemented
     }
   }

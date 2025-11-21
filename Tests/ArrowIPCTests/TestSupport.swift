@@ -33,14 +33,14 @@ func loadArrowResource(name: String) throws(ArrowError) -> URL {
 func checkBoolRecordBatch(recordBatch: RecordBatch) {
 
   #expect(recordBatch.length == 5)
-  #expect(recordBatch.columns.count == 2)
+  #expect(recordBatch.arrays.count == 2)
   #expect(recordBatch.schema.fields.count == 2)
   #expect(recordBatch.schema.fields[0].name == "one")
   #expect(recordBatch.schema.fields[0].type == .boolean)
   #expect(recordBatch.schema.fields[1].name == "two")
   #expect(recordBatch.schema.fields[1].type == .utf8)
 
-  guard let one = recordBatch.columns[0] as? ArrowArrayBoolean
+  guard let one = recordBatch.arrays[0] as? ArrowArrayBoolean
   else {
     Issue.record("Failed to cast column to ArrowBooleanArray")
     return
@@ -52,7 +52,7 @@ func checkBoolRecordBatch(recordBatch: RecordBatch) {
   #expect(one[4] == true)
 
   guard
-    let utf8Column = recordBatch.columns[1] as? ArrowArrayOfString
+    let utf8Column = recordBatch.arrays[1] as? ArrowArrayOfString
   else {
     Issue.record("Failed to cast column to ArrowUtf8Array")
     return
@@ -63,4 +63,22 @@ func checkBoolRecordBatch(recordBatch: RecordBatch) {
   #expect(utf8Column[2] == "two")
   #expect(utf8Column[3] == "three")
   #expect(utf8Column[4] == "four")
+}
+
+extension Data {
+  init?(hex: String) {
+    let len = hex.count / 2
+    var data = Data(capacity: len)
+    var index = hex.startIndex
+    for _ in 0..<len {
+      let nextIndex = hex.index(index, offsetBy: 2)
+      if let byte = UInt8(hex[index..<nextIndex], radix: 16) {
+        data.append(byte)
+      } else {
+        return nil
+      }
+      index = nextIndex
+    }
+    self = data
+  }
 }
