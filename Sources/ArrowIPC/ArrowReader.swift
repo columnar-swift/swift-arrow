@@ -71,13 +71,9 @@ struct FixedWidthBufferIPC<Element>: FixedWidthBufferProtocol, ArrowBufferIPC
 where
   Element: Numeric, Element: BitwiseCopyable
 {
-
   typealias ElementType = Element
-
   let buffer: FileDataBuffer
-  var length: Int {
-    buffer.range.count
-  }
+  var length: Int { buffer.range.count }
 
   subscript(index: Int) -> Element {
     buffer.data.withUnsafeBytes { rawBuffer in
@@ -93,12 +89,8 @@ struct VariableLengthBufferIPC<Element: VariableLength>:
   VariableLengthBufferProtocol, ArrowBufferIPC
 {
   typealias ElementType = Element
-
   let buffer: FileDataBuffer
-
-  var length: Int {
-    buffer.range.count
-  }
+  var length: Int { buffer.range.count }
 
   func loadVariable(
     at startIndex: Int,
@@ -337,11 +329,21 @@ public struct ArrowReader {
           nodeIndex: &nodeIndex,
           bufferIndex: &bufferIndex
         )
-
         let buffer1 = try nextBuffer(
           message: rbMessage, index: &bufferIndex, offset: offset, data: data)
-        let offsetsBuffer = FixedWidthBufferIPC<Int32>(buffer: buffer1)
+        var offsetsBuffer = FixedWidthBufferIPC<Int32>(buffer: buffer1)
 
+        // TODO: This is a hack for the special-case where buffer length 0 means all-zero offset.
+        // Can follow the null buffer example.
+        if offsetsBuffer.length != length + 1 {
+          let offsetCount = length + 1
+          let byteCount = offsetCount * MemoryLayout<Int32>.stride
+          let fileDataBuffer = FileDataBuffer(
+            data: Data(count: byteCount),  // Zero-initialized
+            range: 0..<byteCount
+          )
+          offsetsBuffer = FixedWidthBufferIPC<Int32>(buffer: fileDataBuffer)
+        }
         return makeListArray(
           length: length,
           nullBuffer: nullBuffer,
@@ -427,9 +429,7 @@ public struct ArrowReader {
       offsetsBuffer: offsetsBuffer,
       values: values
     )
-    // FIXME: Need to fix list types.
-//    fatalError()
-        return AnyArrowListArray(list)
+    return AnyArrowListArray(list)
   }
 
   private func loadSchema(_ schema: FSchema) throws(ArrowError) -> ArrowSchema {

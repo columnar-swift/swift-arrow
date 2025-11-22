@@ -86,28 +86,29 @@ struct ArrowGold: Codable {
 
 /// Arrow gold files data values have variable types.
 enum DataValue: Codable {
-    case string(String)
-    case int(Int)
-    case double(Double)
-    case null
-    
-    init(from decoder: Decoder) throws {
-        let container = try decoder.singleValueContainer()
-        
-        if container.decodeNil() {
-            self = .null
-        } else if let intValue = try? container.decode(Int.self) {
-            self = .int(intValue)
-        } else if let doubleValue = try? container.decode(Double.self) {
-            self = .double(doubleValue)
-        } else if let stringValue = try? container.decode(String.self) {
-            self = .string(stringValue)
-        } else {
-            throw DecodingError.typeMismatch(
-                DataValue.self,
-                DecodingError.Context(codingPath: decoder.codingPath,
-                                     debugDescription: "Cannot decode DataValue")
-            )
-        }
+  case string(String)
+  case int(Int)
+  case double(Double)
+  case null
+
+  init(from decoder: Decoder) throws {
+    let container = try decoder.singleValueContainer()
+
+    if container.decodeNil() {
+      self = .null
+    } else if let intValue = try? container.decode(Int.self) {
+      self = .int(intValue)
+    } else if let doubleValue = try? container.decode(Double.self) {
+      self = .double(doubleValue)
+    } else if let stringValue = try? container.decode(String.self) {
+      self = .string(stringValue)
+    } else {
+      throw DecodingError.typeMismatch(
+        DataValue.self,
+        DecodingError.Context(
+          codingPath: decoder.codingPath,
+          debugDescription: "Cannot decode DataValue")
+      )
     }
+  }
 }
