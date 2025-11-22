@@ -20,7 +20,7 @@ import Testing
 struct ArrowReaderTests {
 
   @Test func boolFile() throws {
-    let url = try loadArrowResource(name: "testdata_bool")
+    let url = try loadTestResource(name: "testdata_bool")
     let arrowReader = try ArrowReader(url: url)
     let (arrowSchema, recordBatches) = try arrowReader.read()
     for recordBatch in recordBatches {
@@ -30,7 +30,7 @@ struct ArrowReaderTests {
 
   @Test func doubleFile() throws {
 
-    let url = try loadArrowResource(name: "testdata_double")
+    let url = try loadTestResource(name: "testdata_double")
     let arrowReader = try ArrowReader(url: url)
     let (arrowSchema, recordBatches) = try arrowReader.read()
 
@@ -68,7 +68,7 @@ struct ArrowReaderTests {
   }
 
   @Test func structFile() throws {
-    let url = try loadArrowResource(name: "testdata_struct")
+    let url = try loadTestResource(name: "testdata_struct")
     let arrowReader = try ArrowReader(url: url)
     let (arrowSchema, recordBatches) = try arrowReader.read()
     for recordBatch in recordBatches {

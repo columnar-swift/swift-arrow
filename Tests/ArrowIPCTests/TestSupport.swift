@@ -18,7 +18,7 @@ import Testing
 
 @testable import ArrowIPC
 
-func printTestJSON(_ value: ArrowTestingFormat) throws {
+func printTestJSON(_ value: ArrowGold) throws {
   let encoder = JSONEncoder()
   encoder.outputFormatting = .prettyPrinted
   let result = try encoder.encode(value)
@@ -28,15 +28,17 @@ func printTestJSON(_ value: ArrowTestingFormat) throws {
   print(formattedString)
 }
 
-func loadArrowResource(name: String) throws(ArrowError) -> URL {
+func loadTestResource(
+  name: String, withExtension ext: String = "arrow", subdirectory: String = ""
+) throws(ArrowError) -> URL {
   if let resource = Bundle.module.url(
     forResource: name,
-    withExtension: "arrow",
-    subdirectory: "Resources"
+    withExtension: ext,
+    subdirectory: "Resources/\(subdirectory)"
   ) {
     return resource
   } else {
-    throw .runtimeError("Couldn't find \(name).arrow in the test resources.")
+    throw .runtimeError("Couldn't find \(name).\(ext) in the test resources.")
   }
 }
 
