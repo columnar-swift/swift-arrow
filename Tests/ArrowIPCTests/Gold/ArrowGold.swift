@@ -14,8 +14,8 @@
 
 import Foundation
 
-/// The JSON structure used to validate Arrow test files.
-struct ArrowTestingFormat: Codable {
+/// The JSON file structure used to validate gold-standard  Arrow test files.
+struct ArrowGold: Codable {
   let schema: Schema
   let batches: [Batch]
   let dictionaries: [Dictionary]?
@@ -46,6 +46,7 @@ struct ArrowTestingFormat: Codable {
   struct FieldType: Codable {
     let name: String
     let byteWidth: Int?
+    let bitWidth: Int?
     let isSigned: Bool?
     let precision: String?
     let scale: Int?
@@ -63,7 +64,7 @@ struct ArrowTestingFormat: Codable {
     let count: Int
     let validity: [Int]?
     let offset: [Int]?
-    let data: [String]?
+    let data: [DataValue]?
     let children: [Column]?
 
     enum CodingKeys: String, CodingKey {
@@ -81,4 +82,32 @@ struct ArrowTestingFormat: Codable {
     case string(String)
     case bool(Bool)
   }
+}
+
+/// Arrow gold files data values have variable types.
+enum DataValue: Codable {
+    case string(String)
+    case int(Int)
+    case double(Double)
+    case null
+    
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        
+        if container.decodeNil() {
+            self = .null
+        } else if let intValue = try? container.decode(Int.self) {
+            self = .int(intValue)
+        } else if let doubleValue = try? container.decode(Double.self) {
+            self = .double(doubleValue)
+        } else if let stringValue = try? container.decode(String.self) {
+            self = .string(stringValue)
+        } else {
+            throw DecodingError.typeMismatch(
+                DataValue.self,
+                DecodingError.Context(codingPath: decoder.codingPath,
+                                     debugDescription: "Cannot decode DataValue")
+            )
+        }
+    }
 }

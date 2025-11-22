@@ -285,6 +285,22 @@ public struct ArrowReader {
         return makeFixedArray(
           length: length, elementType: Double.self,
           nullBuffer: nullBuffer, buffer: buffer1)
+      case .int8:
+        return makeFixedArray(
+          length: length, elementType: Int8.self,
+          nullBuffer: nullBuffer, buffer: buffer1)
+      case .int16:
+        return makeFixedArray(
+          length: length, elementType: Int16.self,
+          nullBuffer: nullBuffer, buffer: buffer1)
+      case .int32:
+        return makeFixedArray(
+          length: length, elementType: Int32.self,
+          nullBuffer: nullBuffer, buffer: buffer1)
+      case .int64:
+        return makeFixedArray(
+          length: length, elementType: Int64.self,
+          nullBuffer: nullBuffer, buffer: buffer1)
       default:
         throw ArrowError.notImplemented
       }
@@ -412,8 +428,8 @@ public struct ArrowReader {
       values: values
     )
     // FIXME: Need to fix list types.
-    fatalError()
-    //    return AnyArrowListArray(list)
+//    fatalError()
+        return AnyArrowListArray(list)
   }
 
   private func loadSchema(_ schema: FSchema) throws(ArrowError) -> ArrowSchema {
