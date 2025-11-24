@@ -143,6 +143,13 @@ extension ArrowType {
         isNullable: childField.nullable
       )
       return .list(arrowField)
+    case .fixedsizelist:
+      guard let fType = field.type(type: FFixedSizeList.self) else {
+        throw .invalid("Could not get byteWidth from fixed binary field.")
+      }
+      let listSize = fType.listSize
+
+      fatalError("Not implemented")
     default:
       throw .invalid("Unhandled field type: \(field.typeType)")
     }

@@ -54,6 +54,7 @@ struct ArrowGold: Codable {
     let scale: Int?
     let unit: String?
     let timezone: String?
+    let listSize: Int?
   }
 
   struct Batch: Codable {

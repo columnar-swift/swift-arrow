@@ -294,11 +294,9 @@ public typealias ArrayBuilderTime64 = ArrayBuilderFixedWidth<Time64>
 /// A builder for Arrow arrays holding Timestamp values.
 public typealias ArrayBuilderTimestamp = ArrayBuilderFixedWidth<Timestamp>
 
-class ArrayBuilderList<T: AnyArrayBuilder>: AnyArrayBuilder {
+class ArrayBuilderList<T: AnyArrayBuilder> {
 
-  func append(_ value: T.ArrayType) {}
-
-  typealias ArrayType = ArrowListArray<T.ArrayType, FixedWidthBuffer<Int32>>
+  typealias ArrayType = ArrowListArray<FixedWidthBuffer<Int32>>
 
   var length: Int
   let nullBuilder: NullBufferBuilder
@@ -318,7 +316,6 @@ class ArrayBuilderList<T: AnyArrayBuilder>: AnyArrayBuilder {
     length += 1
     nullBuilder.appendValid(true)
 
-    //    let startLength = valueBuilder.length
     builder(valueBuilder)  // User adds items to child builder
     let endLength = valueBuilder.length
 
@@ -342,7 +339,7 @@ class ArrayBuilderList<T: AnyArrayBuilder>: AnyArrayBuilder {
       length: length,
       nullBuffer: nullBuffer,
       offsetsBuffer: offsetsBuffer,
-      values: valuesArray
+      values: valuesArray  // Now accepts AnyArrowArrayProtocol
     )
   }
 }

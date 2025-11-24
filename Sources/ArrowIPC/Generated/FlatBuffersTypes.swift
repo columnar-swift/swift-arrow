@@ -33,5 +33,6 @@ typealias FStruct = org_apache_arrow_flatbuf_Struct_
 typealias FUtf8 = org_apache_arrow_flatbuf_Utf8
 typealias FBinary = org_apache_arrow_flatbuf_Binary
 typealias FFixedSizeBinary = org_apache_arrow_flatbuf_FixedSizeBinary
+typealias FFixedSizeList = org_apache_arrow_flatbuf_FixedSizeList
 
 typealias FMessageHeader = org_apache_arrow_flatbuf_MessageHeader

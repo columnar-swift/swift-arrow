@@ -63,6 +63,7 @@ struct ArrowTestingIPC {
     "generated_binary_zerolength",
     "generated_binary_no_batches",
     "generated_custom_metadata",
+    //    "generated_nested",
   ]
 
   @Test(arguments: testCases)
@@ -316,7 +317,9 @@ struct ArrowTestingIPC {
       }
     }
 
-    guard let listArray = actual as? AnyArrowListArray else {
+    // TODO: Need a simpler type signature at call site.
+    guard let listArray = actual as? ArrowListArray<FixedWidthBufferIPC<Int32>>
+    else {
       Issue.record("Unexpected array type")
       return
     }

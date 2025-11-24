@@ -433,19 +433,22 @@ public struct ArrowReader {
     )
   }
 
-  func makeListArray<Element>(
+  func makeListArray<OffsetsBuffer>(
     length: Int,
     nullBuffer: NullBuffer,
-    offsetsBuffer: FixedWidthBufferIPC<Int32>,
-    values: Element
-  ) -> AnyArrowListArray where Element: AnyArrowArrayProtocol {
-    let list = ArrowListArray(
+    offsetsBuffer: OffsetsBuffer,
+    values: AnyArrowArrayProtocol
+  ) -> ArrowListArray<OffsetsBuffer>
+  where
+    OffsetsBuffer: FixedWidthBufferProtocol,
+    OffsetsBuffer.ElementType: FixedWidthInteger & SignedInteger
+  {
+    ArrowListArray(
       length: length,
       nullBuffer: nullBuffer,
       offsetsBuffer: offsetsBuffer,
       values: values
     )
-    return AnyArrowListArray(list)
   }
 
   private func loadSchema(schema: FSchema) throws(ArrowError) -> ArrowSchema {
