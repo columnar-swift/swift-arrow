@@ -49,6 +49,16 @@ public protocol ArrowArrayOfData {
 extension ArrowArrayFixedSizeBinary: ArrowArrayOfData where ItemType == Data {}
 extension ArrowArrayVariable: ArrowArrayOfData where ItemType == Data {}
 
+public protocol ArrowArrayOfInt8 {
+  subscript(index: Int) -> Int8? { get }
+}
+extension ArrowArrayFixed: ArrowArrayOfInt8 where ItemType == Int8 {}
+
+public protocol ArrowArrayOfInt32 {
+  subscript(index: Int) -> Int32? { get }
+}
+extension ArrowArrayFixed: ArrowArrayOfInt32 where ItemType == Int32 {}
+
 /// An Arrow array of booleans using the three-valued logical model (true / false / null).
 public struct ArrowArrayBoolean: ArrowArrayProtocol {
   public typealias ItemType = Bool
@@ -382,12 +392,12 @@ public struct AnyArrowListArray: ArrowArrayProtocol {
   public let length: Int
   public var nullCount: Int { _base.nullCount }
 
-  init<Element, OffsetsBuffer>(
+  public init<Element, OffsetsBuffer>(
     _ list: ArrowListArray<Element, OffsetsBuffer>
   )
   where
     OffsetsBuffer: FixedWidthBufferProtocol<Int32>,
-    Element: ArrowArrayProtocol
+    Element: AnyArrowArrayProtocol
   {
     self._base = list
     self.offset = list.offset

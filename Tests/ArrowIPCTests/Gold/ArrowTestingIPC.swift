@@ -20,33 +20,30 @@ import Testing
 
 struct ArrowTestingIPC {
 
-  @Test func generatedBinary() throws {
+  static let testCases: [String] = [
+    "generated_binary",
+    //      "generated_binary_view",
+    "generated_binary_zerolength",
+    "generated_binary_no_batches",
+    "generated_custom_metadata",
+  ]
 
-    guard
-      let resourceURL = Bundle.module.url(
-        forResource: "Resources/integration/cpp-21.0.0/generated_binary.json",
-        withExtension: "lz4"
-      )
-    else {
-      throw ArrowError.invalid("Unable to locate generated_binary.json")
-    }
+  @Test(arguments: testCases)
+  func gold(name: String) throws {
 
+    let resourceURL = try loadTestResource(
+      name: name,
+      withExtension: "json.lz4",
+      subdirectory: "integration/cpp-21.0.0"
+    )
     let lz4Data = try Data(contentsOf: resourceURL)
     let lz4 = try LZ4(parsing: lz4Data)
-    let testCase = try JSONDecoder().decode(
-      ArrowTestingFormat.self, from: lz4.data)
-
-    //    try printTestJSON(testCase)
-
-    guard
-      let testFile = Bundle.module.url(
-        forResource: "Resources/integration/cpp-21.0.0/generated_binary",
-        withExtension: "arrow_file"
-      )
-    else {
-      throw ArrowError.invalid("Unable to locate arrow file.")
-    }
-
+    let testCase = try JSONDecoder().decode(ArrowGold.self, from: lz4.data)
+    let testFile = try loadTestResource(
+      name: name,
+      withExtension: "arrow_file",
+      subdirectory: "integration/cpp-21.0.0"
+    )
     let arrowReader = try ArrowReader(url: testFile)
     let (arrowSchema, recordBatches) = try arrowReader.read()
 
@@ -76,14 +73,23 @@ struct ArrowTestingIPC {
           }
           try testFixedWidthBinary(actual: actual, expected: expectedColumn)
         case .binary:
-          try testVariable(
+          try testVariableLength(
             actual: arrowArray, expected: expectedColumn, type: arrowField.type)
         case .utf8:
-          try testVariable(
+          try testVariableLength(
             actual: arrowArray, expected: expectedColumn, type: arrowField.type)
+        case .int8:
+          try testFixedWidth(
+            actual: arrowArray, expected: expectedColumn, as: Int8.self)
+        case .int32:
+          try testFixedWidth(
+            actual: arrowArray, expected: expectedColumn, as: Int32.self)
+        case .list(_):
+          try validateListArray(actual: arrowArray, expected: expectedColumn)
+          break
         default:
-          print(arrowField.type)
-          throw ArrowError.notImplemented
+          throw ArrowError.invalid(
+            "Unsupported arrow field type: \(arrowField.type)")
         }
       }
     }
@@ -91,14 +97,17 @@ struct ArrowTestingIPC {
 
   func testFixedWidthBinary(
     actual: ArrowArrayOfData,
-    expected: ArrowTestingFormat.Column,
+    expected: ArrowGold.Column,
   ) throws {
     guard let validity = expected.validity, let dataValues = expected.data
     else {
       throw ArrowError.invalid("Test column is incomplete.")
     }
+
     for (i, isNull) in validity.enumerated() {
-      let hex = dataValues[i]
+      guard case .string(let hex) = dataValues[i] else {
+        throw ArrowError.invalid("Data values are not all strings.")
+      }
       guard let data = Data(hex: hex) else {
         Issue.record("Failed to decode data from hex: \(hex)")
         return
@@ -111,9 +120,117 @@ struct ArrowTestingIPC {
     }
   }
 
-  func testVariable(
+  func testFixedWidth<T: FixedWidthInteger>(
     actual: AnyArrowArrayProtocol,
-    expected: ArrowTestingFormat.Column,
+    expected: ArrowGold.Column,
+    as type: T.Type
+  ) throws where T: BinaryInteger {
+    guard let expectedValidity = expected.validity,
+      let expectedValues = expected.data
+    else {
+      throw ArrowError.invalid("Test column is incomplete.")
+    }
+
+    guard let array = actual as? any ArrowArrayProtocol,
+      array.length == expectedValidity.count
+    else {
+      Issue.record("Array type mismatch")
+      return
+    }
+
+    for (i, isNull) in expectedValidity.enumerated() {
+      guard case .int(let val) = expectedValues[i] else {
+        throw ArrowError.invalid("Expected integer value")
+      }
+
+      let expected = try T(throwingOnOverflow: val)
+
+      if isNull == 0 {
+        #expect(array[i] == nil)
+      } else {
+        #expect(array[i] as? T == expected)
+      }
+    }
+  }
+
+  func validateListArray(
+    actual: AnyArrowArrayProtocol,
+    expected: ArrowGold.Column
+  ) throws {
+    guard let expectedValidity = expected.validity,
+      let expectedOffsets = expected.offset
+    else {
+      throw ArrowError.invalid("Test column is incomplete.")
+    }
+
+    // Validate the offsets buffer
+    actual.buffers[1].withUnsafeBytes { ptr in
+      let offsets = ptr.bindMemory(to: Int32.self)
+      #expect(offsets.count == expectedOffsets.count)
+      for (i, expectedOffset) in expectedOffsets.enumerated() {
+        #expect(offsets[i] == expectedOffset)
+      }
+    }
+
+    guard let listArray = actual as? AnyArrowListArray else {
+      Issue.record("Unexpected array type")
+      return
+    }
+
+    guard let child = expected.children?.first else {
+      throw ArrowError.invalid("List array missing child column")
+    }
+
+    // Validate each list entry
+    for (i, isNull) in expectedValidity.enumerated() {
+      if isNull == 0 {
+        #expect(listArray[i] == nil)
+      } else {
+        guard let actualChildSlice = listArray[i] else {
+          Issue.record("Expected non-null list at index \(i)")
+          continue
+        }
+
+        // Get expected range from offsets
+        let childStartOffset = Int(expectedOffsets[i])
+        let childEndOffset = Int(expectedOffsets[i + 1])
+        let expectedLength = childEndOffset - childStartOffset
+
+        #expect(actualChildSlice.length == expectedLength)
+
+        // Validate each element in this list
+        for j in 0..<actualChildSlice.length {
+          let expectedDataIndex = childStartOffset + j
+
+          // Check validity if present
+          if let childValidity = child.validity {
+            if childValidity[expectedDataIndex] == 0 {
+              // Expected null
+              // Need to check actualChildSlice[j] is null
+              // This depends on your array type - might need type-specific handling
+              continue
+            }
+          }
+
+          // Validate the actual value based on child type
+          // This is where you'd dispatch based on child column type
+          guard let childData = child.data else {
+            throw ArrowError.invalid("Child column missing DATA")
+          }
+
+          // TODO:  Type-specific validation
+          guard case .int(let expectedValue) = childData[expectedDataIndex]
+          else {
+            throw ArrowError.invalid("Unexpected child data type")
+          }
+        }
+      }
+    }
+  }
+
+  func testVariableLength(
+    actual: AnyArrowArrayProtocol,
+    expected: ArrowGold.Column,
     type: ArrowType
   ) throws {
     guard let expectedValidity = expected.validity,
@@ -136,7 +253,9 @@ struct ArrowTestingIPC {
         return
       }
       for i in 0..<expected.count {
-        let hex = expectedValues[i]
+        guard case .string(let hex) = expectedValues[i] else {
+          throw ArrowError.invalid("Data values are not all strings.")
+        }
         guard let expectedData = Data(hex: hex) else {
           Issue.record("Failed to decode data from hex: \(hex)")
           return
@@ -153,7 +272,9 @@ struct ArrowTestingIPC {
         return
       }
       for i in 0..<expected.count {
-        let utf8 = expectedValues[i]
+        guard case .string(let utf8) = expectedValues[i] else {
+          throw ArrowError.invalid("Data values are not all strings.")
+        }
         if expectedValidity[i] == 0 {
           #expect(binaryArray[i] == nil)
         } else {
