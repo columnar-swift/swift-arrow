@@ -103,6 +103,7 @@ enum DataValue: Codable {
   case string(String)
   case int(Int)
   case double(Double)
+  case bool(Bool)
   case null
 
   init(from decoder: Decoder) throws {
@@ -116,6 +117,8 @@ enum DataValue: Codable {
       self = .double(doubleValue)
     } else if let stringValue = try? container.decode(String.self) {
       self = .string(stringValue)
+    } else if let boolValue = try? container.decode(Bool.self) {
+      self = .bool(boolValue)
     } else {
       throw DecodingError.typeMismatch(
         DataValue.self,

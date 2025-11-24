@@ -281,20 +281,36 @@ public struct ArrowReader {
         return makeFixedArray(
           length: length, elementType: Int8.self,
           nullBuffer: nullBuffer, buffer: buffer1)
+      case .uint8:
+        return makeFixedArray(
+          length: length, elementType: UInt8.self,
+          nullBuffer: nullBuffer, buffer: buffer1)
       case .int16:
         return makeFixedArray(
           length: length, elementType: Int16.self,
+          nullBuffer: nullBuffer, buffer: buffer1)
+      case .uint16:
+        return makeFixedArray(
+          length: length, elementType: UInt16.self,
           nullBuffer: nullBuffer, buffer: buffer1)
       case .int32:
         return makeFixedArray(
           length: length, elementType: Int32.self,
           nullBuffer: nullBuffer, buffer: buffer1)
+      case .uint32:
+        return makeFixedArray(
+          length: length, elementType: UInt32.self,
+          nullBuffer: nullBuffer, buffer: buffer1)
       case .int64:
         return makeFixedArray(
           length: length, elementType: Int64.self,
           nullBuffer: nullBuffer, buffer: buffer1)
+      case .uint64:
+        return makeFixedArray(
+          length: length, elementType: UInt64.self,
+          nullBuffer: nullBuffer, buffer: buffer1)
       default:
-        throw ArrowError.notImplemented
+        throw ArrowError.invalid("TODO: Unimplemented arrow type: \(arrowType)")
       }
     } else if arrowType.isVariable {
       let buffer1 = try nextBuffer(

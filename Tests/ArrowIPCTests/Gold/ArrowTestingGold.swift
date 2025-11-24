@@ -20,9 +20,46 @@ import Testing
 
 struct ArrowTestingIPC {
 
-  static let testCases: [String] = [
+  static let allTests = [
     "generated_binary",
-    //      "generated_binary_view",
+    "generated_binary_no_batches",
+    "generated_binary_view",
+    "generated_binary_zerolength",
+    "generated_custom_metadata",
+    "generated_datetime",
+    "generated_decimal",
+    "generated_decimal256",
+    "generated_decimal32",
+    "generated_decimal64",
+    "generated_dictionary",
+    "generated_dictionary_unsigned",
+    "generated_duplicate_fieldnames",
+    "generated_duration",
+    "generated_extension",
+    "generated_interval",
+    "generated_interval_mdn",
+    "generated_large_binary",
+    "generated_list_view",
+    "generated_map",
+    "generated_map_non_canonical",
+    "generated_nested",
+    "generated_nested_dictionary",
+    "generated_nested_large_offsets",
+    "generated_null",
+    "generated_null_trivial",
+    "generated_primitive",
+    "generated_primitive_no_batches",
+    "generated_primitive_zerolength",
+    "generated_recursive_nested",
+    "generated_run_end_encoded",
+    "generated_union",
+  ]
+
+  static let testCases: [String] = [
+    "generated_primitive",
+    "generated_primitive_no_batches",
+    "generated_primitive_zerolength",
+    "generated_binary",
     "generated_binary_zerolength",
     "generated_binary_no_batches",
     "generated_custom_metadata",
@@ -30,6 +67,11 @@ struct ArrowTestingIPC {
 
   @Test(arguments: testCases)
   func gold(name: String) throws {
+
+    let todos = Set(Self.allTests).subtracting(Set(Self.testCases))
+    for todo in todos.sorted() {
+      print(todo)
+    }
 
     let resourceURL = try loadTestResource(
       name: name,
@@ -51,9 +93,6 @@ struct ArrowTestingIPC {
 
     let expectedMetadata = testCase.schema.metadata?.asDictionary ?? [:]
     #expect(expectedMetadata == arrowSchema.metadata)
-    if expectedMetadata.keys.count > 0 {
-      print(expectedMetadata)
-    }
 
     for (testBatch, recordBatch) in zip(testCase.batches, recordBatches) {
       for (
@@ -69,6 +108,8 @@ struct ArrowTestingIPC {
         #expect(arrowField.type.matches(expectedField: expectedField))
         #expect(arrowArray.length == expectedColumn.count)
         #expect(arrowField.name == expectedColumn.name)
+        let expectedMetadata = expectedField.metadata?.asDictionary ?? [:]
+        #expect(arrowField.metadata == expectedMetadata)
 
         switch arrowField.type {
         case .fixedSizeBinary(let byteWidth):
@@ -94,15 +135,41 @@ struct ArrowTestingIPC {
         case .int8:
           try testFixedWidth(
             actual: arrowArray, expected: expectedColumn, as: Int8.self)
+        case .uint8:
+          try testFixedWidth(
+            actual: arrowArray, expected: expectedColumn, as: UInt8.self)
+        case .int16:
+          try testFixedWidth(
+            actual: arrowArray, expected: expectedColumn, as: Int16.self)
+        case .uint16:
+          try testFixedWidth(
+            actual: arrowArray, expected: expectedColumn, as: UInt16.self)
         case .int32:
           try testFixedWidth(
             actual: arrowArray, expected: expectedColumn, as: Int32.self)
+        case .uint32:
+          try testFixedWidth(
+            actual: arrowArray, expected: expectedColumn, as: UInt32.self)
+        case .int64:
+          try testFixedWidth(
+            actual: arrowArray, expected: expectedColumn, as: Int64.self)
+        case .uint64:
+          try testFixedWidth(
+            actual: arrowArray, expected: expectedColumn, as: UInt64.self)
+        case .float32:
+          try testFixedWidth(
+            actual: arrowArray, expected: expectedColumn, as: Float.self)
+        case .float64:
+          try testFixedWidth(
+            actual: arrowArray, expected: expectedColumn, as: Double.self)
         case .list(_):
           try validateListArray(actual: arrowArray, expected: expectedColumn)
           break
+        case .boolean:
+          try testBoolean(actual: arrowArray, expected: expectedColumn)
         default:
           throw ArrowError.invalid(
-            "Unsupported arrow field type: \(arrowField.type)")
+            "TODO: Implement test for arrow field type: \(arrowField.type)")
         }
       }
     }
@@ -116,7 +183,6 @@ struct ArrowTestingIPC {
     else {
       throw ArrowError.invalid("Test column is incomplete.")
     }
-
     for (i, isNull) in validity.enumerated() {
       guard case .string(let hex) = dataValues[i] else {
         throw ArrowError.invalid("Data values are not all strings.")
@@ -133,31 +199,96 @@ struct ArrowTestingIPC {
     }
   }
 
-  func testFixedWidth<T: FixedWidthInteger>(
+  func testBoolean(
     actual: AnyArrowArrayProtocol,
-    expected: ArrowGold.Column,
-    as type: T.Type
-  ) throws where T: BinaryInteger {
+    expected: ArrowGold.Column
+  ) throws {
     guard let expectedValidity = expected.validity,
       let expectedValues = expected.data
     else {
       throw ArrowError.invalid("Test column is incomplete.")
     }
+    guard let array = actual as? ArrowArrayBoolean,
+      array.length == expectedValidity.count
+    else {
+      Issue.record("Array type mismatch")
+      return
+    }
+    for (i, isNull) in expectedValidity.enumerated() {
+      guard case .bool(let expectedValue) = expectedValues[i] else {
+        throw ArrowError.invalid("Expected boolean value")
+      }
+      if isNull == 0 {
+        #expect(array[i] == nil)
+      } else {
+        #expect(array[i] == expectedValue)
+      }
+    }
+  }
 
+  func testFixedWidth<T>(
+    actual: AnyArrowArrayProtocol,
+    expected: ArrowGold.Column,
+    as type: T.Type
+  ) throws where T: BinaryInteger & LosslessStringConvertible {
+    guard let expectedValidity = expected.validity,
+      let expectedValues = expected.data
+    else {
+      throw ArrowError.invalid("Test column is incomplete.")
+    }
     guard let array = actual as? any ArrowArrayProtocol,
       array.length == expectedValidity.count
     else {
       Issue.record("Array type mismatch")
       return
     }
-
     for (i, isNull) in expectedValidity.enumerated() {
-      guard case .int(let val) = expectedValues[i] else {
-        throw ArrowError.invalid("Expected integer value")
+      let expected: T
+      if case .int(let intVal) = expectedValues[i] {
+        expected = try T(throwingOnOverflow: intVal)
+      } else if case .string(let strVal) = expectedValues[i],
+        let parsed = T(strVal)
+      {
+        expected = parsed
+      } else {
+        throw ArrowError.invalid("Expected integer value or numeric string")
       }
 
-      let expected = try T(throwingOnOverflow: val)
+      if isNull == 0 {
+        #expect(array[i] == nil)
+      } else {
+        #expect(array[i] as? T == expected)
+      }
+    }
+  }
 
+  func testFixedWidth<T>(
+    actual: AnyArrowArrayProtocol,
+    expected: ArrowGold.Column,
+    as type: T.Type
+  ) throws where T: BinaryFloatingPoint & LosslessStringConvertible {
+    guard let expectedValidity = expected.validity,
+      let expectedValues = expected.data
+    else {
+      throw ArrowError.invalid("Test column is incomplete.")
+    }
+    guard let array = actual as? any ArrowArrayProtocol,
+      array.length == expectedValidity.count
+    else {
+      Issue.record("Array type mismatch")
+      return
+    }
+    for (i, isNull) in expectedValidity.enumerated() {
+      let expected: T
+      if case .double(let doubleVal) = expectedValues[i] {
+        expected = T(doubleVal)
+      } else if case .string(let strVal) = expectedValues[i],
+        let parsed = T(strVal)
+      {
+        expected = parsed
+      } else {
+        throw ArrowError.invalid("Expected float value or numeric string")
+      }
       if isNull == 0 {
         #expect(array[i] == nil)
       } else {
