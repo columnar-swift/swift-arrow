@@ -49,11 +49,24 @@ struct ArrowTestingIPC {
 
     #expect(testCase.batches.count == recordBatches.count)
 
+    let expectedMetadata = testCase.schema.metadata?.asDictionary ?? [:]
+    #expect(expectedMetadata == arrowSchema.metadata)
+    if expectedMetadata.keys.count > 0 {
+      print(expectedMetadata)
+    }
+
     for (testBatch, recordBatch) in zip(testCase.batches, recordBatches) {
-      for ((expectedField, expectedColumn), (arrowField, arrowArray)) in zip(
-        zip(testCase.schema.fields, testBatch.columns),
-        zip(arrowSchema.fields, recordBatch.arrays)
+      for (
+        (arrowField, arrowArray),
+        (expectedField, expectedColumn)
+      ) in zip(
+        zip(arrowSchema.fields, recordBatch.arrays),
+        zip(testCase.schema.fields, testBatch.columns)
       ) {
+
+        #expect(arrowField.name == expectedField.name)
+        #expect(arrowField.isNullable == expectedField.nullable)
+        #expect(arrowField.type.matches(expectedField: expectedField))
         #expect(arrowArray.length == expectedColumn.count)
         #expect(arrowField.name == expectedColumn.name)
 

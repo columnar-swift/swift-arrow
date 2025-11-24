@@ -33,6 +33,7 @@ struct ArrowGold: Codable {
 
   struct Schema: Codable {
     let fields: [Field]
+    let metadata: [KeyValue]?
   }
 
   struct Field: Codable {
@@ -41,6 +42,7 @@ struct ArrowGold: Codable {
     let nullable: Bool
     let children: [Field]?
     let dictionary: DictionaryInfo?
+    let metadata: [KeyValue]?
   }
 
   struct FieldType: Codable {
@@ -81,6 +83,18 @@ struct ArrowGold: Codable {
     case int(Int)
     case string(String)
     case bool(Bool)
+  }
+}
+
+/// A metadata key-value entry.
+struct KeyValue: Codable {
+  let key: String
+  let value: String
+}
+
+extension [KeyValue] {
+  var asDictionary: [String: String] {
+    Dictionary(uniqueKeysWithValues: self.map { ($0.key, $0.value) })
   }
 }
 

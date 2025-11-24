@@ -152,7 +152,7 @@ public struct ArrowReader {
     guard let schema = footer.schema else {
       throw ArrowError.invalid("Missing schema in footer")
     }
-    let arrowSchema = try loadSchema(schema)
+    let arrowSchema = try loadSchema(schema: schema)
     var recordBatches: [RecordBatch] = []
 
     // MARK: Record batch parsing
@@ -432,8 +432,15 @@ public struct ArrowReader {
     return AnyArrowListArray(list)
   }
 
-  private func loadSchema(_ schema: FSchema) throws(ArrowError) -> ArrowSchema {
-    let builder = ArrowSchema.Builder()
+  private func loadSchema(schema: FSchema) throws(ArrowError) -> ArrowSchema {
+    let metadata = (0..<schema.customMetadataCount)
+      .reduce(into: [String: String]()) { dict, index in
+        guard let customMetadata = schema.customMetadata(at: index),
+          let key = customMetadata.key
+        else { return }
+        dict[key] = customMetadata.value
+      }
+    var fields: [ArrowField] = []
     for index in 0..<schema.fieldsCount {
       guard let field = schema.fields(at: index) else {
         throw .invalid("Field not found at index: \(index)")
@@ -442,14 +449,22 @@ public struct ArrowReader {
       guard let fieldName = field.name else {
         throw .invalid("Field name not found")
       }
+      let fieldMetadata = (0..<field.customMetadataCount)
+        .reduce(into: [String: String]()) { dict, index in
+          guard let customMetadata = field.customMetadata(at: index),
+            let key = customMetadata.key
+          else { return }
+          dict[key] = customMetadata.value
+        }
       let arrowField = ArrowField(
         name: fieldName,
         dataType: fieldType,
-        isNullable: field.nullable
+        isNullable: field.nullable,
+        metadata: fieldMetadata
       )
-      builder.addField(arrowField)
+      fields.append(arrowField)
     }
-    return builder.finish()
+    return ArrowSchema(fields, metadata: metadata)
   }
 
 }
