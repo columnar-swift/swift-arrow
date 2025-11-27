@@ -293,21 +293,17 @@ struct ArrowTestingIPC {
       Issue.record("Array type mismatch")
       return
     }
-    for (i, isNull) in expectedValidity.enumerated() {
-      let expected: T
-      if case .double(let doubleVal) = expectedValues[i] {
-        expected = T(doubleVal)
-      } else if case .string(let strVal) = expectedValues[i],
-        let parsed = T(strVal)
-      {
-        expected = parsed
-      } else {
+    for (i, isValid) in expectedValidity.enumerated() {
+      guard case .string(let strVal) = expectedValues[i],
+        let expected = T(strVal)
+      else {
         throw ArrowError.invalid("Expected float value or numeric string")
       }
-      if isNull == 0 {
-        #expect(array[i] == nil)
-      } else {
+      if isValid == 1 {
         #expect(array[i] as? T == expected)
+        print("comparing \(array[i]) to \(expected)")
+      } else {
+        #expect(array[i] == nil)
       }
     }
   }

@@ -103,7 +103,6 @@ extension [KeyValue] {
 enum DataValue: Codable, Equatable {
   case string(String)
   case int(Int)
-  case double(Double)
   case bool(Bool)
   case null
 
@@ -115,7 +114,7 @@ enum DataValue: Codable, Equatable {
     } else if let intValue = try? container.decode(Int.self) {
       self = .int(intValue)
     } else if let doubleValue = try? container.decode(Double.self) {
-      self = .double(doubleValue)
+      self = .string(String(doubleValue))
     } else if let stringValue = try? container.decode(String.self) {
       self = .string(stringValue)
     } else if let boolValue = try? container.decode(Bool.self) {

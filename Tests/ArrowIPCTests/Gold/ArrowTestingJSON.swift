@@ -44,10 +44,10 @@ import Testing
 struct ArrowTestingJSON {
 
   static let testCases: [String] = [
-    "generated_primitive"
-    //    "generated_primitive_no_batches",
-    //    "generated_primitive_zerolength",
-    //    "generated_binary",
+    "generated_primitive",
+    "generated_primitive_no_batches",
+    "generated_primitive_zerolength",
+    "generated_binary",
     //    "generated_binary_zerolength",
     //    "generated_binary_no_batches",
     //    "generated_custom_metadata",
@@ -76,12 +76,6 @@ struct ArrowTestingJSON {
 
     #expect(testCase.batches.count == recordBatches.count)
 
-    //    for recordBatch in recordBatches {
-    //      for (field, array) in zip(arrowSchema.fields, recordBatch.arrays) {
-    //        let result = try encodeColumn(array: array, field: field)
-    //      }
-    //    }
-
     for (testBatch, recordBatch) in zip(testCase.batches, recordBatches) {
       for (
         (arrowField, arrowArray),
@@ -90,11 +84,8 @@ struct ArrowTestingJSON {
         zip(arrowSchema.fields, recordBatch.arrays),
         zip(testCase.schema.fields, testBatch.columns)
       ) {
-
-        if arrowField.type == .int8 || arrowField.type == .uint8 {
-          let result = try encodeColumn(array: arrowArray, field: arrowField)
-          #expect(result == expectedColumn.withoutJunkData())
-        }
+        let actual = try encodeColumn(array: arrowArray, field: arrowField)
+        #expect(actual == expectedColumn.withoutJunkData())
       }
     }
 
