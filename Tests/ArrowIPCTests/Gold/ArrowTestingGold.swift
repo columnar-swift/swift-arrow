@@ -63,16 +63,20 @@ struct ArrowTestingIPC {
     "generated_binary_zerolength",
     "generated_binary_no_batches",
     "generated_custom_metadata",
-    //    "generated_nested",
+    "generated_nested",
   ]
 
+  //  @Test(.serialized, arguments: testCases)
   @Test(arguments: testCases)
   func gold(name: String) throws {
 
-    let todos = Set(Self.allTests).subtracting(Set(Self.testCases))
-    for todo in todos.sorted() {
-      print(todo)
-    }
+    //    print(name)
+    //    print(Self.testCases)
+
+    //    let todos = Set(Self.allTests).subtracting(Set(Self.testCases))
+    //    for todo in todos.sorted() {
+    //      print(todo)
+    //    }
 
     let resourceURL = try loadTestResource(
       name: name,
@@ -127,12 +131,8 @@ struct ArrowTestingIPC {
             continue
           }
           try testFixedWidthBinary(actual: actual, expected: expectedColumn)
-        case .binary:
-          try testVariableLength(
-            actual: arrowArray, expected: expectedColumn, type: arrowField.type)
-        case .utf8:
-          try testVariableLength(
-            actual: arrowArray, expected: expectedColumn, type: arrowField.type)
+        case .boolean:
+          try testBoolean(actual: arrowArray, expected: expectedColumn)
         case .int8:
           try testFixedWidth(
             actual: arrowArray, expected: expectedColumn, as: Int8.self)
@@ -163,13 +163,27 @@ struct ArrowTestingIPC {
         case .float64:
           try testFixedWidth(
             actual: arrowArray, expected: expectedColumn, as: Double.self)
+        case .binary:
+          try testVariableLength(
+            actual: arrowArray, expected: expectedColumn, type: arrowField.type)
+        case .utf8:
+          try testVariableLength(
+            actual: arrowArray, expected: expectedColumn, type: arrowField.type)
         case .list(_):
           try validateListArray(actual: arrowArray, expected: expectedColumn)
           break
-        case .boolean:
-          try testBoolean(actual: arrowArray, expected: expectedColumn)
+        case .fixedSizeList(_, let listSize):
+          try validateFixedWidthListArray(
+            actual: arrowArray,
+            expected: expectedColumn,
+            listSize: listSize
+          )
+          break
+        //        case .strct(let fields):
+
         default:
-          throw ArrowError.invalid(
+          //          throw ArrowError.invalid(
+          print(
             "TODO: Implement test for arrow field type: \(arrowField.type)")
         }
       }
@@ -298,6 +312,35 @@ struct ArrowTestingIPC {
     }
   }
 
+  func validateFixedWidthListArray(
+    actual: AnyArrowArrayProtocol,
+    expected: ArrowGold.Column,
+    listSize: Int32
+  ) throws {
+
+    guard let expectedValidity = expected.validity
+    else {
+      throw ArrowError.invalid("Test column is incomplete.")
+    }
+    guard let listArray = actual as? ArrowFixedSizeListArray
+    else {
+      Issue.record("Unexpected array type: \(type(of: actual))")
+      return
+    }
+
+    for (i, isNull) in expectedValidity.enumerated() {
+      if isNull == 0 {
+        #expect(listArray[i] == nil)
+      } else {
+        guard let actualChildSlice = listArray[i] else {
+          Issue.record("Expected non-null list at index \(i)")
+          continue
+        }
+        #expect(actualChildSlice.length == listSize)
+      }
+    }
+  }
+
   func validateListArray(
     actual: AnyArrowArrayProtocol,
     expected: ArrowGold.Column
@@ -313,14 +356,15 @@ struct ArrowTestingIPC {
       let offsets = ptr.bindMemory(to: Int32.self)
       #expect(offsets.count == expectedOffsets.count)
       for (i, expectedOffset) in expectedOffsets.enumerated() {
-        #expect(offsets[i] == expectedOffset)
+        let actualOffset = offsets[i]
+        #expect(actualOffset == expectedOffset)
       }
     }
 
     // TODO: Need a simpler type signature at call site.
     guard let listArray = actual as? ArrowListArray<FixedWidthBufferIPC<Int32>>
     else {
-      Issue.record("Unexpected array type")
+      Issue.record("Unexpected array type: \(type(of: actual))")
       return
     }
 

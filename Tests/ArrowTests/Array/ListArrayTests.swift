@@ -38,8 +38,8 @@ struct ListArrayTests {
 
     let listArray = builder.finish()
 
-    let list0 = listArray[0] as? ArrowArrayOfInt32
-    let list1 = listArray[2] as? ArrowArrayOfInt32
+    let list0 = listArray[0] as? ArrowArrayNumeric<Int32>
+    let list1 = listArray[2] as? ArrowArrayNumeric<Int32>
     #expect(list0?.length == 2)
     #expect(list0?[0] == 1)
     #expect(list0?[1] == 2)

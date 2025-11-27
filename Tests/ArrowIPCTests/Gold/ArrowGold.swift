@@ -15,28 +15,28 @@
 import Foundation
 
 /// The JSON file structure used to validate gold-standard  Arrow test files.
-struct ArrowGold: Codable {
+struct ArrowGold: Codable, Equatable {
   let schema: Schema
   let batches: [Batch]
   let dictionaries: [Dictionary]?
 
-  struct Dictionary: Codable {
+  struct Dictionary: Codable, Equatable {
     let id: Int
     let data: Batch
   }
 
-  struct DictionaryInfo: Codable {
+  struct DictionaryInfo: Codable, Equatable {
     let id: Int
     let indexType: FieldType
     let isOrdered: Bool?
   }
 
-  struct Schema: Codable {
+  struct Schema: Codable, Equatable {
     let fields: [Field]
     let metadata: [KeyValue]?
   }
 
-  struct Field: Codable {
+  struct Field: Codable, Equatable {
     let name: String
     let type: FieldType
     let nullable: Bool
@@ -45,7 +45,7 @@ struct ArrowGold: Codable {
     let metadata: [KeyValue]?
   }
 
-  struct FieldType: Codable {
+  struct FieldType: Codable, Equatable {
     let name: String
     let byteWidth: Int?
     let bitWidth: Int?
@@ -57,12 +57,12 @@ struct ArrowGold: Codable {
     let listSize: Int?
   }
 
-  struct Batch: Codable {
+  struct Batch: Codable, Equatable {
     let count: Int
     let columns: [Column]
   }
 
-  struct Column: Codable {
+  struct Column: Codable, Equatable {
     let name: String
     let count: Int
     let validity: [Int]?
@@ -80,7 +80,7 @@ struct ArrowGold: Codable {
     }
   }
 
-  enum Value: Codable {
+  enum Value: Codable, Equatable {
     case int(Int)
     case string(String)
     case bool(Bool)
@@ -88,7 +88,7 @@ struct ArrowGold: Codable {
 }
 
 /// A metadata key-value entry.
-struct KeyValue: Codable {
+struct KeyValue: Codable, Equatable {
   let key: String
   let value: String
 }
@@ -100,7 +100,7 @@ extension [KeyValue] {
 }
 
 /// Arrow gold files data values have variable types.
-enum DataValue: Codable {
+enum DataValue: Codable, Equatable {
   case string(String)
   case int(Int)
   case double(Double)
@@ -128,5 +128,27 @@ enum DataValue: Codable {
           debugDescription: "Cannot decode DataValue")
       )
     }
+  }
+}
+
+extension ArrowGold.Column {
+
+  /// Filter for the valid values.
+  /// - Returns: The test column data with nulls in place of junk values.
+  func withoutJunkData() -> Self {
+    guard let data = self.data, let validity = self.validity else {
+      return self
+    }
+    let filteredData = data.enumerated().map { index, value in
+      validity[index] == 1 ? value : .null
+    }
+    return Self(
+      name: name,
+      count: count,
+      validity: validity,
+      offset: offset,
+      data: filteredData.isEmpty ? nil : filteredData,
+      children: children?.map { $0.withoutJunkData() }
+    )
   }
 }

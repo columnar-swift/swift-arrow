@@ -144,12 +144,24 @@ extension ArrowType {
       )
       return .list(arrowField)
     case .fixedsizelist:
+      guard field.childrenCount == 1, let childField = field.children(at: 0)
+      else {
+        throw .invalid("Expected list field to have exactly one child")
+      }
+      let childType = try self.type(for: childField)
+      guard let name = childField.name else {
+        throw .invalid("Could not get name of child field")
+      }
+      let arrowField = ArrowField(
+        name: name,
+        dataType: childType,
+        isNullable: childField.nullable
+      )
       guard let fType = field.type(type: FFixedSizeList.self) else {
         throw .invalid("Could not get byteWidth from fixed binary field.")
       }
       let listSize = fType.listSize
-
-      fatalError("Not implemented")
+      return .fixedSizeList(arrowField, listSize)
     default:
       throw .invalid("Unhandled field type: \(field.typeType)")
     }

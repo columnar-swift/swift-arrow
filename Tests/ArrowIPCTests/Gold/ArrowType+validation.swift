@@ -102,7 +102,29 @@ extension ArrowType {
         return false
       }
       return arrowField.type.matches(expectedField: children[0])
-    case .fixedSizeList, .strct, .map:
+    case .fixedSizeList(let arrowField, let listSize):
+      guard fieldType.name == "fixedsizelist",
+        let children = expectedField.children,
+        children.count == 1,
+        let expectedListSize = fieldType.listSize,
+        expectedListSize == listSize
+      else {
+        return false
+      }
+      return arrowField.type.matches(expectedField: children[0])
+    case .strct(let arrowFields):
+      guard fieldType.name == "struct", let children = expectedField.children
+      else {
+        return false
+      }
+      for (arrowField, child) in zip(arrowFields, children) {
+        let matches = arrowField.type.matches(expectedField: child)
+        if !matches {
+          return false
+        }
+      }
+      return true
+    case .map:
       //      return fieldType.name == self.jsonTypeName
       fatalError("Not implemented.")
 

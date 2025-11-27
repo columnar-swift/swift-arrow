@@ -75,9 +75,11 @@ public class ArrayBuilderBoolean: AnyArrayBuilder {
 }
 
 /// A builder for Arrow arrays holding fixed-width types.
-public class ArrayBuilderFixedWidth<T: Numeric>: AnyArrayBuilder {
+public class ArrayBuilderFixedWidth<T: Numeric & BitwiseCopyable>:
+  AnyArrayBuilder
+{
 
-  public typealias ArrayType = ArrowArrayFixed<FixedWidthBuffer<T>>
+  public typealias ArrayType = ArrowArrayNumeric<T>
 
   public var length: Int
   let nullBuilder: NullBufferBuilder
@@ -237,7 +239,7 @@ typealias ArrayBuilderBinary = ArrayBuilderVariableLength<Data>
 
 /// A builder for Arrow arrays holding `Date`s with a resolution of one day.
 public struct ArrayBuilderDate32: AnyArrayBuilder {
-  public typealias ArrayType = ArrowArrayDate32<FixedWidthBuffer<Date32>>
+  public typealias ArrayType = ArrowArrayDate32
   let builder: ArrayBuilderFixedWidth<Date32> = .init()
 
   public init() {}
@@ -262,7 +264,7 @@ public struct ArrayBuilderDate32: AnyArrayBuilder {
 
 /// A builder for Arrow arrays holding `Date`s with a resolution of one day.
 public struct ArrayBuilderDate64: AnyArrayBuilder {
-  public typealias ArrayType = ArrowArrayDate64<FixedWidthBuffer<Date64>>
+  public typealias ArrayType = ArrowArrayDate64
   let builder: ArrayBuilderFixedWidth<Date64> = .init()
 
   public init() {}

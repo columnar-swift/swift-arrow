@@ -337,7 +337,49 @@ public struct ArrowReader {
       }
     } else if arrowType.isNested {
       switch arrowType {
-      case .list(let field):
+      case .list(let childField):
+        let buffer1 = try nextBuffer(
+          message: rbMessage, index: &bufferIndex, offset: offset, data: data)
+        var offsetsBuffer = FixedWidthBufferIPC<Int32>(buffer: buffer1)
+
+        let array: AnyArrowArrayProtocol = try loadField(
+          rbMessage: rbMessage,
+          field: childField,
+          offset: offset,
+          nodeIndex: &nodeIndex,
+          bufferIndex: &bufferIndex
+        )
+
+        if offsetsBuffer.length == 0 {
+          // Empty offsets buffer is valid when child array is empty
+          // There could be any number of empty lists referencing into an empty list
+          guard array.length == 0 else {
+            throw ArrowError.invalid(
+              "Empty offsets buffer but non-empty child array")
+          }
+          let emptyBuffer = emptyOffsetBuffer(offsetCount: length + 1)
+          offsetsBuffer = FixedWidthBufferIPC<Int32>(buffer: emptyBuffer)
+        } else {
+          let requiredBytes = (length + 1) * MemoryLayout<Int32>.stride
+          guard offsetsBuffer.length >= requiredBytes else {
+            throw ArrowError.invalid(
+              "Offsets buffer too small: need \(requiredBytes) bytes for \(length) lists"
+            )
+          }
+          // Verify last offset matches child array length
+          let lastOffset = offsetsBuffer[length]
+          guard lastOffset == Int32(array.length) else {
+            throw ArrowError.invalid(
+              "Expected last offset to match child array length.")
+          }
+        }
+        return makeListArray(
+          length: length,
+          nullBuffer: nullBuffer,
+          offsetsBuffer: offsetsBuffer,
+          values: array
+        )
+      case .fixedSizeList(let field, let listSize):
         let array: AnyArrowArrayProtocol = try loadField(
           rbMessage: rbMessage,
           field: field,
@@ -345,25 +387,10 @@ public struct ArrowReader {
           nodeIndex: &nodeIndex,
           bufferIndex: &bufferIndex
         )
-        let buffer1 = try nextBuffer(
-          message: rbMessage, index: &bufferIndex, offset: offset, data: data)
-        var offsetsBuffer = FixedWidthBufferIPC<Int32>(buffer: buffer1)
-
-        // TODO: This is a hack for the special-case where buffer length 0 means all-zero offset.
-        // Can follow the null buffer example.
-        if offsetsBuffer.length != length + 1 {
-          let offsetCount = length + 1
-          let byteCount = offsetCount * MemoryLayout<Int32>.stride
-          let fileDataBuffer = FileDataBuffer(
-            data: Data(count: byteCount),  // Zero-initialized
-            range: 0..<byteCount
-          )
-          offsetsBuffer = FixedWidthBufferIPC<Int32>(buffer: fileDataBuffer)
-        }
-        return makeListArray(
+        return ArrowFixedSizeListArray(
           length: length,
+          listSize: Int(listSize),
           nullBuffer: nullBuffer,
-          offsetsBuffer: offsetsBuffer,
           values: array
         )
       case .strct(let fields):
@@ -424,9 +451,9 @@ public struct ArrowReader {
     elementType: T.Type,
     nullBuffer: NullBuffer,
     buffer: FileDataBuffer
-  ) -> ArrowArrayFixed<FixedWidthBufferIPC<T>> {
+  ) -> ArrowArrayNumeric<T> {
     let fixedBuffer = FixedWidthBufferIPC<T>(buffer: buffer)
-    return ArrowArrayFixed(
+    return ArrowArrayNumeric(
       length: length,
       nullBuffer: nullBuffer,
       valueBuffer: fixedBuffer
@@ -484,6 +511,16 @@ public struct ArrowReader {
       fields.append(arrowField)
     }
     return ArrowSchema(fields, metadata: metadata)
+  }
+
+  //TODO: This is for the special-case where buffer length 0 means all-zero offset.
+  // Would be better to have a specialised empty null buffer
+  func emptyOffsetBuffer(offsetCount: Int) -> FileDataBuffer {
+    let byteCount = offsetCount * MemoryLayout<Int32>.stride
+    return FileDataBuffer(
+      data: Data(count: byteCount),  // Zero-initialized
+      range: 0..<byteCount
+    )
   }
 
 }
