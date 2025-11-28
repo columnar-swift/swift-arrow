@@ -120,9 +120,7 @@ public class ArrayBuilderFixedWidth<T: Numeric & BitwiseCopyable>:
 public class ArrayBuilderFixedSizedBinary:
   AnyArrayBuilder
 {
-  public typealias ArrayType = ArrowArrayFixedSizeBinary<
-    VariableLengthTypeBuffer<Data>
-  >
+  public typealias ArrayType = ArrowArrayFixedSizeBinary
 
   var length: Int
   let byteWidth: Int

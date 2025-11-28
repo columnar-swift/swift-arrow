@@ -48,7 +48,7 @@ struct ArrowTestingJSON {
     "generated_primitive_no_batches",
     "generated_primitive_zerolength",
     "generated_binary",
-    //    "generated_binary_zerolength",
+//        "generated_binary_zerolength",
     //    "generated_binary_no_batches",
     //    "generated_custom_metadata",
     //    "generated_nested",
@@ -85,9 +85,33 @@ struct ArrowTestingJSON {
         zip(testCase.schema.fields, testBatch.columns)
       ) {
         let actual = try encodeColumn(array: arrowArray, field: arrowField)
-        #expect(actual == expectedColumn.withoutJunkData())
+        let expected = expectedColumn.withoutJunkData()
+
+        #expect(actual == expected)
+
+        // This is just useful for pin-pointing differences.
+        if actual != expected {
+          print(expectedColumn.name)
+          #expect(actual.validity == expected.validity)
+          #expect(actual.offset == expected.offset)
+
+          if actual.data != expected.data {
+            guard let actualData = actual.data,
+              let expectedData = expected.data, let validity = actual.validity
+            else {
+              fatalError()
+            }
+
+            for (i, isValid) in validity.enumerated() {
+              if isValid == 1 {
+                let aV = actualData[i]
+                let eV = expectedData[i]
+                #expect(aV == eV)
+              }
+            }
+          }
+        }
       }
     }
-
   }
 }

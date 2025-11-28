@@ -124,7 +124,7 @@ struct ArrowTestingIPC {
             )
           }
           #expect(expectedByteWidth == byteWidth)
-          guard let actual = arrowArray as? ArrowArrayOfData else {
+          guard let actual = arrowArray as? any BinaryArrayProtocol else {
             Issue.record(
               "Expected ArrowArrayOfData but got \(type(of: arrowArray))"
             )
@@ -191,7 +191,7 @@ struct ArrowTestingIPC {
   }
 
   func testFixedWidthBinary(
-    actual: ArrowArrayOfData,
+    actual: any BinaryArrayProtocol,
     expected: ArrowGold.Column,
   ) throws {
     guard let validity = expected.validity, let dataValues = expected.data
@@ -435,7 +435,7 @@ struct ArrowTestingIPC {
     }
     switch type {
     case .binary:
-      guard let binaryArray = actual as? ArrowArrayOfData else {
+      guard let binaryArray = actual as? any BinaryArrayProtocol else {
         Issue.record("Binary array expected.")
         return
       }

@@ -44,12 +44,12 @@ public protocol ArrowArrayOfString {
 }
 extension ArrowArrayVariable: ArrowArrayOfString where ItemType == String {}
 
-public protocol ArrowArrayOfData {
-  var length: Int { get }
-  subscript(index: Int) -> Data? { get }
-}
-extension ArrowArrayFixedSizeBinary: ArrowArrayOfData where ItemType == Data {}
-extension ArrowArrayVariable: ArrowArrayOfData where ItemType == Data {}
+//public protocol ArrowArrayOfData {
+//  var length: Int { get }
+//  subscript(index: Int) -> Data? { get }
+//}
+//extension ArrowArrayFixedSizeBinary: ArrowArrayOfData where ItemType == Data {}
+//extension ArrowArrayVariable: ArrowArrayOfData where ItemType == Data {}
 
 public protocol ArrowArrayOfList {
   var length: Int { get }
@@ -145,10 +145,7 @@ public struct ArrowArrayNumeric<ItemType: Numeric & BitwiseCopyable>:
   }
 }
 
-public struct ArrowArrayFixedSizeBinary<ValueBuffer>: ArrowArrayProtocol
-where
-  ValueBuffer: VariableLengthBufferProtocol<Data>
-{
+public struct ArrowArrayFixedSizeBinary: ArrowArrayProtocol {
   public typealias ItemType = Data
   public let offset: Int
   public let length: Int
@@ -160,14 +157,14 @@ where
   public var nullCount: Int { nullBuffer.nullCount }
 
   let nullBuffer: NullBuffer
-  let valueBuffer: ValueBuffer
+  let valueBuffer: any VariableLengthBufferProtocol<Data>
 
   public init(
     offset: Int = 0,
     length: Int,
     byteWidth: Int,
     nullBuffer: NullBuffer,
-    valueBuffer: ValueBuffer
+    valueBuffer: any VariableLengthBufferProtocol<Data>
   ) {
     self.offset = offset
     self.length = length
@@ -176,7 +173,7 @@ where
     self.valueBuffer = valueBuffer
   }
 
-  public subscript(index: Int) -> ValueBuffer.ElementType? {
+  public subscript(index: Int) -> ItemType? {
     guard nullBuffer.isSet(index) else { return nil }
     let startIndex = index * byteWidth
     return valueBuffer.loadVariable(at: startIndex, arrayLength: byteWidth)
@@ -192,6 +189,16 @@ where
     )
   }
 }
+
+protocol BinaryArrayProtocol: ArrowArrayProtocol where ItemType == Data {}
+extension ArrowArrayFixedSizeBinary: BinaryArrayProtocol {}
+extension ArrowArrayVariable: BinaryArrayProtocol
+where ItemType == Data, OffsetType: FixedWidthInteger & SignedInteger {}
+
+protocol Utf8ArrayProtocol: ArrowArrayProtocol where ItemType == String {}
+//extension ArrowArrayFixedSize: BinaryArrayProtocol { }
+extension ArrowArrayVariable: Utf8ArrayProtocol
+where ItemType == String, OffsetType: FixedWidthInteger & SignedInteger {}
 
 /// An Arrow array of variable-length types.
 public struct ArrowArrayVariable<
@@ -257,11 +264,6 @@ public struct ArrowArrayVariable<
     )
   }
 }
-
-public typealias ArrowArrayVariableInt32<ItemType: VariableLength> =
-  ArrowArrayVariable<ItemType, Int32>
-public typealias ArrowArrayVariableInt64<ItemType: VariableLength> =
-  ArrowArrayVariable<ItemType, Int64>
 
 /// An Arrow array of `Date`s with a resolution of 1 day.
 public struct ArrowArrayDate32: ArrowArrayProtocol {

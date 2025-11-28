@@ -86,8 +86,15 @@ func encodeColumn(
       data = try extractFloatData(from: array, expectedType: Float32.self)
     case .float64:
       data = try extractFloatData(from: array, expectedType: Float64.self)
+    case .binary:
+      try extractBinaryData(from: array, into: &data, offsets: &offsets)
+    case .fixedSizeBinary(_):
+      try extractBinaryData(from: array, into: &data, offsets: &offsets)
+      offsets = nil  // Fixed-size offsets are implicit.
+    case .utf8:
+      try extractUtf8Data(from: array, into: &data, offsets: &offsets)
     default:
-      print("Unhandled type: \(field.type)")
+      throw ArrowError.invalid("Unhandled field type: \(field.type)")
     }
   }
   return .init(
@@ -163,17 +170,69 @@ func extractBoolData(from array: AnyArrowArrayProtocol) throws -> [DataValue] {
   }
 }
 
-//func extractBinaryData(
-//  from array: AnyArrowArrayProtocol
-//) throws -> [DataValue] {
-//  guard let binaryArray = array as? ArrowArrayBinary else {
+//func extractBinaryDataX(
+//  from array: AnyArrowArrayProtocol,
+//  into dataValues: inout [DataValue]?,
+//  offsets: inout [Int]?
+//) throws {
+//  guard let binaryArray = array as? any BinaryArrayProtocol else {
 //    throw ArrowError.invalid("Expected binary array")
 //  }
 //
-//  return (0..<binaryArray.length).map { i in
-//    guard let data = binaryArray[i] else { return .null }
+//
+//  dataValues = (0..<binaryArray.length).map { i in
+//    guard let value = binaryArray[i] else { return .null }
 //    // Hex encode the bytes
-//    let hexString = data.map { String(format: "%02x", $0) }.joined()
+//    let hexString = value.map { String(format: "%02X", $0) }.joined()
 //    return .string(hexString)
 //  }
 //}
+
+func extractBinaryData(
+  from array: AnyArrowArrayProtocol,
+  into dataValues: inout [DataValue]?,
+  offsets: inout [Int]?
+) throws {
+  guard let binaryArray = array as? any BinaryArrayProtocol else {
+    throw ArrowError.invalid("Expected binary array")
+  }
+  var computedOffsets: [Int] = [0]
+  var currentOffset = 0
+  dataValues = (0..<binaryArray.length).map { i in
+    guard let value = binaryArray[i] else {
+      // Null values don't advance the offset
+      computedOffsets.append(currentOffset)
+      return .null
+    }
+    currentOffset += value.count  // Data.count gives you byte length
+    computedOffsets.append(currentOffset)
+    let hexString = value.map { String(format: "%02X", $0) }.joined()
+    return .string(hexString)
+  }
+  offsets = computedOffsets
+}
+
+func extractUtf8Data(
+  from array: AnyArrowArrayProtocol,
+  into dataValues: inout [DataValue]?,
+  offsets: inout [Int]?
+) throws {
+  guard let stringArray = array as? any Utf8ArrayProtocol else {
+    throw ArrowError.invalid("Expected UTF-8 array")
+  }
+
+  var computedOffsets: [Int] = [0]
+  var currentOffset = 0
+
+  dataValues = (0..<stringArray.length).map { i in
+    guard let value = stringArray[i] else {
+      computedOffsets.append(currentOffset)
+      return .null
+    }
+    currentOffset += value.utf8.count
+    computedOffsets.append(currentOffset)
+    return .string(value)
+  }
+
+  offsets = computedOffsets
+}
