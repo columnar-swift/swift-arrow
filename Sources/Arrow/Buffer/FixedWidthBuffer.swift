@@ -19,9 +19,8 @@ public protocol FixedWidthBufferProtocol<ElementType>: ArrowBufferProtocol {
 }
 
 /// A  buffer used in Arrow arrays that hold fixed-width types.
-public final class FixedWidthBuffer<T>: FixedWidthBufferProtocol
+final class FixedWidthBuffer<T>: FixedWidthBufferProtocol
 where T: Numeric {
-
   public typealias ElementType = T
   public var length: Int
   var capacity: Int

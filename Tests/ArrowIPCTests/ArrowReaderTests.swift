@@ -53,7 +53,10 @@ struct ArrowReaderTests {
       #expect(doubleColumn[4] == 5.5)
 
       // Test the String column (index 1)
-      guard let stringColumn = recordBatch.arrays[1] as? ArrowArrayUtf8 else {
+      guard
+        let stringColumn = recordBatch.arrays[1]
+          as? ArrowArrayVariable<String, Int32>
+      else {
         Issue.record("Failed to cast column 1 to ArrowArrayString")
         return
       }

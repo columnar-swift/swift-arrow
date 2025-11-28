@@ -56,7 +56,7 @@ struct FuzzedArrayTests {
         testArray[i] = nil
       }
     }
-    let builder: ArrayBuilderVariableLength<String> = .init()
+    let builder: ArrayBuilderVariableLength<String, Int32> = .init()
     for value in testArray {
       if let value {
         builder.append(value)
@@ -84,7 +84,7 @@ struct FuzzedArrayTests {
   }
 
   @Test func binaryStringArray() throws {
-    let builder: ArrayBuilderVariableLength<Data> = .init()
+    let builder: ArrayBuilderVariableLength<Data, Int32> = .init()
     var byteCount: Int = 0
     let count: Int = 100
     var nullCount: Int = 0
@@ -143,7 +143,7 @@ struct FuzzedArrayTests {
         nullCount += 1
       }
     }
-    let builder: ArrayBuilderVariableLength<Data> = .init()
+    let builder: ArrayBuilderVariableLength<Data, Int32> = .init()
     for value in expected {
       if let value {
         builder.append(value)
@@ -223,7 +223,7 @@ struct FuzzedArrayTests {
           expected[i] = randomString(length: length, using: &rng)
         }
       }
-      let arrayBuilder: ArrayBuilderVariableLength<String> = .init()
+      let arrayBuilder: ArrayBuilderVariableLength<String, Int32> = .init()
       for value in expected {
         if let value {
           arrayBuilder.append(value)
@@ -281,7 +281,7 @@ struct FuzzedArrayTests {
         byteCount += value.utf8.count
       }
     }
-    let builder: ArrayBuilderVariableLength<String> = .init()
+    let builder: ArrayBuilderVariableLength<String, Int32> = .init()
     for value in expected {
       if let value {
         builder.append(value)

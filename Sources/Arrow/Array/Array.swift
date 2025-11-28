@@ -194,34 +194,36 @@ where
 }
 
 /// An Arrow array of variable-length types.
-public struct ArrowArrayVariable<OffsetsBuffer, ValueBuffer>:
-  ArrowArrayProtocol
-where
-  OffsetsBuffer: FixedWidthBufferProtocol<Int32>,
-  ValueBuffer: VariableLengthBufferProtocol<ValueBuffer.ElementType>,
-  ValueBuffer.ElementType: VariableLength
-{
-  public typealias ItemType = ValueBuffer.ElementType
+public struct ArrowArrayVariable<
+  ItemType: VariableLength,
+  OffsetType: FixedWidthInteger & SignedInteger
+>: ArrowArrayProtocol {
   public let offset: Int
   public let length: Int
+  private let nullBuffer: NullBuffer
+  private let offsetsBuffer: any FixedWidthBufferProtocol<OffsetType>
+  private let valueBuffer: any VariableLengthBufferProtocol<ItemType>
+
   public var bufferSizes: [Int] {
     [nullBuffer.length, offsetsBuffer.length, valueBuffer.length]
   }
+
   public var buffers: [ArrowBufferProtocol] {
     [nullBuffer, offsetsBuffer, valueBuffer]
   }
-  public var nullCount: Int { nullBuffer.nullCount }
-  let nullBuffer: NullBuffer
-  let offsetsBuffer: OffsetsBuffer
-  let valueBuffer: ValueBuffer
 
-  public init(
+  public var nullCount: Int { nullBuffer.nullCount }
+
+  public init<
+    Offsets: FixedWidthBufferProtocol<OffsetType>,
+    Values: VariableLengthBufferProtocol
+  >(
     offset: Int = 0,
     length: Int,
     nullBuffer: NullBuffer,
-    offsetsBuffer: OffsetsBuffer,
-    valueBuffer: ValueBuffer
-  ) {
+    offsetsBuffer: Offsets,
+    valueBuffer: Values
+  ) where Values.ElementType == ItemType {
     self.offset = offset
     self.length = length
     self.nullBuffer = nullBuffer
@@ -229,16 +231,19 @@ where
     self.valueBuffer = valueBuffer
   }
 
-  public subscript(index: Int) -> ValueBuffer.ElementType? {
+  public subscript(index: Int) -> ItemType? {
     let offsetIndex = self.offset + index
-    if !self.nullBuffer.isSet(offsetIndex) {
+    guard self.nullBuffer.isSet(offsetIndex) else {
       return nil
     }
-    let startIndex = offsetsBuffer[offsetIndex]
-    let endIndex = offsetsBuffer[offsetIndex + 1]
+
+    // Use runtime dispatch through the existential
+    let startOffset = offsetsBuffer[offsetIndex]
+    let endOffset = offsetsBuffer[offsetIndex + 1]
+
     return valueBuffer.loadVariable(
-      at: Int(startIndex),
-      arrayLength: Int(endIndex - startIndex)
+      at: Int(startOffset),
+      arrayLength: Int(endOffset - startOffset)
     )
   }
 
@@ -252,6 +257,11 @@ where
     )
   }
 }
+
+public typealias ArrowArrayVariableInt32<ItemType: VariableLength> =
+  ArrowArrayVariable<ItemType, Int32>
+public typealias ArrowArrayVariableInt64<ItemType: VariableLength> =
+  ArrowArrayVariable<ItemType, Int64>
 
 /// An Arrow array of `Date`s with a resolution of 1 day.
 public struct ArrowArrayDate32: ArrowArrayProtocol {

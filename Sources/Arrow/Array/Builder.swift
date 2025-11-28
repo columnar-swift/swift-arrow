@@ -173,24 +173,23 @@ public class ArrayBuilderFixedSizedBinary:
 }
 
 /// A builder for Arrow arrays holding variable length types.
-public class ArrayBuilderVariableLength<Element: VariableLength>:
-  AnyArrayBuilder
-{
-  public typealias ArrayType = ArrowArrayVariable<
-    FixedWidthBuffer<Int32>, VariableLengthTypeBuffer<Element>
-  >
+public class ArrayBuilderVariableLength<
+  Element: VariableLength, OffsetType: FixedWidthInteger & SignedInteger
+>: AnyArrayBuilder {
+
+  public typealias ArrayType = ArrowArrayVariable<Element, OffsetType>
 
   var length: Int
   let nullBuilder: NullBufferBuilder
-  let offsetsBuilder: FixedWidthBufferBuilder<Int32>
+  let offsetsBuilder: FixedWidthBufferBuilder<OffsetType>
   let valueBuilder: VariableLengthTypeBufferBuilder<Element>
 
   public init() {
     self.length = 0
     self.nullBuilder = NullBufferBuilder()
-    self.offsetsBuilder = FixedWidthBufferBuilder<Int32>()
+    self.offsetsBuilder = FixedWidthBufferBuilder<OffsetType>()
     self.valueBuilder = VariableLengthTypeBufferBuilder<Element>()
-    self.offsetsBuilder.append(Int32.zero)
+    self.offsetsBuilder.append(OffsetType.zero)
   }
 
   public func append(_ value: Element) {
@@ -206,36 +205,32 @@ public class ArrayBuilderVariableLength<Element: VariableLength>:
       valueBuilder.increaseCapacity(to: newCapacity)
     }
     valueBuilder.append(data)
-    let newOffset = Int32(valueBuilder.length)
+    let newOffset = OffsetType(valueBuilder.length)
     offsetsBuilder.append(newOffset)
   }
 
   public func appendNull() {
     length += 1
     nullBuilder.appendValid(false)
-    let newOffset = Int32(valueBuilder.length)
+    let newOffset = OffsetType(valueBuilder.length)
     offsetsBuilder.append(newOffset)
   }
 
   public func finish() -> ArrayType {
-    let nullBuffer = nullBuilder.finish()
-    let offsetsBuffer = offsetsBuilder.finish()
-    let valueBuffer = valueBuilder.finish()
-    return .init(
-      offset: 0,
+    ArrayType(
       length: length,
-      nullBuffer: nullBuffer,
-      offsetsBuffer: offsetsBuffer,
-      valueBuffer: valueBuffer
+      nullBuffer: nullBuilder.finish(),
+      offsetsBuffer: offsetsBuilder.finish(),
+      valueBuffer: valueBuilder.finish()
     )
   }
 }
 
 /// A builder for Arrow arrays holding `String` values.
-typealias ArrayBuilderString = ArrayBuilderVariableLength<String>
+typealias ArrayBuilderString = ArrayBuilderVariableLength<String, Int32>
 
 /// A builder for Arrow arrays holding `Data` values.
-typealias ArrayBuilderBinary = ArrayBuilderVariableLength<Data>
+typealias ArrayBuilderBinary = ArrayBuilderVariableLength<Data, Int32>
 
 /// A builder for Arrow arrays holding `Date`s with a resolution of one day.
 public struct ArrayBuilderDate32: AnyArrayBuilder {

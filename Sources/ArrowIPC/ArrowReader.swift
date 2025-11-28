@@ -85,7 +85,9 @@ where
 }
 
 /// A `Data` backed buffer for variable-length types.
-struct VariableLengthBufferIPC<Element: VariableLength>:
+struct VariableLengthBufferIPC<
+  Element: VariableLength, OffsetType: FixedWidthInteger
+>:
   VariableLengthBufferProtocol, ArrowBufferIPC
 {
   typealias ElementType = Element
@@ -318,19 +320,25 @@ public struct ArrowReader {
       let buffer2 = try nextBuffer(
         message: rbMessage, index: &bufferIndex, offset: offset, data: data)
 
+      let offsetsBufferTyped = FixedWidthBufferIPC<Int32>(buffer: buffer1)
+
       if arrowType == .utf8 {
-        return ArrowArrayVariable.utf8(
+        let valueBufferTyped = VariableLengthBufferIPC<String, Int32>(
+          buffer: buffer2)
+        return ArrowArrayVariable<String, Int32>(
           length: length,
           nullBuffer: nullBuffer,
-          offsetsBuffer: buffer1,
-          valueBuffer: buffer2
+          offsetsBuffer: offsetsBufferTyped,
+          valueBuffer: valueBufferTyped
         )
       } else if arrowType == .binary {
-        return ArrowArrayVariable.binary(
+        let valueBufferTyped = VariableLengthBufferIPC<Data, Int32>(
+          buffer: buffer2)
+        return ArrowArrayVariable<Data, Int32>(
           length: length,
           nullBuffer: nullBuffer,
-          offsetsBuffer: buffer1,
-          valueBuffer: buffer2
+          offsetsBuffer: offsetsBufferTyped,
+          valueBuffer: valueBufferTyped
         )
       } else {
         throw ArrowError.notImplemented
@@ -418,7 +426,7 @@ public struct ArrowReader {
       if case .fixedSizeBinary(let byteWidth) = arrowType {
         let valueBuffer = try nextBuffer(
           message: rbMessage, index: &bufferIndex, offset: offset, data: data)
-        let valueBufferTyped = VariableLengthBufferIPC<Data>(
+        let valueBufferTyped = VariableLengthBufferIPC<Data, Int32>(
           buffer: valueBuffer)
         return ArrowArrayFixedSizeBinary(
           length: length,
