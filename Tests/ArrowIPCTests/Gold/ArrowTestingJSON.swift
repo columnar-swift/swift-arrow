@@ -48,9 +48,9 @@ struct ArrowTestingJSON {
     "generated_primitive_no_batches",
     "generated_primitive_zerolength",
     "generated_binary",
-//    "generated_binary_zerolength",
-    "generated_custom_metadata", // TODO: replicate the gold metadata tests
-//    "generated_nested",
+    //    "generated_binary_zerolength",
+    "generated_custom_metadata",  // TODO: replicate the gold metadata tests
+    //    "generated_nested",
   ]
 
   //  @Test(.serialized, arguments: testCases)
@@ -98,7 +98,7 @@ struct ArrowTestingJSON {
             guard let actualData = actual.data,
               let expectedData = expected.data, let validity = actual.validity
             else {
-//              fatalError()
+              //              fatalError()
               #expect(false)
               return
             }

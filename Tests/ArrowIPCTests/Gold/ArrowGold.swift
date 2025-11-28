@@ -147,7 +147,7 @@ extension ArrowGold.Column {
       validity: validity,
       offset: offset,
       data: filteredData,
-//      data: filteredData.isEmpty ? nil : filteredData,
+      //      data: filteredData.isEmpty ? nil : filteredData,
       children: children?.map { $0.withoutJunkData() }
     )
   }
