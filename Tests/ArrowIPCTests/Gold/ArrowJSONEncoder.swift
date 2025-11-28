@@ -24,16 +24,12 @@ func encodeColumn(
   guard let array = array as? (any ArrowArrayProtocol) else {
     throw ArrowError.invalid("Expected ArrowArray, got \(type(of: array))")
   }
-
-  var validity: [Int] = []
-
-  for i in 0..<array.length {
-    let value: Any? = array[i]
-    validity.append(value == nil ? 0 : 1)
+  // Validity is always present in the gold files.
+  let validity: [Int] = (0..<array.length).map { i in
+    array[i] == nil ? 0 : 1
   }
-
   var offsets: [Int]? = nil
-  var data: [DataValue]? = nil
+  var data: [DataValue]? = []
   var children: [ArrowGold.Column]? = nil
 
   if array.length > 0 {
@@ -61,6 +57,7 @@ func encodeColumn(
       let childColumn = try encodeColumn(
         array: listArray.values, field: listField)
       children = [childColumn]
+      data = nil // List arrays point to child arrays, not their data.
 
     case .boolean:
       data = try extractBoolData(from: array)

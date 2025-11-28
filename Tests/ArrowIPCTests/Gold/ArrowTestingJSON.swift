@@ -48,10 +48,9 @@ struct ArrowTestingJSON {
     "generated_primitive_no_batches",
     "generated_primitive_zerolength",
     "generated_binary",
-//        "generated_binary_zerolength",
-    //    "generated_binary_no_batches",
-    //    "generated_custom_metadata",
-    //    "generated_nested",
+//    "generated_binary_zerolength",
+    "generated_custom_metadata", // TODO: replicate the gold metadata tests
+//    "generated_nested",
   ]
 
   //  @Test(.serialized, arguments: testCases)
@@ -91,7 +90,7 @@ struct ArrowTestingJSON {
 
         // This is just useful for pin-pointing differences.
         if actual != expected {
-          print(expectedColumn.name)
+          print("==== \(expectedColumn.name) ====")
           #expect(actual.validity == expected.validity)
           #expect(actual.offset == expected.offset)
 
@@ -99,7 +98,9 @@ struct ArrowTestingJSON {
             guard let actualData = actual.data,
               let expectedData = expected.data, let validity = actual.validity
             else {
-              fatalError()
+//              fatalError()
+              #expect(false)
+              return
             }
 
             for (i, isValid) in validity.enumerated() {
