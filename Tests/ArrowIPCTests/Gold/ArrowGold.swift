@@ -33,7 +33,30 @@ struct ArrowGold: Codable, Equatable {
 
   struct Schema: Codable, Equatable {
     let fields: [Field]
-    let metadata: [KeyValue]?
+    let metadata: [String: String]?
+
+    enum CodingKeys: String, CodingKey {
+      case fields
+      case metadata
+    }
+
+    init(fields: [Field], metadata: [String: String]?) {
+      self.fields = fields
+      self.metadata = metadata
+    }
+
+    init(from decoder: Decoder) throws {
+      let container = try decoder.container(keyedBy: CodingKeys.self)
+      self.fields = try container.decode([Field].self, forKey: .fields)
+      if container.contains(.metadata) {
+        var metadataArray = try container.nestedUnkeyedContainer(
+          forKey: .metadata
+        )
+        try self.metadata = buildDictionary(from: &metadataArray)
+      } else {
+        self.metadata = nil
+      }
+    }
   }
 
   struct Field: Codable, Equatable {
@@ -42,7 +65,55 @@ struct ArrowGold: Codable, Equatable {
     let nullable: Bool
     let children: [Field]?
     let dictionary: DictionaryInfo?
-    let metadata: [KeyValue]?
+    let metadata: [String: String]?
+
+    init(
+      name: String,
+      type: FieldType,
+      nullable: Bool,
+      children: [Field]? = nil,
+      dictionary: DictionaryInfo? = nil,
+      metadata: [String: String]? = nil
+    ) {
+      self.name = name
+      self.type = type
+      self.nullable = nullable
+      self.children = children
+      self.dictionary = dictionary
+      self.metadata = metadata
+    }
+
+    init(from decoder: Decoder) throws {
+      let container = try decoder.container(keyedBy: CodingKeys.self)
+      self.name = try container.decode(String.self, forKey: .name)
+      self.type = try container.decode(FieldType.self, forKey: .type)
+      self.nullable = try container.decode(Bool.self, forKey: .nullable)
+      self.children = try container.decodeIfPresent(
+        [Field].self,
+        forKey: .children
+      )
+      self.dictionary = try container.decodeIfPresent(
+        DictionaryInfo.self,
+        forKey: .dictionary
+      )
+      if container.contains(.metadata) {
+        var metadataArray = try container.nestedUnkeyedContainer(
+          forKey: .metadata
+        )
+        try self.metadata = buildDictionary(from: &metadataArray)
+      } else {
+        self.metadata = nil
+      }
+    }
+
+    enum CodingKeys: String, CodingKey {
+      case name
+      case type
+      case nullable
+      case children
+      case dictionary
+      case metadata
+    }
   }
 
   struct FieldType: Codable, Equatable {
@@ -88,15 +159,9 @@ struct ArrowGold: Codable, Equatable {
 }
 
 /// A metadata key-value entry.
-struct KeyValue: Codable, Equatable {
+private struct KeyValue: Codable, Equatable, Hashable {
   let key: String
   let value: String
-}
-
-extension [KeyValue] {
-  var asDictionary: [String: String] {
-    Dictionary(uniqueKeysWithValues: self.map { ($0.key, $0.value) })
-  }
 }
 
 /// Arrow gold files data values have variable types.
@@ -135,10 +200,10 @@ extension ArrowGold.Column {
   /// Filter for the valid values.
   /// - Returns: The test column data with nulls in place of junk values.
   func withoutJunkData() -> Self {
-    guard let data = self.data, let validity = self.validity else {
-      return self
+    guard let validity = self.validity else {
+      fatalError()
     }
-    let filteredData = data.enumerated().map { index, value in
+    let filteredData = data?.enumerated().map { index, value in
       validity[index] == 1 ? value : .null
     }
     return Self(
@@ -147,8 +212,22 @@ extension ArrowGold.Column {
       validity: validity,
       offset: offset,
       data: filteredData,
-      //      data: filteredData.isEmpty ? nil : filteredData,
       children: children?.map { $0.withoutJunkData() }
     )
   }
+}
+
+/// Decode a list of `KeyValue` to a dictionary.
+/// - Parameter keyValues: The key values to convert.
+/// - Throws: If decoding fails.
+/// - Returns: A metadata dictionary.
+private func buildDictionary(
+  from keyValues: inout any UnkeyedDecodingContainer
+) throws -> [String: String]? {
+  var dict: [String: String] = [:]
+  while !keyValues.isAtEnd {
+    let pair = try keyValues.decode(KeyValue.self)
+    dict[pair.key] = pair.value
+  }
+  return dict.isEmpty ? nil : dict
 }

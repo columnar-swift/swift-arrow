@@ -64,7 +64,7 @@ func checkBoolRecordBatch(recordBatch: RecordBatch) {
   #expect(one[4] == true)
 
   guard
-    let utf8Column = recordBatch.arrays[1] as? ArrowArrayOfString
+    let utf8Column = recordBatch.arrays[1] as? StringArrayProtocol
   else {
     Issue.record("Failed to cast column to ArrowUtf8Array")
     return

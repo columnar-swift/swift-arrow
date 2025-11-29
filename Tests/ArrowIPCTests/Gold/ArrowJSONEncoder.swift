@@ -28,7 +28,6 @@ func encodeColumn(
   array: AnyArrowArrayProtocol,
   field: ArrowField
 ) throws(ArrowError) -> ArrowGold.Column {
-
   guard let array = array as? (any ArrowArrayProtocol) else {
     throw .invalid("Expected ArrowArray, got \(type(of: array))")
   }
@@ -58,25 +57,37 @@ func encodeColumn(
   if array.length > 0 {
     switch field.type {
     case .list(let listField):
-      guard let listArray = array as? ArrowArrayOfList else {
+      guard let listArray = array as? ListArrayProtocol else {
         throw ArrowError.invalid("Expected list array")
       }
-      // Build offsets by using the array interface
-      //      var computedOffsets: [Int] = [0]
-      //      var currentOffset = 0
-
-      //      for i in 0..<listArray.length {
-      //        if let list = listArray[i] {
-      //          currentOffset += list.length
-      //        }
-      //        computedOffsets.append(currentOffset)
-      //      }
-      //      offsets = computedOffsets
-      // Recursively encode all list values
       let childColumn = try encodeColumn(
         array: listArray.values, field: listField)
       children = [childColumn]
       // List arrays point to child arrays therefore have nil data buffers.
+      data = nil
+    case .fixedSizeList(let listField, _):
+      guard let listArray = array as? ListArrayProtocol else {
+        throw ArrowError.invalid("Expected list array")
+      }
+      let childColumn = try encodeColumn(
+        array: listArray.values, field: listField)
+      children = [childColumn]
+      data = nil
+    case .strct(let arrowFields):
+      guard let structArray = array as? ArrowStructArray else {
+        throw ArrowError.invalid("Expected list array")
+      }
+      children = []
+      for (arrowField, (_, array)) in zip(arrowFields, structArray.fields) {
+        let childColumn = try encodeColumn(
+          array: array, field: arrowField)
+        children?.append(childColumn)
+        data = nil
+      }
+      children = try arrowFields.enumerated().map {
+        index, arrowField throws(ArrowError) in
+        try encodeColumn(array: structArray.fields[index].1, field: arrowField)
+      }
       data = nil
     case .boolean:
       data = try extractBoolData(from: array)
@@ -109,7 +120,7 @@ func encodeColumn(
     case .utf8:
       try extractUtf8Data(from: array, into: &data)
     default:
-      throw ArrowError.invalid("Unhandled field type: \(field.type)")
+      throw .invalid("Encoder did not handle a field type: \(field.type)")
     }
   }
   return .init(
@@ -181,9 +192,9 @@ func extractFloatData<T: BinaryFloatingPoint & BitwiseCopyable>(
   }
 }
 
-func extractBoolData(from array: AnyArrowArrayProtocol) throws(ArrowError)
-  -> [DataValue]
-{
+func extractBoolData(
+  from array: AnyArrowArrayProtocol
+) throws(ArrowError) -> [DataValue] {
   guard let typedArray = array as? ArrowArrayBoolean else {
     throw .invalid("Expected boolean array, got \(type(of: array))")
   }

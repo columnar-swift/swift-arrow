@@ -499,23 +499,7 @@ public struct ArrowReader {
       guard let field = schema.fields(at: index) else {
         throw .invalid("Field not found at index: \(index)")
       }
-      let fieldType: ArrowType = try .type(for: field)
-      guard let fieldName = field.name else {
-        throw .invalid("Field name not found")
-      }
-      let fieldMetadata = (0..<field.customMetadataCount)
-        .reduce(into: [String: String]()) { dict, index in
-          guard let customMetadata = field.customMetadata(at: index),
-            let key = customMetadata.key
-          else { return }
-          dict[key] = customMetadata.value
-        }
-      let arrowField = ArrowField(
-        name: fieldName,
-        dataType: fieldType,
-        isNullable: field.nullable,
-        metadata: fieldMetadata
-      )
+      let arrowField = try ArrowField.parse(from: field)
       fields.append(arrowField)
     }
     return ArrowSchema(fields, metadata: metadata)
@@ -531,4 +515,26 @@ public struct ArrowReader {
     )
   }
 
+}
+
+extension ArrowField {
+  static func parse(from field: FField) throws(ArrowError) -> Self {
+    let fieldType: ArrowType = try .type(for: field)
+    guard let fieldName = field.name else {
+      throw .invalid("Field name not found")
+    }
+    let fieldMetadata = (0..<field.customMetadataCount)
+      .reduce(into: [String: String]()) { dict, index in
+        guard let customMetadata = field.customMetadata(at: index),
+          let key = customMetadata.key
+        else { return }
+        dict[key] = customMetadata.value
+      }
+    return .init(
+      name: fieldName,
+      dataType: fieldType,
+      isNullable: field.nullable,
+      metadata: fieldMetadata
+    )
+  }
 }

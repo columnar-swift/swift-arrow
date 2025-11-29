@@ -115,17 +115,8 @@ extension ArrowType {
         guard let childField = field.children(at: index) else {
           throw .invalid("Could not get child at index: \(index) ofrom struct")
         }
-        let childType = try self.type(for: childField)
-        guard let name = childField.name else {
-          throw .invalid("Could not get name of child field")
-        }
-        fields.append(
-          ArrowField(
-            name: name,
-            dataType: childType,
-            isNullable: childField.nullable
-          )
-        )
+        let arrowField = try ArrowField.parse(from: childField)
+        fields.append(arrowField)
       }
       return .strct(fields)
     case .list:
@@ -133,34 +124,18 @@ extension ArrowType {
       else {
         throw .invalid("Expected list field to have exactly one child")
       }
-      let childType = try self.type(for: childField)
-      guard let name = childField.name else {
-        throw .invalid("Could not get name of child field")
-      }
-      let arrowField = ArrowField(
-        name: name,
-        dataType: childType,
-        isNullable: childField.nullable
-      )
+      let arrowField = try ArrowField.parse(from: childField)
       return .list(arrowField)
     case .fixedsizelist:
       guard field.childrenCount == 1, let childField = field.children(at: 0)
       else {
         throw .invalid("Expected list field to have exactly one child")
       }
-      let childType = try self.type(for: childField)
-      guard let name = childField.name else {
-        throw .invalid("Could not get name of child field")
-      }
-      let arrowField = ArrowField(
-        name: name,
-        dataType: childType,
-        isNullable: childField.nullable
-      )
       guard let fType = field.type(type: FFixedSizeList.self) else {
-        throw .invalid("Could not get byteWidth from fixed binary field.")
+        throw .invalid("Could not get type from fixed size list field.")
       }
       let listSize = fType.listSize
+      let arrowField = try ArrowField.parse(from: childField)
       return .fixedSizeList(arrowField, listSize)
     default:
       throw .invalid("Unhandled field type: \(field.typeType)")

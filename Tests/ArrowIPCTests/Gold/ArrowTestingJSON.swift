@@ -1,17 +1,3 @@
-// ArrowTestingIPC.swift
-// Arrow
-//
-// Created by Will Temperley on 26/11/2025. All rights reserved.
-// Copyright 2025 Will Temperley.
-//
-// Copying or reproduction of this file via any medium requires prior express
-// written permission from the copyright holder.
-// -----------------------------------------------------------------------------
-///
-/// Implementation notes, links and internal documentation go here.
-///
-// -----------------------------------------------------------------------------
-
 // Copyright 2025 The Columnar Swift Contributors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -48,15 +34,14 @@ struct ArrowTestingJSON {
     "generated_primitive_no_batches",
     "generated_primitive_zerolength",
     "generated_binary",
-    //    "generated_binary_zerolength",
-    "generated_custom_metadata",  // TODO: replicate the gold metadata tests
-    //    "generated_nested",
+    "generated_binary_zerolength",
+    "generated_custom_metadata",
+    "generated_nested",
+    "generated_recursive_nested",
   ]
 
-  //  @Test(.serialized, arguments: testCases)
   @Test(arguments: testCases)
   func json(name: String) throws {
-
     let resourceURL = try loadTestResource(
       name: name,
       withExtension: "json.lz4",
@@ -75,34 +60,45 @@ struct ArrowTestingJSON {
 
     #expect(testCase.batches.count == recordBatches.count)
 
-    for (testBatch, recordBatch) in zip(testCase.batches, recordBatches) {
+    // Strip placeholder values.
+    let expectedBatches = testCase.batches.map { batch in
+      ArrowGold.Batch(
+        count: batch.count,
+        columns: batch.columns.map { $0.withoutJunkData() }
+      )
+    }
+    let expectedSchema = testCase.schema
+    let expectedDictionaries = testCase.dictionaries
+    let _ = ArrowGold(
+      schema: expectedSchema,
+      batches: expectedBatches,
+      dictionaries: expectedDictionaries
+    )
+    let actualSchema = encodeSchema(schema: arrowSchema)
+    #expect(actualSchema == expectedSchema)
+    for (testBatch, recordBatch) in zip(expectedBatches, recordBatches) {
       for (
         (arrowField, arrowArray),
-        (expectedField, expectedColumn)
+        (_, expected)
       ) in zip(
         zip(arrowSchema.fields, recordBatch.arrays),
         zip(testCase.schema.fields, testBatch.columns)
       ) {
         let actual = try encodeColumn(array: arrowArray, field: arrowField)
-        let expected = expectedColumn.withoutJunkData()
 
         #expect(actual == expected)
 
         // This is just useful for pin-pointing differences.
         if actual != expected {
-          print("==== \(expectedColumn.name) ====")
+          print("==== \(expected.name) ====")
           #expect(actual.validity == expected.validity)
           #expect(actual.offset == expected.offset)
-
           if actual.data != expected.data {
             guard let actualData = actual.data,
               let expectedData = expected.data, let validity = actual.validity
             else {
-              //              fatalError()
-              #expect(false)
-              return
+              throw ArrowError.invalid("Expected and actual data both nil")
             }
-
             for (i, isValid) in validity.enumerated() {
               if isValid == 1 {
                 let aV = actualData[i]
@@ -115,4 +111,18 @@ struct ArrowTestingJSON {
       }
     }
   }
+
+}
+
+private func encodeSchema(schema: ArrowSchema) -> ArrowGold.Schema {
+  let fields = schema.fields.map { arrowField in
+    arrowField.toGoldField()
+  }
+  let encodedMetadata: [String: String]? =
+    switch schema.metadata {
+    case .none: nil
+    case .some(let metadata): metadata.isEmpty ? nil : metadata
+    }
+
+  return .init(fields: fields, metadata: encodedMetadata)
 }

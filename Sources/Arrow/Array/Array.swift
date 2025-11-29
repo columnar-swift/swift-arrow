@@ -38,25 +38,30 @@ extension ArrowArrayProtocol {
 
 // MARK: Capability protocols.
 
-public protocol ArrowArrayOfString {
+public protocol StringArrayProtocol {
   var length: Int { get }
   subscript(index: Int) -> String? { get }
 }
-extension ArrowArrayVariable: ArrowArrayOfString where ItemType == String {}
+extension ArrowArrayVariable: StringArrayProtocol where ItemType == String {}
 
-//public protocol ArrowArrayOfData {
-//  var length: Int { get }
-//  subscript(index: Int) -> Data? { get }
-//}
-//extension ArrowArrayFixedSizeBinary: ArrowArrayOfData where ItemType == Data {}
-//extension ArrowArrayVariable: ArrowArrayOfData where ItemType == Data {}
+protocol BinaryArrayProtocol: ArrowArrayProtocol where ItemType == Data {}
+extension ArrowArrayFixedSizeBinary: BinaryArrayProtocol {}
+extension ArrowArrayVariable: BinaryArrayProtocol
+where ItemType == Data, OffsetType: FixedWidthInteger & SignedInteger {}
 
-public protocol ArrowArrayOfList {
+protocol Utf8ArrayProtocol: ArrowArrayProtocol where ItemType == String {}
+extension ArrowArrayVariable: Utf8ArrayProtocol
+where ItemType == String, OffsetType: FixedWidthInteger & SignedInteger {}
+
+public protocol ListArrayProtocol {
   var length: Int { get }
   var values: AnyArrowArrayProtocol { get }
   subscript(index: Int) -> AnyArrowArrayProtocol? { get }
 }
-extension ArrowListArray: ArrowArrayOfList {}
+extension ArrowListArray: ListArrayProtocol {}
+extension ArrowFixedSizeListArray: ListArrayProtocol {}
+
+// MARK: Array implementations.
 
 /// An Arrow array of booleans using the three-valued logical model (true / false / null).
 public struct ArrowArrayBoolean: ArrowArrayProtocol {
@@ -189,16 +194,6 @@ public struct ArrowArrayFixedSizeBinary: ArrowArrayProtocol {
     )
   }
 }
-
-protocol BinaryArrayProtocol: ArrowArrayProtocol where ItemType == Data {}
-extension ArrowArrayFixedSizeBinary: BinaryArrayProtocol {}
-extension ArrowArrayVariable: BinaryArrayProtocol
-where ItemType == Data, OffsetType: FixedWidthInteger & SignedInteger {}
-
-protocol Utf8ArrayProtocol: ArrowArrayProtocol where ItemType == String {}
-//extension ArrowArrayFixedSize: BinaryArrayProtocol { }
-extension ArrowArrayVariable: Utf8ArrayProtocol
-where ItemType == String, OffsetType: FixedWidthInteger & SignedInteger {}
 
 /// An Arrow array of variable-length types.
 public struct ArrowArrayVariable<
@@ -376,17 +371,7 @@ where
   }
 }
 
-protocol ListArrayProtocol: ArrowArrayProtocol {
-  var length: Int { get }
-  var values: AnyArrowArrayProtocol { get }
-}
-
-extension ArrowListArray: ListArrayProtocol {
-
-  // No implementation needed - offsetsBuffer and values already exist
-  // Swift automatically satisfies the protocol requirements
-}
-
+/// An Arrow list array with fixed size elements.
 public struct ArrowFixedSizeListArray: ArrowArrayProtocol {
   public let offset: Int
   public let length: Int

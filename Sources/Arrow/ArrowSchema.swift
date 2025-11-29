@@ -25,7 +25,6 @@ public final class ArrowSchema: Sendable {
     for (index, field) in fields.enumerated() {
       fieldLookup[field.name] = index
     }
-
     self.fields = fields
     self.fieldLookup = fieldLookup
     self.metadata = metadata

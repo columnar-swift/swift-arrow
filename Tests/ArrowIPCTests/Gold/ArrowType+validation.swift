@@ -155,3 +155,152 @@ extension TimeUnit {
     }
   }
 }
+
+extension ArrowField {
+  func toGoldField() -> ArrowGold.Field {
+    ArrowGold.Field(
+      name: name,
+      type: type.toGoldFieldType(),
+      nullable: isNullable,
+      children: type.goldChildren(),
+      dictionary: nil,  // TODO: handle dictionary encoding if needed
+      metadata: self.metadata.isEmpty ? nil : self.metadata
+    )
+  }
+}
+
+extension ArrowType {
+  func toGoldFieldType() -> ArrowGold.FieldType {
+    let name: String
+    var byteWidth: Int?
+    var bitWidth: Int?
+    var isSigned: Bool? = nil
+    var precision: String? = nil
+    var scale: Int? = nil
+    var unit: String? = nil
+    var timezone: String? = nil
+    var listSize: Int? = nil
+
+    switch self {
+    case .int8:
+      name = "int"
+      bitWidth = 8
+      isSigned = true
+    case .int16:
+      name = "int"
+      bitWidth = 16
+      isSigned = true
+    case .int32:
+      name = "int"
+      bitWidth = 32
+      isSigned = true
+    case .int64:
+      name = "int"
+      bitWidth = 64
+      isSigned = true
+    case .uint8:
+      name = "int"
+      bitWidth = 8
+      isSigned = false
+    case .uint16:
+      name = "int"
+      bitWidth = 16
+      isSigned = false
+    case .uint32:
+      name = "int"
+      bitWidth = 32
+      isSigned = false
+    case .uint64:
+      name = "int"
+      bitWidth = 64
+      isSigned = false
+    case .float16:
+      name = "floatingpoint"
+      precision = "HALF"
+    case .float32:
+      name = "floatingpoint"
+      precision = "SINGLE"
+    case .float64:
+      name = "floatingpoint"
+      precision = "DOUBLE"
+    case .boolean:
+      name = "bool"
+    case .utf8:
+      name = "utf8"
+    case .binary:
+      name = "binary"
+    case .fixedSizeBinary(let byteWidth_):
+      byteWidth = Int(byteWidth_)
+      name = "fixedsizebinary"
+    case .date32:
+      name = "date"
+      unit = "DAY"
+    case .date64:
+      name = "date"
+      unit = "MILLISECOND"
+    case .timestamp(let unit_, let timezone_):
+      name = "timestamp"
+      unit = unit_.jsonName
+      timezone = timezone_
+    case .time32(let unit_):
+      name = "time"
+      bitWidth = 32
+      unit = unit_.jsonName
+    case .time64(let unit_):
+      name = "time"
+      bitWidth = 64
+      unit = unit_.jsonName
+    case .duration(let unit_):
+      name = "duration"
+      bitWidth = nil
+      unit = unit_.jsonName
+    case .decimal128(let precision_, let scale_):
+      name = "decimal"
+      bitWidth = 128
+      precision = String(precision_)
+      scale = Int(scale_)
+    case .decimal256(let precision_, let scale_):
+      name = "decimal"
+      bitWidth = 256
+      precision = String(precision_)
+      scale = Int(scale_)
+    case .list(let field):
+      name = "list"
+    case .largeList(let field):
+      name = "largelist"
+    case .fixedSizeList(let field, let listSize_):
+      name = "fixedsizelist"
+      listSize = Int(listSize_)
+    case .strct(let fields):
+      name = "struct"
+    case .map:
+      name = "struct"
+    default:
+      fatalError("Unhandled type: \(self)")
+    }
+    return ArrowGold.FieldType(
+      name: name,
+      byteWidth: byteWidth,
+      bitWidth: bitWidth,
+      isSigned: isSigned,
+      precision: precision,
+      scale: scale,
+      unit: unit,
+      timezone: timezone,
+      listSize: listSize
+    )
+  }
+
+  func goldChildren() -> [ArrowGold.Field]? {
+    switch self {
+    case .list(let field), .largeList(let field), .fixedSizeList(let field, _):
+      return [field.toGoldField()]
+    case .strct(let fields):
+      return fields.map { $0.toGoldField() }
+    default:
+      // May need to implement different nested types.
+      if isNested { fatalError("Not implemented for nested ArrowType") }
+      return []
+    }
+  }
+}
