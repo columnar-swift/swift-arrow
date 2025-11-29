@@ -15,35 +15,108 @@
 import Foundation
 
 /// The JSON file structure used to validate gold-standard  Arrow test files.
-struct ArrowGold: Codable {
+struct ArrowGold: Codable, Equatable {
   let schema: Schema
   let batches: [Batch]
   let dictionaries: [Dictionary]?
 
-  struct Dictionary: Codable {
+  struct Dictionary: Codable, Equatable {
     let id: Int
     let data: Batch
   }
 
-  struct DictionaryInfo: Codable {
+  struct DictionaryInfo: Codable, Equatable {
     let id: Int
     let indexType: FieldType
     let isOrdered: Bool?
   }
 
-  struct Schema: Codable {
+  struct Schema: Codable, Equatable {
     let fields: [Field]
+    let metadata: [String: String]?
+
+    enum CodingKeys: String, CodingKey {
+      case fields
+      case metadata
+    }
+
+    init(fields: [Field], metadata: [String: String]?) {
+      self.fields = fields
+      self.metadata = metadata
+    }
+
+    init(from decoder: Decoder) throws {
+      let container = try decoder.container(keyedBy: CodingKeys.self)
+      self.fields = try container.decode([Field].self, forKey: .fields)
+      if container.contains(.metadata) {
+        var metadataArray = try container.nestedUnkeyedContainer(
+          forKey: .metadata
+        )
+        try self.metadata = buildDictionary(from: &metadataArray)
+      } else {
+        self.metadata = nil
+      }
+    }
   }
 
-  struct Field: Codable {
+  struct Field: Codable, Equatable {
     let name: String
     let type: FieldType
     let nullable: Bool
     let children: [Field]?
     let dictionary: DictionaryInfo?
+    let metadata: [String: String]?
+
+    init(
+      name: String,
+      type: FieldType,
+      nullable: Bool,
+      children: [Field]? = nil,
+      dictionary: DictionaryInfo? = nil,
+      metadata: [String: String]? = nil
+    ) {
+      self.name = name
+      self.type = type
+      self.nullable = nullable
+      self.children = children
+      self.dictionary = dictionary
+      self.metadata = metadata
+    }
+
+    init(from decoder: Decoder) throws {
+      let container = try decoder.container(keyedBy: CodingKeys.self)
+      self.name = try container.decode(String.self, forKey: .name)
+      self.type = try container.decode(FieldType.self, forKey: .type)
+      self.nullable = try container.decode(Bool.self, forKey: .nullable)
+      self.children = try container.decodeIfPresent(
+        [Field].self,
+        forKey: .children
+      )
+      self.dictionary = try container.decodeIfPresent(
+        DictionaryInfo.self,
+        forKey: .dictionary
+      )
+      if container.contains(.metadata) {
+        var metadataArray = try container.nestedUnkeyedContainer(
+          forKey: .metadata
+        )
+        try self.metadata = buildDictionary(from: &metadataArray)
+      } else {
+        self.metadata = nil
+      }
+    }
+
+    enum CodingKeys: String, CodingKey {
+      case name
+      case type
+      case nullable
+      case children
+      case dictionary
+      case metadata
+    }
   }
 
-  struct FieldType: Codable {
+  struct FieldType: Codable, Equatable {
     let name: String
     let byteWidth: Int?
     let bitWidth: Int?
@@ -52,14 +125,15 @@ struct ArrowGold: Codable {
     let scale: Int?
     let unit: String?
     let timezone: String?
+    let listSize: Int?
   }
 
-  struct Batch: Codable {
+  struct Batch: Codable, Equatable {
     let count: Int
     let columns: [Column]
   }
 
-  struct Column: Codable {
+  struct Column: Codable, Equatable {
     let name: String
     let count: Int
     let validity: [Int]?
@@ -77,18 +151,24 @@ struct ArrowGold: Codable {
     }
   }
 
-  enum Value: Codable {
+  enum Value: Codable, Equatable {
     case int(Int)
     case string(String)
     case bool(Bool)
   }
 }
 
+/// A metadata key-value entry.
+private struct KeyValue: Codable, Equatable, Hashable {
+  let key: String
+  let value: String
+}
+
 /// Arrow gold files data values have variable types.
-enum DataValue: Codable {
+enum DataValue: Codable, Equatable {
   case string(String)
   case int(Int)
-  case double(Double)
+  case bool(Bool)
   case null
 
   init(from decoder: Decoder) throws {
@@ -99,9 +179,11 @@ enum DataValue: Codable {
     } else if let intValue = try? container.decode(Int.self) {
       self = .int(intValue)
     } else if let doubleValue = try? container.decode(Double.self) {
-      self = .double(doubleValue)
+      self = .string(String(doubleValue))
     } else if let stringValue = try? container.decode(String.self) {
       self = .string(stringValue)
+    } else if let boolValue = try? container.decode(Bool.self) {
+      self = .bool(boolValue)
     } else {
       throw DecodingError.typeMismatch(
         DataValue.self,
@@ -111,4 +193,41 @@ enum DataValue: Codable {
       )
     }
   }
+}
+
+extension ArrowGold.Column {
+
+  /// Filter for the valid values.
+  /// - Returns: The test column data with nulls in place of junk values.
+  func withoutJunkData() -> Self {
+    guard let validity = self.validity else {
+      fatalError()
+    }
+    let filteredData = data?.enumerated().map { index, value in
+      validity[index] == 1 ? value : .null
+    }
+    return Self(
+      name: name,
+      count: count,
+      validity: validity,
+      offset: offset,
+      data: filteredData,
+      children: children?.map { $0.withoutJunkData() }
+    )
+  }
+}
+
+/// Decode a list of `KeyValue` to a dictionary.
+/// - Parameter keyValues: The key values to convert.
+/// - Throws: If decoding fails.
+/// - Returns: A metadata dictionary.
+private func buildDictionary(
+  from keyValues: inout any UnkeyedDecodingContainer
+) throws -> [String: String]? {
+  var dict: [String: String] = [:]
+  while !keyValues.isAtEnd {
+    let pair = try keyValues.decode(KeyValue.self)
+    dict[pair.key] = pair.value
+  }
+  return dict.isEmpty ? nil : dict
 }

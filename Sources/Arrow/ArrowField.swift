@@ -50,13 +50,18 @@ extension ArrowField {
   /// Default list member field name.
   public static let listFieldDefaultName = "item"
 
-  /// Creates a new field with the given name, data type, and nullability.
-  public init(name: String, dataType: ArrowType, isNullable: Bool) {
+  /// Creates a new field with the given name, data type, nullability and metadata.
+  public init(
+    name: String,
+    dataType: ArrowType,
+    isNullable: Bool,
+    metadata: [String: String] = [:]
+  ) {
     self.name = name
     self.type = dataType
     self.isNullable = isNullable
     self.orderedDict = false
-    self.metadata = .init()
+    self.metadata = metadata
   }
 
   /// Creates a new `ArrowField` suitable for `ArrowType::List`.

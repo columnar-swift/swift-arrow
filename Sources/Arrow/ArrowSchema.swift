@@ -18,14 +18,16 @@ import Foundation
 public final class ArrowSchema: Sendable {
   public let fields: [ArrowField]
   public let fieldLookup: [String: Int]
-  init(_ fields: [ArrowField]) {
+  let metadata: [String: String]?
+
+  public init(_ fields: [ArrowField], metadata: [String: String]? = nil) {
     var fieldLookup: [String: Int] = [:]
     for (index, field) in fields.enumerated() {
       fieldLookup[field.name] = index
     }
-
     self.fields = fields
     self.fieldLookup = fieldLookup
+    self.metadata = metadata
   }
 
   public func field(_ index: Int) -> ArrowField {

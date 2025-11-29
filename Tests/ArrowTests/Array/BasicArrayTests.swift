@@ -76,7 +76,7 @@ struct BasicArrayTests {
   }
 
   @Test func stringArray() throws {
-    let builder: ArrayBuilderVariableLength<String> = .init()
+    let builder: ArrayBuilderVariableLength<String, Int32> = .init()
     builder.appendNull()
     builder.append("abc")
     builder.append("def")

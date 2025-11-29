@@ -22,7 +22,7 @@ struct StructArrayTests {
   @Test func testStructArray() {
     // Create builders for struct fields
     let idBuilder = ArrayBuilderFixedWidth<Int32>()
-    let nameBuilder = ArrayBuilderVariableLength<String>()
+    let nameBuilder = ArrayBuilderVariableLength<String, Int32>()
 
     // Create struct builder
     let structBuilder = ArrayBuilderStruct(fields: [

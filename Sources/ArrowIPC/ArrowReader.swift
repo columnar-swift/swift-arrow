@@ -85,7 +85,9 @@ where
 }
 
 /// A `Data` backed buffer for variable-length types.
-struct VariableLengthBufferIPC<Element: VariableLength>:
+struct VariableLengthBufferIPC<
+  Element: VariableLength, OffsetType: FixedWidthInteger
+>:
   VariableLengthBufferProtocol, ArrowBufferIPC
 {
   typealias ElementType = Element
@@ -152,7 +154,7 @@ public struct ArrowReader {
     guard let schema = footer.schema else {
       throw ArrowError.invalid("Missing schema in footer")
     }
-    let arrowSchema = try loadSchema(schema)
+    let arrowSchema = try loadSchema(schema: schema)
     var recordBatches: [RecordBatch] = []
 
     // MARK: Record batch parsing
@@ -281,20 +283,36 @@ public struct ArrowReader {
         return makeFixedArray(
           length: length, elementType: Int8.self,
           nullBuffer: nullBuffer, buffer: buffer1)
+      case .uint8:
+        return makeFixedArray(
+          length: length, elementType: UInt8.self,
+          nullBuffer: nullBuffer, buffer: buffer1)
       case .int16:
         return makeFixedArray(
           length: length, elementType: Int16.self,
+          nullBuffer: nullBuffer, buffer: buffer1)
+      case .uint16:
+        return makeFixedArray(
+          length: length, elementType: UInt16.self,
           nullBuffer: nullBuffer, buffer: buffer1)
       case .int32:
         return makeFixedArray(
           length: length, elementType: Int32.self,
           nullBuffer: nullBuffer, buffer: buffer1)
+      case .uint32:
+        return makeFixedArray(
+          length: length, elementType: UInt32.self,
+          nullBuffer: nullBuffer, buffer: buffer1)
       case .int64:
         return makeFixedArray(
           length: length, elementType: Int64.self,
           nullBuffer: nullBuffer, buffer: buffer1)
+      case .uint64:
+        return makeFixedArray(
+          length: length, elementType: UInt64.self,
+          nullBuffer: nullBuffer, buffer: buffer1)
       default:
-        throw ArrowError.notImplemented
+        throw ArrowError.invalid("TODO: Unimplemented arrow type: \(arrowType)")
       }
     } else if arrowType.isVariable {
       let buffer1 = try nextBuffer(
@@ -302,26 +320,74 @@ public struct ArrowReader {
       let buffer2 = try nextBuffer(
         message: rbMessage, index: &bufferIndex, offset: offset, data: data)
 
+      let offsetsBufferTyped = FixedWidthBufferIPC<Int32>(buffer: buffer1)
+
       if arrowType == .utf8 {
-        return ArrowArrayVariable.utf8(
+        let valueBufferTyped = VariableLengthBufferIPC<String, Int32>(
+          buffer: buffer2)
+        return ArrowArrayVariable<String, Int32>(
           length: length,
           nullBuffer: nullBuffer,
-          offsetsBuffer: buffer1,
-          valueBuffer: buffer2
+          offsetsBuffer: offsetsBufferTyped,
+          valueBuffer: valueBufferTyped
         )
       } else if arrowType == .binary {
-        return ArrowArrayVariable.binary(
+        let valueBufferTyped = VariableLengthBufferIPC<Data, Int32>(
+          buffer: buffer2)
+        return ArrowArrayVariable<Data, Int32>(
           length: length,
           nullBuffer: nullBuffer,
-          offsetsBuffer: buffer1,
-          valueBuffer: buffer2
+          offsetsBuffer: offsetsBufferTyped,
+          valueBuffer: valueBufferTyped
         )
       } else {
         throw ArrowError.notImplemented
       }
     } else if arrowType.isNested {
       switch arrowType {
-      case .list(let field):
+      case .list(let childField):
+        let buffer1 = try nextBuffer(
+          message: rbMessage, index: &bufferIndex, offset: offset, data: data)
+        var offsetsBuffer = FixedWidthBufferIPC<Int32>(buffer: buffer1)
+
+        let array: AnyArrowArrayProtocol = try loadField(
+          rbMessage: rbMessage,
+          field: childField,
+          offset: offset,
+          nodeIndex: &nodeIndex,
+          bufferIndex: &bufferIndex
+        )
+
+        if offsetsBuffer.length == 0 {
+          // Empty offsets buffer is valid when child array is empty
+          // There could be any number of empty lists referencing into an empty list
+          guard array.length == 0 else {
+            throw ArrowError.invalid(
+              "Empty offsets buffer but non-empty child array")
+          }
+          let emptyBuffer = emptyOffsetBuffer(offsetCount: length + 1)
+          offsetsBuffer = FixedWidthBufferIPC<Int32>(buffer: emptyBuffer)
+        } else {
+          let requiredBytes = (length + 1) * MemoryLayout<Int32>.stride
+          guard offsetsBuffer.length >= requiredBytes else {
+            throw ArrowError.invalid(
+              "Offsets buffer too small: need \(requiredBytes) bytes for \(length) lists"
+            )
+          }
+          // Verify last offset matches child array length
+          let lastOffset = offsetsBuffer[length]
+          guard lastOffset == Int32(array.length) else {
+            throw ArrowError.invalid(
+              "Expected last offset to match child array length.")
+          }
+        }
+        return makeListArray(
+          length: length,
+          nullBuffer: nullBuffer,
+          offsetsBuffer: offsetsBuffer,
+          values: array
+        )
+      case .fixedSizeList(let field, let listSize):
         let array: AnyArrowArrayProtocol = try loadField(
           rbMessage: rbMessage,
           field: field,
@@ -329,25 +395,10 @@ public struct ArrowReader {
           nodeIndex: &nodeIndex,
           bufferIndex: &bufferIndex
         )
-        let buffer1 = try nextBuffer(
-          message: rbMessage, index: &bufferIndex, offset: offset, data: data)
-        var offsetsBuffer = FixedWidthBufferIPC<Int32>(buffer: buffer1)
-
-        // TODO: This is a hack for the special-case where buffer length 0 means all-zero offset.
-        // Can follow the null buffer example.
-        if offsetsBuffer.length != length + 1 {
-          let offsetCount = length + 1
-          let byteCount = offsetCount * MemoryLayout<Int32>.stride
-          let fileDataBuffer = FileDataBuffer(
-            data: Data(count: byteCount),  // Zero-initialized
-            range: 0..<byteCount
-          )
-          offsetsBuffer = FixedWidthBufferIPC<Int32>(buffer: fileDataBuffer)
-        }
-        return makeListArray(
+        return ArrowFixedSizeListArray(
           length: length,
+          listSize: Int(listSize),
           nullBuffer: nullBuffer,
-          offsetsBuffer: offsetsBuffer,
           values: array
         )
       case .strct(let fields):
@@ -375,7 +426,7 @@ public struct ArrowReader {
       if case .fixedSizeBinary(let byteWidth) = arrowType {
         let valueBuffer = try nextBuffer(
           message: rbMessage, index: &bufferIndex, offset: offset, data: data)
-        let valueBufferTyped = VariableLengthBufferIPC<Data>(
+        let valueBufferTyped = VariableLengthBufferIPC<Data, Int32>(
           buffer: valueBuffer)
         return ArrowArrayFixedSizeBinary(
           length: length,
@@ -408,48 +459,82 @@ public struct ArrowReader {
     elementType: T.Type,
     nullBuffer: NullBuffer,
     buffer: FileDataBuffer
-  ) -> ArrowArrayFixed<FixedWidthBufferIPC<T>> {
+  ) -> ArrowArrayNumeric<T> {
     let fixedBuffer = FixedWidthBufferIPC<T>(buffer: buffer)
-    return ArrowArrayFixed(
+    return ArrowArrayNumeric(
       length: length,
       nullBuffer: nullBuffer,
       valueBuffer: fixedBuffer
     )
   }
 
-  func makeListArray<Element>(
+  func makeListArray<OffsetsBuffer>(
     length: Int,
     nullBuffer: NullBuffer,
-    offsetsBuffer: FixedWidthBufferIPC<Int32>,
-    values: Element
-  ) -> AnyArrowListArray where Element: AnyArrowArrayProtocol {
-    let list = ArrowListArray(
+    offsetsBuffer: OffsetsBuffer,
+    values: AnyArrowArrayProtocol
+  ) -> ArrowListArray<OffsetsBuffer>
+  where
+    OffsetsBuffer: FixedWidthBufferProtocol,
+    OffsetsBuffer.ElementType: FixedWidthInteger & SignedInteger
+  {
+    ArrowListArray(
       length: length,
       nullBuffer: nullBuffer,
       offsetsBuffer: offsetsBuffer,
       values: values
     )
-    return AnyArrowListArray(list)
   }
 
-  private func loadSchema(_ schema: FSchema) throws(ArrowError) -> ArrowSchema {
-    let builder = ArrowSchema.Builder()
+  private func loadSchema(schema: FSchema) throws(ArrowError) -> ArrowSchema {
+    let metadata = (0..<schema.customMetadataCount)
+      .reduce(into: [String: String]()) { dict, index in
+        guard let customMetadata = schema.customMetadata(at: index),
+          let key = customMetadata.key
+        else { return }
+        dict[key] = customMetadata.value
+      }
+    var fields: [ArrowField] = []
     for index in 0..<schema.fieldsCount {
       guard let field = schema.fields(at: index) else {
         throw .invalid("Field not found at index: \(index)")
       }
-      let fieldType: ArrowType = try .type(for: field)
-      guard let fieldName = field.name else {
-        throw .invalid("Field name not found")
-      }
-      let arrowField = ArrowField(
-        name: fieldName,
-        dataType: fieldType,
-        isNullable: field.nullable
-      )
-      builder.addField(arrowField)
+      let arrowField = try ArrowField.parse(from: field)
+      fields.append(arrowField)
     }
-    return builder.finish()
+    return ArrowSchema(fields, metadata: metadata)
   }
 
+  //TODO: This is for the special-case where buffer length 0 means all-zero offset.
+  // Would be better to have a specialised empty null buffer
+  func emptyOffsetBuffer(offsetCount: Int) -> FileDataBuffer {
+    let byteCount = offsetCount * MemoryLayout<Int32>.stride
+    return FileDataBuffer(
+      data: Data(count: byteCount),  // Zero-initialized
+      range: 0..<byteCount
+    )
+  }
+
+}
+
+extension ArrowField {
+  static func parse(from field: FField) throws(ArrowError) -> Self {
+    let fieldType: ArrowType = try .type(for: field)
+    guard let fieldName = field.name else {
+      throw .invalid("Field name not found")
+    }
+    let fieldMetadata = (0..<field.customMetadataCount)
+      .reduce(into: [String: String]()) { dict, index in
+        guard let customMetadata = field.customMetadata(at: index),
+          let key = customMetadata.key
+        else { return }
+        dict[key] = customMetadata.value
+      }
+    return .init(
+      name: fieldName,
+      dataType: fieldType,
+      isNullable: field.nullable,
+      metadata: fieldMetadata
+    )
+  }
 }

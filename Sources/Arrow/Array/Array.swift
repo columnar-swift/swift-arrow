@@ -38,26 +38,30 @@ extension ArrowArrayProtocol {
 
 // MARK: Capability protocols.
 
-public protocol ArrowArrayOfString {
+public protocol StringArrayProtocol {
+  var length: Int { get }
   subscript(index: Int) -> String? { get }
 }
-extension ArrowArrayVariable: ArrowArrayOfString where ItemType == String {}
+extension ArrowArrayVariable: StringArrayProtocol where ItemType == String {}
 
-public protocol ArrowArrayOfData {
-  subscript(index: Int) -> Data? { get }
-}
-extension ArrowArrayFixedSizeBinary: ArrowArrayOfData where ItemType == Data {}
-extension ArrowArrayVariable: ArrowArrayOfData where ItemType == Data {}
+protocol BinaryArrayProtocol: ArrowArrayProtocol where ItemType == Data {}
+extension ArrowArrayFixedSizeBinary: BinaryArrayProtocol {}
+extension ArrowArrayVariable: BinaryArrayProtocol
+where ItemType == Data, OffsetType: FixedWidthInteger & SignedInteger {}
 
-public protocol ArrowArrayOfInt8 {
-  subscript(index: Int) -> Int8? { get }
-}
-extension ArrowArrayFixed: ArrowArrayOfInt8 where ItemType == Int8 {}
+protocol Utf8ArrayProtocol: ArrowArrayProtocol where ItemType == String {}
+extension ArrowArrayVariable: Utf8ArrayProtocol
+where ItemType == String, OffsetType: FixedWidthInteger & SignedInteger {}
 
-public protocol ArrowArrayOfInt32 {
-  subscript(index: Int) -> Int32? { get }
+public protocol ListArrayProtocol {
+  var length: Int { get }
+  var values: AnyArrowArrayProtocol { get }
+  subscript(index: Int) -> AnyArrowArrayProtocol? { get }
 }
-extension ArrowArrayFixed: ArrowArrayOfInt32 where ItemType == Int32 {}
+extension ArrowListArray: ListArrayProtocol {}
+extension ArrowFixedSizeListArray: ListArrayProtocol {}
+
+// MARK: Array implementations.
 
 /// An Arrow array of booleans using the three-valued logical model (true / false / null).
 public struct ArrowArrayBoolean: ArrowArrayProtocol {
@@ -102,34 +106,32 @@ public struct ArrowArrayBoolean: ArrowArrayProtocol {
 }
 
 /// An Arrow array of fixed-width types.
-public struct ArrowArrayFixed<ValueBuffer>: ArrowArrayProtocol
-where
-  ValueBuffer: FixedWidthBufferProtocol,
-  ValueBuffer.ElementType: Numeric
+public struct ArrowArrayNumeric<ItemType: Numeric & BitwiseCopyable>:
+  ArrowArrayProtocol
 {
-
-  public typealias ItemType = ValueBuffer.ElementType
   public let offset: Int
   public let length: Int
+  public var nullCount: Int { nullBuffer.nullCount }
   public var bufferSizes: [Int] { [nullBuffer.length, valueBuffer.length] }
   public var buffers: [ArrowBufferProtocol] { [nullBuffer, valueBuffer] }
-  public var nullCount: Int { nullBuffer.nullCount }
-  let nullBuffer: NullBuffer
-  let valueBuffer: ValueBuffer
 
-  public init(
+  let nullBuffer: NullBuffer
+  private let valueBuffer: any FixedWidthBufferProtocol<ItemType>
+
+  // Initialize from concrete buffer type
+  public init<ValueBuffer: FixedWidthBufferProtocol>(
     offset: Int = 0,
     length: Int,
     nullBuffer: NullBuffer,
     valueBuffer: ValueBuffer
-  ) {
+  ) where ValueBuffer.ElementType == ItemType {
     self.offset = offset
     self.length = length
     self.nullBuffer = nullBuffer
     self.valueBuffer = valueBuffer
   }
 
-  public subscript(index: Int) -> ValueBuffer.ElementType? {
+  public subscript(index: Int) -> ItemType? {
     precondition(index >= 0 && index < length, "Invalid index.")
     let offsetIndex = self.offset + index
     if !self.nullBuffer.isSet(offsetIndex) {
@@ -148,10 +150,7 @@ where
   }
 }
 
-public struct ArrowArrayFixedSizeBinary<ValueBuffer>: ArrowArrayProtocol
-where
-  ValueBuffer: VariableLengthBufferProtocol<Data>
-{
+public struct ArrowArrayFixedSizeBinary: ArrowArrayProtocol {
   public typealias ItemType = Data
   public let offset: Int
   public let length: Int
@@ -163,14 +162,14 @@ where
   public var nullCount: Int { nullBuffer.nullCount }
 
   let nullBuffer: NullBuffer
-  let valueBuffer: ValueBuffer
+  let valueBuffer: any VariableLengthBufferProtocol<Data>
 
   public init(
     offset: Int = 0,
     length: Int,
     byteWidth: Int,
     nullBuffer: NullBuffer,
-    valueBuffer: ValueBuffer
+    valueBuffer: any VariableLengthBufferProtocol<Data>
   ) {
     self.offset = offset
     self.length = length
@@ -179,7 +178,7 @@ where
     self.valueBuffer = valueBuffer
   }
 
-  public subscript(index: Int) -> ValueBuffer.ElementType? {
+  public subscript(index: Int) -> ItemType? {
     guard nullBuffer.isSet(index) else { return nil }
     let startIndex = index * byteWidth
     return valueBuffer.loadVariable(at: startIndex, arrayLength: byteWidth)
@@ -197,34 +196,36 @@ where
 }
 
 /// An Arrow array of variable-length types.
-public struct ArrowArrayVariable<OffsetsBuffer, ValueBuffer>:
-  ArrowArrayProtocol
-where
-  OffsetsBuffer: FixedWidthBufferProtocol<Int32>,
-  ValueBuffer: VariableLengthBufferProtocol<ValueBuffer.ElementType>,
-  ValueBuffer.ElementType: VariableLength
-{
-  public typealias ItemType = ValueBuffer.ElementType
+public struct ArrowArrayVariable<
+  ItemType: VariableLength,
+  OffsetType: FixedWidthInteger & SignedInteger
+>: ArrowArrayProtocol {
   public let offset: Int
   public let length: Int
+  private let nullBuffer: NullBuffer
+  private let offsetsBuffer: any FixedWidthBufferProtocol<OffsetType>
+  private let valueBuffer: any VariableLengthBufferProtocol<ItemType>
+
   public var bufferSizes: [Int] {
     [nullBuffer.length, offsetsBuffer.length, valueBuffer.length]
   }
+
   public var buffers: [ArrowBufferProtocol] {
     [nullBuffer, offsetsBuffer, valueBuffer]
   }
-  public var nullCount: Int { nullBuffer.nullCount }
-  let nullBuffer: NullBuffer
-  let offsetsBuffer: OffsetsBuffer
-  let valueBuffer: ValueBuffer
 
-  public init(
+  public var nullCount: Int { nullBuffer.nullCount }
+
+  public init<
+    Offsets: FixedWidthBufferProtocol<OffsetType>,
+    Values: VariableLengthBufferProtocol
+  >(
     offset: Int = 0,
     length: Int,
     nullBuffer: NullBuffer,
-    offsetsBuffer: OffsetsBuffer,
-    valueBuffer: ValueBuffer
-  ) {
+    offsetsBuffer: Offsets,
+    valueBuffer: Values
+  ) where Values.ElementType == ItemType {
     self.offset = offset
     self.length = length
     self.nullBuffer = nullBuffer
@@ -232,16 +233,19 @@ where
     self.valueBuffer = valueBuffer
   }
 
-  public subscript(index: Int) -> ValueBuffer.ElementType? {
+  public subscript(index: Int) -> ItemType? {
     let offsetIndex = self.offset + index
-    if !self.nullBuffer.isSet(offsetIndex) {
+    guard self.nullBuffer.isSet(offsetIndex) else {
       return nil
     }
-    let startIndex = offsetsBuffer[offsetIndex]
-    let endIndex = offsetsBuffer[offsetIndex + 1]
+
+    // Use runtime dispatch through the existential
+    let startOffset = offsetsBuffer[offsetIndex]
+    let endOffset = offsetsBuffer[offsetIndex + 1]
+
     return valueBuffer.loadVariable(
-      at: Int(startIndex),
-      arrayLength: Int(endIndex - startIndex)
+      at: Int(startOffset),
+      arrayLength: Int(endOffset - startOffset)
     )
   }
 
@@ -257,17 +261,14 @@ where
 }
 
 /// An Arrow array of `Date`s with a resolution of 1 day.
-public struct ArrowArrayDate32<ValueBuffer>: ArrowArrayProtocol
-where
-  ValueBuffer: FixedWidthBufferProtocol<Int32>
-{
+public struct ArrowArrayDate32: ArrowArrayProtocol {
   public typealias ItemType = Date
   public var bufferSizes: [Int] { array.bufferSizes }
   public var buffers: [ArrowBufferProtocol] { array.buffers }
   public var nullCount: Int { array.nullCount }
   public var offset: Int { array.offset }
   public var length: Int { array.length }
-  let array: ArrowArrayFixed<ValueBuffer>
+  let array: ArrowArrayNumeric<Date32>
 
   public subscript(index: Int) -> Date? {
     precondition(index >= 0 && index < length, "Invalid index.")
@@ -287,17 +288,14 @@ where
 }
 
 /// An Arrow array of `Date`s with a resolution of 1 second.
-public struct ArrowArrayDate64<ValueBuffer>: ArrowArrayProtocol
-where
-  ValueBuffer: FixedWidthBufferProtocol<Date64>
-{
+public struct ArrowArrayDate64: ArrowArrayProtocol {
   public typealias ItemType = Date
   public var bufferSizes: [Int] { array.bufferSizes }
   public var buffers: [ArrowBufferProtocol] { array.buffers }
   public var nullCount: Int { array.nullCount }
   public var offset: Int { array.offset }
   public var length: Int { array.length }
-  let array: ArrowArrayFixed<ValueBuffer>
+  let array: ArrowArrayNumeric<Date64>
 
   public subscript(index: Int) -> Date? {
     precondition(index >= 0 && index < length, "Invalid index.")
@@ -316,13 +314,12 @@ where
   }
 }
 
-/// A strongly-typed Arrow list array which may be nested arbitrarily.
-public struct ArrowListArray<Element, OffsetsBuffer>: ArrowArrayProtocol
+///// An Arrow list array which may be nested arbitrarily.
+public struct ArrowListArray<OffsetsBuffer>: ArrowArrayProtocol
 where
-  OffsetsBuffer: FixedWidthBufferProtocol<Int32>,
-  Element: AnyArrowArrayProtocol
+  OffsetsBuffer: FixedWidthBufferProtocol,
+  OffsetsBuffer.ElementType: FixedWidthInteger & SignedInteger
 {
-  public typealias ItemType = Element
   public let offset: Int
   public let length: Int
   public var bufferSizes: [Int] {
@@ -332,16 +329,17 @@ where
     [nullBuffer, offsetsBuffer]
   }
   public var nullCount: Int { nullBuffer.nullCount }
+
   let nullBuffer: NullBuffer
   let offsetsBuffer: OffsetsBuffer
-  let values: Element
+  public let values: AnyArrowArrayProtocol
 
   public init(
     offset: Int = 0,
     length: Int,
     nullBuffer: NullBuffer,
     offsetsBuffer: OffsetsBuffer,
-    values: Element
+    values: AnyArrowArrayProtocol
   ) {
     self.offset = offset
     self.length = length
@@ -350,7 +348,7 @@ where
     self.values = values
   }
 
-  public subscript(index: Int) -> Element? {
+  public subscript(index: Int) -> AnyArrowArrayProtocol? {
     precondition(index >= 0 && index < length, "Invalid index.")
     let offsetIndex = self.offset + index
     if !self.nullBuffer.isSet(offsetIndex) {
@@ -373,45 +371,59 @@ where
   }
 }
 
-/// A type-erased wrapper for an Arrow list array.
-public struct AnyArrowListArray: ArrowArrayProtocol {
-
-  public typealias ItemType = AnyArrowArrayProtocol
-  public var bufferSizes: [Int] {
-    _base.bufferSizes
-  }
-  public var buffers: [ArrowBufferProtocol] {
-    _base.buffers
-  }
-
-  private let _base: any ArrowArrayProtocol
-  private let _subscriptImpl: (Int) -> AnyArrowArrayProtocol?
-  private let _sliceImpl: (Int, Int) -> AnyArrowListArray
-
+/// An Arrow list array with fixed size elements.
+public struct ArrowFixedSizeListArray: ArrowArrayProtocol {
   public let offset: Int
   public let length: Int
-  public var nullCount: Int { _base.nullCount }
+  public let listSize: Int
 
-  public init<Element, OffsetsBuffer>(
-    _ list: ArrowListArray<Element, OffsetsBuffer>
-  )
-  where
-    OffsetsBuffer: FixedWidthBufferProtocol<Int32>,
-    Element: AnyArrowArrayProtocol
-  {
-    self._base = list
-    self.offset = list.offset
-    self.length = list.length
-    self._subscriptImpl = { list[$0] }
-    self._sliceImpl = { AnyArrowListArray(list.slice(offset: $0, length: $1)) }
+  public var bufferSizes: [Int] {
+    [nullBuffer.length]
+  }
+
+  public var buffers: [ArrowBufferProtocol] {
+    [nullBuffer]
+  }
+
+  public var nullCount: Int { nullBuffer.nullCount }
+
+  let nullBuffer: NullBuffer
+  public let values: AnyArrowArrayProtocol
+
+  public init(
+    offset: Int = 0,
+    length: Int,
+    listSize: Int,
+    nullBuffer: NullBuffer,
+    values: AnyArrowArrayProtocol
+  ) {
+    self.offset = offset
+    self.length = length
+    self.listSize = listSize
+    self.nullBuffer = nullBuffer
+    self.values = values
   }
 
   public subscript(index: Int) -> AnyArrowArrayProtocol? {
-    _subscriptImpl(index)
+    precondition(index >= 0 && index < length, "Invalid index.")
+    let offsetIndex = self.offset + index
+
+    if !self.nullBuffer.isSet(offsetIndex) {
+      return nil
+    }
+
+    let startIndex = offsetIndex * listSize
+    return values.slice(offset: startIndex, length: listSize)
   }
 
-  public func slice(offset: Int, length: Int) -> AnyArrowListArray {
-    _sliceImpl(offset, length)
+  public func slice(offset: Int, length: Int) -> Self {
+    .init(
+      offset: self.offset + offset,
+      length: length,
+      listSize: listSize,
+      nullBuffer: nullBuffer,
+      values: values
+    )
   }
 }
 

@@ -43,7 +43,7 @@ struct ReadmeExamples {
 
   @Test func stringArray() throws {
     let swiftArray: [String?] = ["ab", nil, "c", "", "."]
-    let arrayBuilder: ArrayBuilderVariableLength<String> = .init()
+    let arrayBuilder: ArrayBuilderVariableLength<String, Int32> = .init()
     for value in swiftArray {
       if let value {
         arrayBuilder.append(value)

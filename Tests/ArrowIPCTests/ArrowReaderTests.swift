@@ -22,7 +22,7 @@ struct ArrowReaderTests {
   @Test func boolFile() throws {
     let url = try loadTestResource(name: "testdata_bool")
     let arrowReader = try ArrowReader(url: url)
-    let (arrowSchema, recordBatches) = try arrowReader.read()
+    let (_, recordBatches) = try arrowReader.read()
     for recordBatch in recordBatches {
       checkBoolRecordBatch(recordBatch: recordBatch)
     }
@@ -32,14 +32,14 @@ struct ArrowReaderTests {
 
     let url = try loadTestResource(name: "testdata_double")
     let arrowReader = try ArrowReader(url: url)
-    let (arrowSchema, recordBatches) = try arrowReader.read()
+    let (_, recordBatches) = try arrowReader.read()
 
     for recordBatch in recordBatches {
 
       // Test the Float64 column (index 0)
       guard
         let doubleColumn = recordBatch.arrays[0]
-          as? ArrowArrayFixed<FixedWidthBufferIPC<Double>>
+          as? ArrowArrayNumeric<Double>
       else {
         Issue.record("Failed to cast column 0 to ArrowArrayDouble")
         return
@@ -53,7 +53,10 @@ struct ArrowReaderTests {
       #expect(doubleColumn[4] == 5.5)
 
       // Test the String column (index 1)
-      guard let stringColumn = recordBatch.arrays[1] as? ArrowArrayUtf8 else {
+      guard
+        let stringColumn = recordBatch.arrays[1]
+          as? ArrowArrayVariable<String, Int32>
+      else {
         Issue.record("Failed to cast column 1 to ArrowArrayString")
         return
       }

@@ -518,7 +518,7 @@ extension ArrowType {
 
   /// Returns true if the type is primitive: (numeric, temporal).
   @inlinable
-  public func isPrimitive() -> Bool {
+  public var isPrimitive: Bool {
     self.isNumeric || self.isTemporal
   }
 
@@ -1023,7 +1023,6 @@ extension ArrowType {
     } else if from == "u" {
       return .utf8
     }
-
     throw .notImplemented
   }
 }

@@ -15,65 +15,65 @@
 import Arrow
 import Foundation
 
-/// A `Data` backed Arrow utf8 array.
-typealias ArrowArrayUtf8 = ArrowArrayVariable<
-  FixedWidthBufferIPC<Int32>,
-  VariableLengthBufferIPC<String>
->
-
-extension ArrowArrayUtf8 {
-
-  /// Build a `Data` backed Arrow utf8 array.
-  /// - Parameters:
-  ///   - length: The array length.
-  ///   - nullBuffer: The null buffer.
-  ///   - offsetsBuffer: A view over file-backed data.
-  ///   - valueBuffer: A view over file-backed data.
-  /// - Returns: A file-backed Arrow utf8 array.
-  static func utf8(
-    length: Int,
-    nullBuffer: NullBuffer,
-    offsetsBuffer: FileDataBuffer,
-    valueBuffer: FileDataBuffer
-  ) -> Self {
-    let offsetsBufferTyped = FixedWidthBufferIPC<Int32>(buffer: offsetsBuffer)
-    let valueBufferTyped = VariableLengthBufferIPC<String>(buffer: valueBuffer)
-    return Self(
-      length: length,
-      nullBuffer: nullBuffer,
-      offsetsBuffer: offsetsBufferTyped,
-      valueBuffer: valueBufferTyped
-    )
-  }
-}
-
-typealias ArrowArrayBinary = ArrowArrayVariable<
-  FixedWidthBufferIPC<Int32>,
-  VariableLengthBufferIPC<Data>
->
-
-extension ArrowArrayBinary {
-
-  /// Build a `Data` backed Arrow binary array.
-  /// - Parameters:
-  ///   - length: The array length.
-  ///   - nullBuffer: The null buffer.
-  ///   - offsetsBuffer: A view over file-backed data.
-  ///   - valueBuffer: A view over file-backed data.
-  /// - Returns: A file-backed Arrow utf8 array.
-  static func binary(
-    length: Int,
-    nullBuffer: NullBuffer,
-    offsetsBuffer: FileDataBuffer,
-    valueBuffer: FileDataBuffer
-  ) -> Self {
-    let offsetsBufferTyped = FixedWidthBufferIPC<Int32>(buffer: offsetsBuffer)
-    let valueBufferTyped = VariableLengthBufferIPC<Data>(buffer: valueBuffer)
-    return Self(
-      length: length,
-      nullBuffer: nullBuffer,
-      offsetsBuffer: offsetsBufferTyped,
-      valueBuffer: valueBufferTyped
-    )
-  }
-}
+///// A `Data` backed Arrow utf8 array.
+//typealias ArrowArrayUtf8 = ArrowArrayVariable<
+//  FixedWidthBufferIPC<Int32>,
+//  VariableLengthBufferIPC<String, Int32>
+//>
+//
+//extension ArrowArrayUtf8 {
+//
+//  /// Build a `Data` backed Arrow utf8 array.
+//  /// - Parameters:
+//  ///   - length: The array length.
+//  ///   - nullBuffer: The null buffer.
+//  ///   - offsetsBuffer: A view over file-backed data.
+//  ///   - valueBuffer: A view over file-backed data.
+//  /// - Returns: A file-backed Arrow utf8 array.
+//  static func utf8(
+//    length: Int,
+//    nullBuffer: NullBuffer,
+//    offsetsBuffer: FileDataBuffer,
+//    valueBuffer: FileDataBuffer
+//  ) -> Self {
+//    let offsetsBufferTyped = FixedWidthBufferIPC<Int32>(buffer: offsetsBuffer)
+//    let valueBufferTyped = VariableLengthBufferIPC<String>(buffer: valueBuffer)
+//    return Self(
+//      length: length,
+//      nullBuffer: nullBuffer,
+//      offsetsBuffer: offsetsBufferTyped,
+//      valueBuffer: valueBufferTyped
+//    )
+//  }
+//}
+//
+//typealias ArrowArrayBinary = ArrowArrayVariable<
+//  FixedWidthBufferIPC<Int32>,
+//  VariableLengthBufferIPC<Data, Int32>
+//>
+//
+//extension ArrowArrayBinary {
+//
+//  /// Build a `Data` backed Arrow binary array.
+//  /// - Parameters:
+//  ///   - length: The array length.
+//  ///   - nullBuffer: The null buffer.
+//  ///   - offsetsBuffer: A view over file-backed data.
+//  ///   - valueBuffer: A view over file-backed data.
+//  /// - Returns: A file-backed Arrow utf8 array.
+//  static func binary(
+//    length: Int,
+//    nullBuffer: NullBuffer,
+//    offsetsBuffer: FileDataBuffer,
+//    valueBuffer: FileDataBuffer
+//  ) -> Self {
+//    let offsetsBufferTyped = FixedWidthBufferIPC<Int32>(buffer: offsetsBuffer)
+//    let valueBufferTyped = VariableLengthBufferIPC<Data, Int32>(buffer: valueBuffer)
+//    return Self(
+//      length: length,
+//      nullBuffer: nullBuffer,
+//      offsetsBuffer: offsetsBufferTyped,
+//      valueBuffer: valueBufferTyped
+//    )
+//  }
+//}

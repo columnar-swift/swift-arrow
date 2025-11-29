@@ -16,13 +16,13 @@ import Foundation
 
 /// An Arrow buffer.
 public protocol ArrowBufferProtocol {
+  var length: Int { get }
   func withUnsafeBytes<R>(
     _ body: (UnsafeRawBufferPointer) throws -> R
   ) rethrows -> R
 }
 
 internal protocol ArrowBufferUInt8: ArrowBufferProtocol {
-  var length: Int { get }
   var buffer: UnsafePointer<UInt8> { get }
 }
 
