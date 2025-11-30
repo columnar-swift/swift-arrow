@@ -26,7 +26,6 @@ import Testing
 /// using the format under test. The consumer reads the data in the said format and converts it back to
 /// Arrow in-memory data; it also reads the same JSON file as the producer, and validates that both
 /// datasets are identical.
-///
 struct ArrowTestingJSON {
 
   static let testCases: [String] = [
@@ -57,9 +56,7 @@ struct ArrowTestingJSON {
     )
     let arrowReader = try ArrowReader(url: testFile)
     let (arrowSchema, recordBatches) = try arrowReader.read()
-
     #expect(testCase.batches.count == recordBatches.count)
-
     // Strip placeholder values.
     let expectedBatches = testCase.batches.map { batch in
       ArrowGold.Batch(
@@ -69,52 +66,25 @@ struct ArrowTestingJSON {
     }
     let expectedSchema = testCase.schema
     let expectedDictionaries = testCase.dictionaries
-    let _ = ArrowGold(
+    let expectedGold = ArrowGold(
       schema: expectedSchema,
       batches: expectedBatches,
       dictionaries: expectedDictionaries
     )
-    let actualSchema = encodeSchema(schema: arrowSchema)
+    let actualSchema = encode(schema: arrowSchema)
     #expect(actualSchema == expectedSchema)
-    for (testBatch, recordBatch) in zip(expectedBatches, recordBatches) {
-      for (
-        (arrowField, arrowArray),
-        (_, expected)
-      ) in zip(
-        zip(arrowSchema.fields, recordBatch.arrays),
-        zip(testCase.schema.fields, testBatch.columns)
-      ) {
-        let actual = try encodeColumn(array: arrowArray, field: arrowField)
-
-        #expect(actual == expected)
-
-        // This is just useful for pin-pointing differences.
-        if actual != expected {
-          print("==== \(expected.name) ====")
-          #expect(actual.validity == expected.validity)
-          #expect(actual.offset == expected.offset)
-          if actual.data != expected.data {
-            guard let actualData = actual.data,
-              let expectedData = expected.data, let validity = actual.validity
-            else {
-              throw ArrowError.invalid("Expected and actual data both nil")
-            }
-            for (i, isValid) in validity.enumerated() {
-              if isValid == 1 {
-                let aV = actualData[i]
-                let eV = expectedData[i]
-                #expect(aV == eV)
-              }
-            }
-          }
-        }
-      }
-    }
+    let actualBatches = try encode(batches: recordBatches, schema: arrowSchema)
+    #expect(actualBatches == expectedBatches)
+    let actualGold = ArrowGold(
+      schema: actualSchema,
+      batches: actualBatches,
+      dictionaries: nil
+    )
+    #expect(actualGold == expectedGold)
   }
-
 }
 
-private func encodeSchema(schema: ArrowSchema) -> ArrowGold.Schema {
+private func encode(schema: ArrowSchema) -> ArrowGold.Schema {
   let fields = schema.fields.map { arrowField in
     arrowField.toGoldField()
   }
@@ -123,6 +93,19 @@ private func encodeSchema(schema: ArrowSchema) -> ArrowGold.Schema {
     case .none: nil
     case .some(let metadata): metadata.isEmpty ? nil : metadata
     }
-
   return .init(fields: fields, metadata: encodedMetadata)
+}
+
+private func encode(
+  batches: [RecordBatch],
+  schema: ArrowSchema
+) throws -> [ArrowGold.Batch] {
+  return try batches.map { recordBatch in
+    var columns: [ArrowGold.Column] = []
+    for (field, array) in zip(schema.fields, recordBatch.arrays) {
+      let encoded = try encodeColumn(array: array, field: field)
+      columns.append(encoded)
+    }
+    return .init(count: recordBatch.length, columns: columns)
+  }
 }

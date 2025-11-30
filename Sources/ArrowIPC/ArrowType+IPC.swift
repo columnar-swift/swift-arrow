@@ -137,6 +137,20 @@ extension ArrowType {
       let listSize = fType.listSize
       let arrowField = try ArrowField.parse(from: childField)
       return .fixedSizeList(arrowField, listSize)
+    case .map:
+      guard let fType = field.type(type: FMap.self) else {
+        throw .invalid("Could not get type from map field.")
+      }
+      let keysSorted = fType.keysSorted
+      guard field.childrenCount == 1, let childField = field.children(at: 0)
+      else {
+        throw .invalid("Expected map field to have exactly one child.")
+      }
+      let arrowField = try ArrowField.parse(from: childField)
+      guard case .strct(let fields) = arrowField.type, fields.count == 2 else {
+        throw .invalid("Map child must be a struct with key and value fields.")
+      }
+      return .map(arrowField, keysSorted)
     default:
       throw .invalid("Unhandled field type: \(field.typeType)")
     }
