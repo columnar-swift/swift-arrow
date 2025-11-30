@@ -15,13 +15,39 @@
 
 import Arrow
 
+extension ArrowField {
+  
+  /// Parses an `ArrowField` from the FlatBuffers representation.
+  /// - Parameter field:
+  /// - Returns: The `ArrowField`.
+  static func parse(from field: FField) throws(ArrowError) -> Self {
+    let fieldType: ArrowType = try .parse(from: field)
+    guard let fieldName = field.name else {
+      throw .invalid("Field name not found")
+    }
+    let fieldMetadata = (0..<field.customMetadataCount)
+      .reduce(into: [String: String]()) { dict, index in
+        guard let customMetadata = field.customMetadata(at: index),
+          let key = customMetadata.key
+        else { return }
+        dict[key] = customMetadata.value
+      }
+    return .init(
+      name: fieldName,
+      dataType: fieldType,
+      isNullable: field.nullable,
+      metadata: fieldMetadata
+    )
+  }
+}
+
 extension ArrowType {
 
-  /// Looks up the `ArrowType` equivalent for a FlatBuffers `Field`.
+  /// Parses the `ArrowType` from a FlatBuffers `Field`.
   /// - Parameter field: The FlatBuffers `Field`.
-  /// - Returns: The `ArrowType`, performing a recursive lookup for nested types..
-  /// - Throws: An `ArrowError` if lookup fails.
-  static func type(for field: FField) throws(ArrowError) -> Self {
+  /// - Returns: The `ArrowType`, including all nested fields which are parsed recursively.
+  /// - Throws: An `ArrowError` if parsing fails.
+  static func parse(from field: FField) throws(ArrowError) -> Self {
     let type = field.typeType
     switch type {
     case .int:

@@ -298,7 +298,7 @@ struct ArrowTestingIPC {
       }
       if isValid == 1 {
         #expect(array[i] as? T == expected)
-        print("comparing \(array[i]) to \(expected)")
+//        print("comparing \(array[i]) to \(expected)")
       } else {
         #expect(array[i] == nil)
       }
