@@ -81,12 +81,6 @@ let package = Package(
         // build: .unsafeFlags(["-warnings-as-errors"])
       ]
     ),
-    //    .target(
-    //      name: "ArrowC",
-    //      swiftSettings: [
-    //        // build: .unsafeFlags(["-warnings-as-errors"])
-    //      ]
-    //    ),
     .target(
       name: "ArrowFlight",
       dependencies: [

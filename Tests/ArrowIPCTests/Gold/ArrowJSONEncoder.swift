@@ -224,7 +224,7 @@ func extractUtf8Data(
   from array: AnyArrowArrayProtocol,
   into dataValues: inout [DataValue]?
 ) throws(ArrowError) {
-  guard let stringArray = array as? any Utf8ArrayProtocol else {
+  guard let stringArray = array as? StringArrayProtocol else {
     throw .invalid("Expected UTF-8 array")
   }
   dataValues = (0..<stringArray.length).map { i in

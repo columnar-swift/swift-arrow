@@ -16,7 +16,7 @@
 import Arrow
 
 extension ArrowField {
-  
+
   /// Parses an `ArrowField` from the FlatBuffers representation.
   /// - Parameter field:
   /// - Returns: The `ArrowField`.
