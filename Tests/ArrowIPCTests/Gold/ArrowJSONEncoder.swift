@@ -39,7 +39,7 @@ func encodeColumn(
   // public API would mean replicating edge cases here.
   let offsets: [Int]? =
     switch field.type {
-    case .binary, .utf8, .list(_):
+    case .binary, .utf8, .list(_), .map(_, _):
       array.buffers[1].withUnsafeBytes { ptr in
         let offsets = ptr.bindMemory(to: Int32.self)
         return Array(offsets).map(Int.init)
@@ -56,7 +56,7 @@ func encodeColumn(
   var children: [ArrowGold.Column]? = nil
   if array.length > 0 {
     switch field.type {
-    case .list(let listField):
+    case .list(let listField), .map(let listField, _):
       guard let listArray = array as? ListArrayProtocol else {
         throw ArrowError.invalid("Expected list array")
       }

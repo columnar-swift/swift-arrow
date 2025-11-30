@@ -37,6 +37,7 @@ struct ArrowTestingJSON {
     "generated_custom_metadata",
     "generated_nested",
     "generated_recursive_nested",
+    "generated_map",
   ]
 
   @Test(arguments: testCases)
@@ -71,15 +72,21 @@ struct ArrowTestingJSON {
       batches: expectedBatches,
       dictionaries: expectedDictionaries
     )
+    // These comparisons are redundant but help pinpoint where issues arise.
     let actualSchema = encode(schema: arrowSchema)
     #expect(actualSchema == expectedSchema)
     let actualBatches = try encode(batches: recordBatches, schema: arrowSchema)
+    #expect(actualBatches.count == expectedBatches.count)
     #expect(actualBatches == expectedBatches)
+    if actualBatches != expectedBatches {
+      try diffEncodable(actualBatches, expectedBatches)
+    }
     let actualGold = ArrowGold(
       schema: actualSchema,
       batches: actualBatches,
       dictionaries: nil
     )
+    // The gold-standard comparison.
     #expect(actualGold == expectedGold)
   }
 }
@@ -100,12 +107,55 @@ private func encode(
   batches: [RecordBatch],
   schema: ArrowSchema
 ) throws -> [ArrowGold.Batch] {
-  return try batches.map { recordBatch in
+  try batches.map { recordBatch in
     var columns: [ArrowGold.Column] = []
     for (field, array) in zip(schema.fields, recordBatch.arrays) {
       let encoded = try encodeColumn(array: array, field: field)
       columns.append(encoded)
     }
     return .init(count: recordBatch.length, columns: columns)
+  }
+}
+
+/// A utility to diff encodable objects, useful in tests encoding to JSON.
+/// - Parameters:
+///   - actual: The actual
+///   - expected: The expected `Encodable` object.
+///   - label: An optional label to differentiate multiple diffs.
+/// - Throws: An error if encoding fails or string data is unrepresentable in utf8.
+func diffEncodable<T: Encodable>(
+  _ actual: T,
+  _ expected: T,
+  label: String = ""
+) throws {
+  let encoder = JSONEncoder()
+  encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+  let actualJSON = try encoder.encode(actual)
+  let expectedJSON = try encoder.encode(expected)
+  guard
+    let actualString = String(data: actualJSON, encoding: .utf8),
+    let expectedString = String(data: expectedJSON, encoding: .utf8)
+  else {
+    throw ArrowError.runtimeError("Invalid UTF-8 data.")
+  }
+  let actualLines = actualString.split(separator: "\n")
+  let expectedLines = expectedString.split(separator: "\n")
+  let maxLines = max(actualLines.count, expectedLines.count)
+  var hasDifferences = false
+  for i in 0..<maxLines {
+    let actualLine = i < actualLines.count ? actualLines[i] : ""
+    let expectedLine = i < expectedLines.count ? expectedLines[i] : ""
+    if actualLine != expectedLine {
+      if !hasDifferences {
+        print("\n== Differences found\(label.isEmpty ? "" : " in \(label)") ==")
+        hasDifferences = true
+      }
+      print("Line \(i + 1):")
+      print("  - \(expectedLine)")
+      print("  + \(actualLine)")
+    }
+  }
+  if !hasDifferences {
+    print("✓ No differences\(label.isEmpty ? "" : " in \(label)")")
   }
 }

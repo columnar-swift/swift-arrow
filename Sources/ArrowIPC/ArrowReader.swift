@@ -346,6 +346,7 @@ public struct ArrowReader {
     } else if arrowType.isNested {
       switch arrowType {
       case .list(let childField), .map(let childField, _):
+        // A map is simply a list of struct<k,v> items.
         let buffer1 = try nextBuffer(
           message: rbMessage, index: &bufferIndex, offset: offset, data: data)
         var offsetsBuffer = FixedWidthBufferIPC<Int32>(buffer: buffer1)
