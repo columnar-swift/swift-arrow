@@ -16,14 +16,13 @@ import Arrow
 
 public struct RecordBatch {
 
-  let schema: ArrowSchema
-  let arrays: [AnyArrowArrayProtocol]
-  let length: Int
+  public let schema: ArrowSchema
+  public let arrays: [AnyArrowArrayProtocol]
+  public let length: Int
 
   public init(schema: ArrowSchema, columns: [AnyArrowArrayProtocol]) {
     self.schema = schema
     self.arrays = columns
     self.length = columns[0].length
   }
-
 }
