@@ -23,10 +23,8 @@ let package = Package(
     .macOS(.v15)
   ],
   products: [
-    .library(
-      name: "Arrow",
-      targets: ["Arrow"]
-    )
+    .library(name: "Arrow", targets: ["Arrow"]),
+    .library(name: "ArrowIPC", targets: ["ArrowIPC"])
   ],
   dependencies: [
     .package(
