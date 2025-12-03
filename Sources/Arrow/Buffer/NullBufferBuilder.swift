@@ -13,7 +13,7 @@
 // limitations under the License.
 
 /// A builder for bit-packed buffers used to represent nulls and booleans in Arrow arrays.
-final class NullBufferBuilder {
+public final class NullBufferBuilder {
   var length: Int
   var capacity: Int
   var bitCount: Int = 0
@@ -24,7 +24,7 @@ final class NullBufferBuilder {
   private var currentByte: UInt8 = 0
   private var bitOffset: Int8 = 0
 
-  init(
+  public init(
     length: Int = 0,
     minCapacity: Int = 64
   ) {
@@ -85,12 +85,11 @@ final class NullBufferBuilder {
   /// which always reports validity to be true, or if all nulls the inverse of this. Otherwise a buffer  with
   /// capacity shrunk to a multiple of 64 bytes will be returned.
   ///
-  func finish() -> NullBuffer {
+  public func finish() -> NullBuffer {
     if bitOffset != 0 {
       flushByte()
     }
     precondition(ownsMemory, "Buffer already finished.")
-
     if nullCount == 0 {
       return AllValidNullBuffer(valueCount: valueCount)
     } else if nullCount == valueCount {
