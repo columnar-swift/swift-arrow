@@ -133,7 +133,7 @@ public struct ArrowReader {
     }
   }
 
-  func read() throws -> (ArrowSchema, [RecordBatch]) {
+  public func read() throws -> (ArrowSchema, [RecordBatch]) {
 
     let footerData = try data.withParserSpan { input in
       let count = input.count
