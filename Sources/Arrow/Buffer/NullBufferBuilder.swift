@@ -37,7 +37,7 @@ public final class NullBufferBuilder {
 
   /// Appends a validity bit to the buffer.
   @inline(__always)
-  func appendValid(_ isValid: Bool) {
+  public func appendValid(_ isValid: Bool) {
     valueCount += 1
     if isValid {
       currentByte |= 1 << bitOffset
