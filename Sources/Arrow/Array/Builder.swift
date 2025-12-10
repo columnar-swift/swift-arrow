@@ -172,7 +172,8 @@ public class ArrayBuilderFixedSizedBinary:
 
 /// A builder for Arrow arrays holding variable length types.
 public class ArrayBuilderVariableLength<
-  Element: VariableLength, OffsetType: FixedWidthInteger & SignedInteger
+  Element: VariableLength,
+  OffsetType: FixedWidthInteger & SignedInteger
 >: AnyArrayBuilder {
 
   public typealias ArrayType = ArrowArrayVariable<Element, OffsetType>
@@ -289,7 +290,7 @@ public typealias ArrayBuilderTime64 = ArrayBuilderFixedWidth<Time64>
 /// A builder for Arrow arrays holding Timestamp values.
 public typealias ArrayBuilderTimestamp = ArrayBuilderFixedWidth<Timestamp>
 
-class ArrayBuilderList<T: AnyArrayBuilder> {
+public class ArrayBuilderList<T: AnyArrayBuilder> {
 
   typealias ArrayType = ArrowListArray<FixedWidthBuffer<Int32>>
 

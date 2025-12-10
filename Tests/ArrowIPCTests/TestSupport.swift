@@ -94,3 +94,16 @@ extension Data {
     self = data
   }
 }
+
+/// Pretty print an encodable value.
+/// - Parameter value: The value to print.
+/// - Throws: On failed utf8 encoding.
+func printCodable<T: Encodable>(_ value: T) throws {
+  let encoder = JSONEncoder()
+  encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+  let data = try encoder.encode(value)
+  guard let formattted = String(data: data, encoding: .utf8) else {
+    throw ArrowError.invalid("UTF-8 encode failed.")
+  }
+  print(formattted)
+}

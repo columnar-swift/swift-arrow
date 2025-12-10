@@ -314,6 +314,42 @@ public struct ArrowReader {
       default:
         throw ArrowError.invalid("TODO: Unimplemented arrow type: \(arrowType)")
       }
+    } else if arrowType.isTemporal {
+      let buffer1 = try nextBuffer(
+        message: rbMessage, index: &bufferIndex, offset: offset, data: data)
+      switch arrowType {
+      case .date32:
+        return makeFixedArray(
+          length: length, elementType: Int32.self,
+          nullBuffer: nullBuffer, buffer: buffer1)
+      case .date64:
+        return makeFixedArray(
+          length: length, elementType: Int64.self,
+          nullBuffer: nullBuffer, buffer: buffer1)
+      case .time32(_):
+        return makeFixedArray(
+          length: length, elementType: UInt32.self,
+          nullBuffer: nullBuffer, buffer: buffer1)
+      case .time64(_):
+        return makeFixedArray(
+          length: length, elementType: UInt64.self,
+          nullBuffer: nullBuffer, buffer: buffer1)
+      case .timestamp(_, _):
+        return makeFixedArray(
+          length: length, elementType: Int64.self,
+          nullBuffer: nullBuffer, buffer: buffer1)
+      case .duration(_):
+        return makeFixedArray(
+          length: length, elementType: Int64.self,
+          nullBuffer: nullBuffer, buffer: buffer1)
+      case .interval(_):
+        return makeFixedArray(
+          length: length, elementType: Int32.self,
+          nullBuffer: nullBuffer, buffer: buffer1)
+      default:
+        print("=== TODO: Unimplemented arrow type: \(arrowType) ===")
+        throw ArrowError.notImplemented
+      }
     } else if arrowType.isVariable {
       let buffer1 = try nextBuffer(
         message: rbMessage, index: &bufferIndex, offset: offset, data: data)

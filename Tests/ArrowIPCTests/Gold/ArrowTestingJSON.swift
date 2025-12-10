@@ -38,6 +38,7 @@ struct ArrowTestingJSON {
     "generated_nested",
     "generated_recursive_nested",
     "generated_map",
+    "generated_datetime",
   ]
 
   @Test(arguments: testCases)
@@ -79,6 +80,7 @@ struct ArrowTestingJSON {
     #expect(actualBatches.count == expectedBatches.count)
     #expect(actualBatches == expectedBatches)
     if actualBatches != expectedBatches {
+      try printCodable(actualBatches)
       try diffEncodable(actualBatches, expectedBatches)
     }
     let actualGold = ArrowGold(

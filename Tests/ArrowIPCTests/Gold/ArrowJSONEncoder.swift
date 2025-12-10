@@ -113,6 +113,26 @@ func encodeColumn(
       data = try extractFloatData(from: array, expectedType: Float32.self)
     case .float64:
       data = try extractFloatData(from: array, expectedType: Float64.self)
+    case .time32(_):
+      data = try extractIntData(from: array, expectedType: UInt32.self)
+    case .date32:
+      data = try extractIntData(from: array, expectedType: Int32.self)
+    case .date64:
+      data = try extractIntData(from: array, expectedType: Int64.self)
+    case .time64(_):
+      data = try extractIntData(from: array, expectedType: UInt64.self)
+    case .timestamp(_, _):
+      data = try extractIntData(from: array, expectedType: Int64.self)
+    case .duration(_):
+      data = try extractIntData(from: array, expectedType: Int64.self)
+    case .interval(.yearMonth):
+      data = try extractIntData(from: array, expectedType: Int32.self)
+    case .interval(.dayTime):
+      data = try extractIntData(from: array, expectedType: Int64.self)
+    case .interval(.monthDayNano):
+      // This is tricky - 128 bits (4 + 4 + 8 bytes)
+      // Might need special handling or extract as raw bytes
+      data = try extractIntData(from: array, expectedType: Int64.self)
     case .binary:
       try extractBinaryData(from: array, into: &data)
     case .fixedSizeBinary(_):
