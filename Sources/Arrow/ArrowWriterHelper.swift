@@ -123,7 +123,8 @@ func toFBType(
     return .success(FStruct.endStruct_(&fbb, start: startOffset))
   default:
     return .failure(
-      .init(.unknownType("Unable to add flatbuf type for Arrow type: \(arrowType)"))
+      .init(
+        .unknownType("Unable to add flatbuf type for Arrow type: \(arrowType)"))
     )
   }
 }

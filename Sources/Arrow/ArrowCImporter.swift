@@ -51,7 +51,8 @@ public class ArrowCImporter {
       return .success(ArrowField(name: name, dataType: type, isNullable: true))
     } catch {
       return .failure(
-        .init(.invalid("Error occurred while attempting to import type: \(error)")))
+        .init(
+          .invalid("Error occurred while attempting to import type: \(error)")))
     }
   }
 
@@ -63,7 +64,8 @@ public class ArrowCImporter {
       return .failure(.init(.invalid("Children currently not supported")))
     } else if cSchema.dictionary != nil {
       ArrowCImporter.release(cSchema)
-      return .failure(.init(.invalid("Dictinoary types currently not supported")))
+      return .failure(
+        .init(.invalid("Dictinoary types currently not supported")))
     }
 
     switch importType(
@@ -101,11 +103,14 @@ public class ArrowCImporter {
       return .failure(.init(.invalid("Children currently not supported")))
     } else if cArray.dictionary != nil {
       ArrowCImporter.release(cArrayPtr)
-      return .failure(.init(.invalid("Dictionary types currently not supported")))
+      return .failure(
+        .init(.invalid("Dictionary types currently not supported")))
     } else if cArray.offset != 0 {
       ArrowCImporter.release(cArrayPtr)
       return .failure(
-        .init(.invalid("Offset of 0 is required but found offset: \(cArray.offset)")))
+        .init(
+          .invalid("Offset of 0 is required but found offset: \(cArray.offset)")
+        ))
     }
 
     let arrowType = arrowField.type
@@ -124,9 +129,10 @@ public class ArrowCImporter {
           if cArray.n_buffers != 3 {
             ArrowCImporter.release(cArrayPtr)
             return .failure(
-              .init(.invalid(
-                "Variable buffer count expected 3 but found \(cArray.n_buffers)"
-              )))
+              .init(
+                .invalid(
+                  "Variable buffer count expected 3 but found \(cArray.n_buffers)"
+                )))
           }
           try appendToBuffer(
             cArray.buffers[0],
@@ -155,7 +161,9 @@ public class ArrowCImporter {
           if cArray.n_buffers != 2 {
             ArrowCImporter.release(cArrayPtr)
             return .failure(
-              .init(.invalid("Expected buffer count 2 but found \(cArray.n_buffers)")))
+              .init(
+                .invalid(
+                  "Expected buffer count 2 but found \(cArray.n_buffers)")))
           }
 
           try appendToBuffer(

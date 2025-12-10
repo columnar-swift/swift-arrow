@@ -179,8 +179,9 @@ public struct ArrowReader {
       }
 
       guard message.headerType == .recordbatch else {
-        throw ArrowError(.invalid(
-          "Expected RecordBatch message, got: \(message.headerType)."))
+        throw ArrowError(
+          .invalid(
+            "Expected RecordBatch message, got: \(message.headerType)."))
       }
 
       guard let rbMessage = message.header(type: FRecordBatch.self) else {
@@ -312,7 +313,8 @@ public struct ArrowReader {
           length: length, elementType: UInt64.self,
           nullBuffer: nullBuffer, buffer: buffer1)
       default:
-        throw ArrowError(.invalid("TODO: Unimplemented arrow type: \(arrowType)"))
+        throw ArrowError(
+          .invalid("TODO: Unimplemented arrow type: \(arrowType)"))
       }
     } else if arrowType.isTemporal {
       let buffer1 = try nextBuffer(
@@ -399,23 +401,27 @@ public struct ArrowReader {
           // Empty offsets buffer is valid when child array is empty
           // There could be any number of empty lists referencing into an empty list
           guard array.length == 0 else {
-            throw ArrowError(.invalid(
-              "Empty offsets buffer but non-empty child array"))
+            throw ArrowError(
+              .invalid(
+                "Empty offsets buffer but non-empty child array"))
           }
           let emptyBuffer = emptyOffsetBuffer(offsetCount: length + 1)
           offsetsBuffer = FixedWidthBufferIPC<Int32>(buffer: emptyBuffer)
         } else {
           let requiredBytes = (length + 1) * MemoryLayout<Int32>.stride
           guard offsetsBuffer.length >= requiredBytes else {
-            throw ArrowError(.invalid(
-              "Offsets buffer too small: need \(requiredBytes) bytes for \(length) lists")
+            throw ArrowError(
+              .invalid(
+                "Offsets buffer too small: need \(requiredBytes) bytes for \(length) lists"
+              )
             )
           }
           // Verify last offset matches child array length
           let lastOffset = offsetsBuffer[length]
           guard lastOffset == Int32(array.length) else {
-            throw ArrowError(.invalid(
-              "Expected last offset to match child array length."))
+            throw ArrowError(
+              .invalid(
+                "Expected last offset to match child array length."))
           }
         }
         return makeListArray(

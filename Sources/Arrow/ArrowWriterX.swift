@@ -170,9 +170,10 @@ public class ArrowWriter {
           let expectedSize = startIndex + metadataLength + bodyLength
           guard expectedSize == writer.count else {
             return .failure(
-              .init(.invalid(
-                "Invalid Block. Expected \(expectedSize), got \(writer.count)"
-              )))
+              .init(
+                .invalid(
+                  "Invalid Block. Expected \(expectedSize), got \(writer.count)"
+                )))
           }
           rbBlocks.append(
             FBlock(
@@ -464,7 +465,8 @@ public class ArrowWriter {
       return .failure(.init(.ioError("\(error)")))
     }
     guard let fileHandle = FileHandle(forUpdatingAtPath: fileName.path) else {
-      return .failure(.init(.ioError("Unable to open \(fileName.path) for writing")))
+      return .failure(
+        .init(.ioError("Unable to open \(fileName.path) for writing")))
     }
     defer { fileHandle.closeFile() }
 

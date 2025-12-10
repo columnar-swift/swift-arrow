@@ -449,9 +449,10 @@ public enum ArrowArrayBuilders {
     case .list(_):
       return try ListArrayBuilder(arrowType)
     default:
-      throw .init(.unknownType(
-        "Builder not found for arrow type: \(arrowType)"
-      ))
+      throw .init(
+        .unknownType(
+          "Builder not found for arrow type: \(arrowType)"
+        ))
     }
   }
 

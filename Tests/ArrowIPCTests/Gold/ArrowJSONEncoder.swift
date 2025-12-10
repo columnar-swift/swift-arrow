@@ -140,7 +140,8 @@ func encodeColumn(
     case .utf8:
       try extractUtf8Data(from: array, into: &data)
     default:
-      throw .init(.invalid("Encoder did not handle a field type: \(field.type)"))
+      throw .init(
+        .invalid("Encoder did not handle a field type: \(field.type)"))
     }
   }
   return .init(

@@ -13,7 +13,7 @@
 // limitations under the License.
 
 public struct ArrowError: Error {
-  
+
   public enum ErrorType: Equatable, Sendable {
     case none
     case unknownType(String)
@@ -25,10 +25,10 @@ public struct ArrowError: Error {
     case ioError(String)
     case invalid(String)
   }
-  
+
   let type: ErrorType
   let underlyingError: Error?
-  
+
   public init(_ type: ErrorType, underlyingError: Error? = nil) {
     self.type = type
     self.underlyingError = underlyingError

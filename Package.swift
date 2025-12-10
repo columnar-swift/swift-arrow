@@ -24,7 +24,7 @@ let package = Package(
   ],
   products: [
     .library(name: "Arrow", targets: ["Arrow"]),
-    .library(name: "ArrowIPC", targets: ["ArrowIPC"])
+    .library(name: "ArrowIPC", targets: ["ArrowIPC"]),
   ],
   dependencies: [
     .package(

@@ -52,7 +52,7 @@ public class ArrowCExporter {
       guard let typeNameCstr = (self.arrowTypeName as NSString).utf8String
       else {
         throw ArrowError(
-         .runtimeError("Failed to convert type name to C string") 
+          .runtimeError("Failed to convert type name to C string")
         )
       }
       self.arrowTypeNameCstr = typeNameCstr

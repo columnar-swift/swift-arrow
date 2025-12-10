@@ -135,7 +135,8 @@ public struct ArrowReaderX: Sendable {
     var children: [ArrowData] = []
     for index in 0..<field.childrenCount {
       guard let childField = field.children(at: index) else {
-        return .failure(.init(.invalid("Child field not found at index: \(index)")))
+        return .failure(
+          .init(.invalid("Child field not found at index: \(index)")))
       }
       switch loadField(loadInfo, field: childField) {
       case .success(let holder):
@@ -359,7 +360,8 @@ public struct ArrowReaderX: Sendable {
       switch message.headerType {
       case .recordbatch:
         guard let rbMessage = message.header(type: FRecordBatch.self) else {
-          return .failure(.init(.invalid("Failed to parse RecordBatch message")))
+          return .failure(
+            .init(.invalid("Failed to parse RecordBatch message")))
         }
         guard let schemaMessage else {
           return .failure(.init(.invalid("Schema message not found")))
@@ -441,7 +443,8 @@ public struct ArrowReaderX: Sendable {
 
     for index in 0..<footer.recordBatchesCount {
       guard let recordBatch: FBlock = footer.recordBatches(at: index) else {
-        return .failure(.init(.invalid("Missing record batch at index \(index)")))
+        return .failure(
+          .init(.invalid("Missing record batch at index \(index)")))
       }
       var messageLength = fileData.withUnsafeBytes { rawBuffer in
         rawBuffer.loadUnaligned(
@@ -470,7 +473,8 @@ public struct ArrowReaderX: Sendable {
       switch message.headerType {
       case .recordbatch:
         guard let rbMessage = message.header(type: FRecordBatch.self) else {
-          return .failure(.init(.invalid("Expected RecordBatch as message header")))
+          return .failure(
+            .init(.invalid("Expected RecordBatch as message header")))
         }
         guard let footerSchema = footer.schema else {
           return .failure(.init(.invalid("Expected schema in footer")))
@@ -535,7 +539,8 @@ public struct ArrowReaderX: Sendable {
     switch message.headerType {
     case .schema:
       guard let sMessage = message.header(type: FSchema.self) else {
-        return .failure(.init(.unknownError("Expected a schema but found none")))
+        return .failure(
+          .init(.unknownError("Expected a schema but found none")))
       }
       switch loadSchema(sMessage) {
       case .success(let schema):
@@ -547,12 +552,14 @@ public struct ArrowReaderX: Sendable {
       }
     case .recordbatch:
       guard let rbMessage = message.header(type: FRecordBatch.self) else {
-        return .failure(.init(.invalid("Expected a RecordBatch but found none")))
+        return .failure(
+          .init(.invalid("Expected a RecordBatch but found none")))
       }
       // TODO: the result used here is also the return type. Ideally is would be constructed once as a struct (same issue as above)
       guard let messageSchema = result.messageSchema else {
         return .failure(
-          .init(.invalid("Expected the result to have the messageSchema already")))
+          .init(
+            .invalid("Expected the result to have the messageSchema already")))
       }
       guard let resultSchema = result.schema else {
         return .failure(.init(.invalid("Expected result to have a schema")))

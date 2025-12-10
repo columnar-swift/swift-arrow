@@ -232,9 +232,10 @@ extension LZ4: ExpressibleByParsing {
           }
 
           guard seq.offset <= blockData.count else {
-            throw ArrowError(.invalid(
-              "Tried to offset too much: \(seq.offset) with count \(blockData.count)"
-            ))
+            throw ArrowError(
+              .invalid(
+                "Tried to offset too much: \(seq.offset) with count \(blockData.count)"
+              ))
           }
 
           if seq.offset == 0 {

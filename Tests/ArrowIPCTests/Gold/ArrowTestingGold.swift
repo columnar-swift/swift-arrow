@@ -118,9 +118,10 @@ struct ArrowTestingIPC {
         switch arrowField.type {
         case .fixedSizeBinary(let byteWidth):
           guard let expectedByteWidth = expectedField.type.byteWidth else {
-            throw ArrowError(.invalid(
-              "Test case is missing byteWidth for fixedSizeBinary field."
-            ))
+            throw ArrowError(
+              .invalid(
+                "Test case is missing byteWidth for fixedSizeBinary field."
+              ))
           }
           #expect(expectedByteWidth == byteWidth)
           guard let actual = arrowArray as? any BinaryArrayProtocol else {

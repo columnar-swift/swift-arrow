@@ -109,8 +109,9 @@ extension ArrowWriter {
       let startOffset = FStruct.startStruct_(&fbb)
       return FStruct.endStruct_(&fbb, start: startOffset)
     default:
-      throw .init(.unknownType(
-        "Unable to add flatbuf type for Arrow type: \(arrowType)"))
+      throw .init(
+        .unknownType(
+          "Unable to add flatbuf type for Arrow type: \(arrowType)"))
     }
   }
 }

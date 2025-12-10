@@ -177,9 +177,10 @@ public struct ArrowWriter {
       let bodyLength = data.count - bodyStart
       let expectedSize = startIndex + metadataLength + bodyLength
       guard expectedSize == data.count else {
-        throw ArrowError(.invalid(
-          "Invalid Block. Expected \(expectedSize), got \(data.count)"
-        ))
+        throw ArrowError(
+          .invalid(
+            "Invalid Block. Expected \(expectedSize), got \(data.count)"
+          ))
       }
       blocks.append(
         FBlock(
@@ -210,8 +211,9 @@ public struct ArrowWriter {
         if case .strct(let fields) = field.type {
           guard let structArray = array as? ArrowStructArray
           else {
-            throw ArrowError(.invalid(
-              "Struct type array expected for nested type"))
+            throw ArrowError(
+              .invalid(
+                "Struct type array expected for nested type"))
           }
           try writeRecordBatchData(
             fields: fields,

@@ -94,7 +94,8 @@ func fromProto(
     var children: [ArrowField] = []
     for index in 0..<field.childrenCount {
       guard let childField = field.children(at: index) else {
-        throw .init(.invalid("Missing childe at index: \(index) for field: \(field)"))
+        throw .init(
+          .invalid("Missing childe at index: \(index) for field: \(field)"))
       }
       children.append(try fromProto(field: childField))
     }

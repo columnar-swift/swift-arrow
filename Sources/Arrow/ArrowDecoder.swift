@@ -51,9 +51,10 @@ public class ArrowDecoder: Decoder {
   ) throws -> [T: U] {
     var output: [T: U] = [:]
     if rb.columnCount != 2 {
-      throw ArrowError(.invalid(
-        "RecordBatch column count of 2 is required to decode to map"
-      ))
+      throw ArrowError(
+        .invalid(
+          "RecordBatch column count of 2 is required to decode to map"
+        ))
     }
     for index in 0..<rb.length {
       self.rbIndex = index
@@ -240,8 +241,9 @@ private struct ArrowKeyedDecoding<Key: CodingKey>:
   }
 
   func decode(_ type: Int.Type, forKey key: Key) throws -> Int {
-    throw ArrowError(.invalid(
-      "Int type is not supported (please use Int8, Int16, Int32 or Int64)"))
+    throw ArrowError(
+      .invalid(
+        "Int type is not supported (please use Int8, Int16, Int32 or Int64)"))
   }
 
   func decode(_ type: Int8.Type, forKey key: Key) throws -> Int8 {
@@ -273,8 +275,10 @@ private struct ArrowKeyedDecoding<Key: CodingKey>:
   }
 
   func decode(_ type: UInt.Type, forKey key: Key) throws -> UInt {
-    throw ArrowError(.invalid(
-      "UInt type is not supported (please use UInt8, UInt16, UInt32 or UInt64)"))
+    throw ArrowError(
+      .invalid(
+        "UInt type is not supported (please use UInt8, UInt16, UInt32 or UInt64)"
+      ))
   }
 
   func decode(_ type: UInt8.Type, forKey key: Key) throws -> UInt8 {
@@ -391,8 +395,9 @@ private struct ArrowSingleValueDecoding: SingleValueDecodingContainer {
   }
 
   func decode(_ type: Int.Type) throws -> Int {
-    throw ArrowError(.invalid(
-      "Int type is not supported (please use Int8, Int16, Int32 or Int64)"))
+    throw ArrowError(
+      .invalid(
+        "Int type is not supported (please use Int8, Int16, Int32 or Int64)"))
   }
 
   func decode(_ type: Int8.Type) throws -> Int8 {
@@ -428,8 +433,10 @@ private struct ArrowSingleValueDecoding: SingleValueDecodingContainer {
   }
 
   func decode(_ type: UInt.Type) throws -> UInt {
-    throw ArrowError(.invalid(
-      "UInt type is not supported (please use UInt8, UInt16, UInt32 or UInt64)"))
+    throw ArrowError(
+      .invalid(
+        "UInt type is not supported (please use UInt8, UInt16, UInt32 or UInt64)"
+      ))
   }
 
   func decode(_ type: UInt8.Type) throws -> UInt8 {

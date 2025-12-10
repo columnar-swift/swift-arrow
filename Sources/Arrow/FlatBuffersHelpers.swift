@@ -111,7 +111,8 @@ func findArrowType(_ field: FField) throws(ArrowError) -> ArrowType {
     var fields: [ArrowField] = []
     for index in 0..<field.childrenCount {
       guard let childField = field.children(at: index) else {
-        throw .init(.invalid("Could not get child at index: \(index) ofrom struct"))
+        throw .init(
+          .invalid("Could not get child at index: \(index) ofrom struct"))
       }
       let childType = try findArrowType(childField)
       guard let name = childField.name else {
@@ -146,7 +147,9 @@ func findArrowType(_ field: FField) throws(ArrowError) -> ArrowType {
   }
 }
 
-func validateBufferIndex(_ recordBatch: FRecordBatch, index: Int32) throws(ArrowError) {
+func validateBufferIndex(_ recordBatch: FRecordBatch, index: Int32)
+  throws(ArrowError)
+{
   if index >= recordBatch.buffersCount {
     throw .init(.outOfBounds(index: Int64(index)))
   }

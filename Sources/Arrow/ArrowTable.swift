@@ -32,7 +32,8 @@ public class ArrowColumn {
     if let holder = self.dataHolder.holder as? ChunkedArray<T> {
       return holder
     } else {
-      throw .init(.runtimeError("Could not cast array holder to chunked array."))
+      throw .init(
+        .runtimeError("Could not cast array holder to chunked array."))
     }
   }
 }
@@ -129,9 +130,10 @@ public class ArrowTable {
     var arrays: [any ArrowArray<T>] = []
     for holder in holders {
       guard let array = holder as? (any ArrowArray<T>) else {
-        throw .init(.runtimeError(
-          "Array type mismatch: expected \(T.self) for field \(field.name)"
-        ))
+        throw .init(
+          .runtimeError(
+            "Array type mismatch: expected \(T.self) for field \(field.name)"
+          ))
       }
       arrays.append(array)
     }
@@ -266,7 +268,8 @@ public class RecordBatchX {
         let columnLength = columns[0].length
         for column in columns {
           if column.length != columnLength {
-            return .failure(.init(.runtimeError("Columns have different sizes")))
+            return .failure(
+              .init(.runtimeError("Columns have different sizes")))
           }
         }
       }
@@ -275,8 +278,12 @@ public class RecordBatchX {
       for (index, field) in schema.fields.enumerated() {
         let column = columns[index]
         if !field.isNullable && column.nullCount > 0 {
-          return .failure(.init( .invalid("non-nullable column '\(field.name)' contains \(column.nullCount) null values." )))
-            
+          return .failure(
+            .init(
+              .invalid(
+                "non-nullable column '\(field.name)' contains \(column.nullCount) null values."
+              )))
+
         }
       }
       return .success(
@@ -293,8 +300,9 @@ public class RecordBatchX {
       return array
     } else {
       throw .init(
-        .invalid("Could not convert \(arrayHolder) for \(columnIndex)"
-      ))
+        .invalid(
+          "Could not convert \(arrayHolder) for \(columnIndex)"
+        ))
     }
   }
 

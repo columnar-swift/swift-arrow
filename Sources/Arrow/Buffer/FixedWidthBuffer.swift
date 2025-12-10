@@ -63,7 +63,7 @@ where T: Numeric {
 }
 
 extension FixedWidthBuffer {
-  
+
   /// Build a fixed-width buffer from a fixed-width type array.
   /// - Parameter values: The array to opy memory from.
   /// - Returns: A buffer with the values copied into..

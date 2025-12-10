@@ -92,7 +92,8 @@ extension ArrowType {
       return .binary
     case .fixedsizebinary:
       guard let fType = field.type(type: FFixedSizeBinary.self) else {
-        throw .init(.invalid("Could not get byteWidth from fixed binary field."))
+        throw .init(
+          .invalid("Could not get byteWidth from fixed binary field."))
       }
       return .fixedSizeBinary(fType.byteWidth)
     case .date:
@@ -155,7 +156,8 @@ extension ArrowType {
       var fields: [ArrowField] = []
       for index in 0..<field.childrenCount {
         guard let childField = field.children(at: index) else {
-          throw .init(.invalid("Could not get child at index: \(index) ofrom struct"))
+          throw .init(
+            .invalid("Could not get child at index: \(index) ofrom struct"))
         }
         let arrowField = try ArrowField.parse(from: childField)
         fields.append(arrowField)
@@ -190,7 +192,8 @@ extension ArrowType {
       }
       let arrowField = try ArrowField.parse(from: childField)
       guard case .strct(let fields) = arrowField.type, fields.count == 2 else {
-        throw .init(.invalid("Map child must be a struct with key and value fields."))
+        throw .init(
+          .invalid("Map child must be a struct with key and value fields."))
       }
       return .map(arrowField, keysSorted)
     default:

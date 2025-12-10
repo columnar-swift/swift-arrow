@@ -1000,9 +1000,10 @@ extension ArrowType {
     } else if from.starts(with: "ts") {
       let components = from.split(separator: ":", maxSplits: 1)
       guard let unitPart = components.first, unitPart.count == 3 else {
-        throw .init(.invalid(
-          "Invalid timestamp format '\(from)'. Expected format 'ts[s|m|u|n][:timezone]'"
-        ))
+        throw .init(
+          .invalid(
+            "Invalid timestamp format '\(from)'. Expected format 'ts[s|m|u|n][:timezone]'"
+          ))
       }
       let unitChar = unitPart.suffix(1)
       let unit: TimeUnit =
@@ -1012,9 +1013,10 @@ extension ArrowType {
         case "u": .microsecond
         case "n": .nanosecond
         default:
-          throw .init(.invalid(
-            "Unrecognized timestamp unit '\(unitChar)'. Expected 's', 'm', 'u', or 'n'."
-          ))
+          throw .init(
+            .invalid(
+              "Unrecognized timestamp unit '\(unitChar)'. Expected 's', 'm', 'u', or 'n'."
+            ))
         }
       let timezone = components.count > 1 ? String(components[1]) : nil
       return .timestamp(unit, timezone)

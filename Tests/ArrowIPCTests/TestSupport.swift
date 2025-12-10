@@ -38,7 +38,8 @@ func loadTestResource(
   ) {
     return resource
   } else {
-    throw .init(.runtimeError("Couldn't find \(name).\(ext) in the test resources."))
+    throw .init(
+      .runtimeError("Couldn't find \(name).\(ext) in the test resources."))
   }
 }
 

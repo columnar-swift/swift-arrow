@@ -319,9 +319,10 @@ public class NestedArray: ArrowArrayBase<[Any?]> {
       }
       self.children = fields
     default:
-      throw .init(.invalid(
-        "NestedArray only supports list and struct types, got: \(arrowData.type)"
-      ))
+      throw .init(
+        .invalid(
+          "NestedArray only supports list and struct types, got: \(arrowData.type)"
+        ))
     }
   }
 

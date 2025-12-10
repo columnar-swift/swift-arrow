@@ -45,7 +45,8 @@ func loadArrowResource(name: String) throws(ArrowError) -> URL {
   ) {
     return resource
   } else {
-    throw .init(.runtimeError("Couldn't find \(name).arrow in the test resources."))
+    throw .init(
+      .runtimeError("Couldn't find \(name).arrow in the test resources."))
   }
 }
 

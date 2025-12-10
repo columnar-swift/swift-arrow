@@ -238,13 +238,15 @@ private struct ArrowKeyedEncoding<Key: CodingKey>:
   }
 
   mutating func encode(_ value: Int, forKey key: Key) throws {
-    throw ArrowError(.invalid(
-      "Int type is not supported (please use Int8, Int16, Int32 or Int64)"))
+    throw ArrowError(
+      .invalid(
+        "Int type is not supported (please use Int8, Int16, Int32 or Int64)"))
   }
 
   mutating func encodeIfPresent(_ value: Int?, forKey key: Key) throws {
-    throw ArrowError(.invalid(
-      "Int type is not supported (please use Int8, Int16, Int32 or Int64)"))
+    throw ArrowError(
+      .invalid(
+        "Int type is not supported (please use Int8, Int16, Int32 or Int64)"))
   }
 
   mutating func encode(_ value: Int8, forKey key: Key) throws {
@@ -280,13 +282,17 @@ private struct ArrowKeyedEncoding<Key: CodingKey>:
   }
 
   mutating func encode(_ value: UInt, forKey key: Key) throws {
-    throw ArrowError(.invalid(
-      "UInt type is not supported (please use UInt8, UInt16, UInt32 or UInt64)"))
+    throw ArrowError(
+      .invalid(
+        "UInt type is not supported (please use UInt8, UInt16, UInt32 or UInt64)"
+      ))
   }
 
   mutating func encodeIfPresent(_ value: UInt?, forKey key: Key) throws {
-    throw ArrowError(.invalid(
-      "UInt type is not supported (please use UInt8, UInt16, UInt32 or UInt64)"))
+    throw ArrowError(
+      .invalid(
+        "UInt type is not supported (please use UInt8, UInt16, UInt32 or UInt64)"
+      ))
   }
 
   mutating func encode(_ value: UInt8, forKey key: Key) throws {
