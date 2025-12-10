@@ -37,7 +37,7 @@ public class ChunkedArray<T> {
 
   public init(_ arrays: [any ArrowArray<T>]) throws(ArrowError) {
     if arrays.count == 0 {
-      throw ArrowError.arrayHasNoElements
+      throw ArrowError(.arrayHasNoElements)
     }
 
     self.type = arrays[0].type

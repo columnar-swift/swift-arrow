@@ -49,7 +49,7 @@ public struct ArrowTypeConverter {
     } else if type == Double.self {
       return .float64
     } else {
-      throw .invalid("Unsupported type: \(type)")
+      throw .init(.invalid("Unsupported type: \(type)"))
     }
   }
 
@@ -77,7 +77,7 @@ public struct ArrowTypeConverter {
     } else if type == Double.self {
       return .float64
     } else {
-      throw .invalid("Unsupported numeric type: \(type)")
+      throw .init(.invalid("Unsupported numeric type: \(type)"))
     }
   }
 }

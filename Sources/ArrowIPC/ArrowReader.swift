@@ -128,7 +128,7 @@ public struct ArrowReader {
     try data.withParserSpan { input in
       let marker = try [UInt8](parsing: &input, byteCount: 6)
       guard marker == fileMarker else {
-        throw ArrowError.invalid("Invalid Arrow file")
+        throw ArrowError(.invalid("Invalid Arrow file"))
       }
     }
   }
@@ -152,7 +152,7 @@ public struct ArrowReader {
     let footer: FFooter = getRoot(byteBuffer: &footerBuffer)
 
     guard let schema = footer.schema else {
-      throw ArrowError.invalid("Missing schema in footer")
+      throw ArrowError(.invalid("Missing schema in footer"))
     }
     let arrowSchema = try loadSchema(schema: schema)
     var recordBatches: [RecordBatch] = []
@@ -160,14 +160,14 @@ public struct ArrowReader {
     // MARK: Record batch parsing
     for index in 0..<footer.recordBatchesCount {
       guard let block: FBlock = footer.recordBatches(at: index) else {
-        throw ArrowError.invalid("Missing record batch at index \(index)")
+        throw ArrowError(.invalid("Missing record batch at index \(index)"))
       }
 
       let (message, offset) = try data.withParserSpan { input in
         try input.seek(toAbsoluteOffset: block.offset)
         let marker = try UInt32(parsingLittleEndian: &input)
         if marker != continuationMarker {
-          throw ArrowError.invalid("Missing continuation marker.")
+          throw ArrowError(.invalid("Missing continuation marker."))
         }
         let messageLength = try UInt32(parsingLittleEndian: &input)
         let data = try [UInt8](parsing: &input, byteCount: Int(messageLength))
@@ -179,15 +179,15 @@ public struct ArrowReader {
       }
 
       guard message.headerType == .recordbatch else {
-        throw ArrowError.invalid(
-          "Expected RecordBatch message, got: \(message.headerType).")
+        throw ArrowError(.invalid(
+          "Expected RecordBatch message, got: \(message.headerType)."))
       }
 
       guard let rbMessage = message.header(type: FRecordBatch.self) else {
-        throw ArrowError.invalid("Expected RecordBatch as message header")
+        throw ArrowError(.invalid("Expected RecordBatch as message header"))
       }
       guard let footerSchema = footer.schema else {
-        throw ArrowError.invalid("Expected schema in footer")
+        throw ArrowError(.invalid("Expected schema in footer"))
       }
 
       // MARK: Load arrays
@@ -224,7 +224,7 @@ public struct ArrowReader {
     guard nodeIndex < rbMessage.nodesCount,
       let node = rbMessage.nodes(at: nodeIndex)
     else {
-      throw ArrowError.invalid("Missing node at index \(nodeIndex)")
+      throw ArrowError(.invalid("Missing node at index \(nodeIndex)"))
     }
     nodeIndex += 1
     let buffer0 = try nextBuffer(
@@ -312,7 +312,7 @@ public struct ArrowReader {
           length: length, elementType: UInt64.self,
           nullBuffer: nullBuffer, buffer: buffer1)
       default:
-        throw ArrowError.invalid("TODO: Unimplemented arrow type: \(arrowType)")
+        throw ArrowError(.invalid("TODO: Unimplemented arrow type: \(arrowType)"))
       }
     } else if arrowType.isTemporal {
       let buffer1 = try nextBuffer(
@@ -348,7 +348,7 @@ public struct ArrowReader {
           nullBuffer: nullBuffer, buffer: buffer1)
       default:
         print("=== TODO: Unimplemented arrow type: \(arrowType) ===")
-        throw ArrowError.notImplemented
+        throw ArrowError(.notImplemented)
       }
     } else if arrowType.isVariable {
       let buffer1 = try nextBuffer(
@@ -377,7 +377,7 @@ public struct ArrowReader {
           valueBuffer: valueBufferTyped
         )
       } else {
-        throw ArrowError.notImplemented
+        throw ArrowError(.notImplemented)
       }
     } else if arrowType.isNested {
       switch arrowType {
@@ -399,23 +399,23 @@ public struct ArrowReader {
           // Empty offsets buffer is valid when child array is empty
           // There could be any number of empty lists referencing into an empty list
           guard array.length == 0 else {
-            throw ArrowError.invalid(
-              "Empty offsets buffer but non-empty child array")
+            throw ArrowError(.invalid(
+              "Empty offsets buffer but non-empty child array"))
           }
           let emptyBuffer = emptyOffsetBuffer(offsetCount: length + 1)
           offsetsBuffer = FixedWidthBufferIPC<Int32>(buffer: emptyBuffer)
         } else {
           let requiredBytes = (length + 1) * MemoryLayout<Int32>.stride
           guard offsetsBuffer.length >= requiredBytes else {
-            throw ArrowError.invalid(
-              "Offsets buffer too small: need \(requiredBytes) bytes for \(length) lists"
+            throw ArrowError(.invalid(
+              "Offsets buffer too small: need \(requiredBytes) bytes for \(length) lists")
             )
           }
           // Verify last offset matches child array length
           let lastOffset = offsetsBuffer[length]
           guard lastOffset == Int32(array.length) else {
-            throw ArrowError.invalid(
-              "Expected last offset to match child array length.")
+            throw ArrowError(.invalid(
+              "Expected last offset to match child array length."))
           }
         }
         return makeListArray(
@@ -456,7 +456,7 @@ public struct ArrowReader {
           fields: arrays
         )
       default:
-        throw ArrowError.notImplemented
+        throw ArrowError(.notImplemented)
       }
     } else {
       // MARK: Unclassifiable types.
@@ -472,7 +472,7 @@ public struct ArrowReader {
           valueBuffer: valueBufferTyped
         )
       }
-      throw ArrowError.notImplemented
+      throw ArrowError(.notImplemented)
     }
   }
 
@@ -481,7 +481,7 @@ public struct ArrowReader {
   ) throws -> FileDataBuffer {
     guard index < message.buffersCount, let buffer = message.buffers(at: index)
     else {
-      throw ArrowError.invalid("Invalid buffer index.")
+      throw ArrowError(.invalid("Invalid buffer index."))
     }
     index += 1
     let startOffset = offset + buffer.offset
@@ -534,7 +534,7 @@ public struct ArrowReader {
     var fields: [ArrowField] = []
     for index in 0..<schema.fieldsCount {
       guard let field = schema.fields(at: index) else {
-        throw .invalid("Field not found at index: \(index)")
+        throw .init(.invalid("Field not found at index: \(index)"))
       }
       let arrowField = try ArrowField.parse(from: field)
       fields.append(arrowField)

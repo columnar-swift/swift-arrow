@@ -95,7 +95,7 @@ public struct ArrowReaderX: Sendable {
     let builder = ArrowSchema.Builder()
     for index in 0..<schema.fieldsCount {
       guard let field = schema.fields(at: index) else {
-        return .failure(.invalid("Field not found at index: \(index)"))
+        return .failure(.init(.invalid("Field not found at index: \(index)")))
       }
       let fieldType: ArrowType
       do {
@@ -104,7 +104,7 @@ public struct ArrowReaderX: Sendable {
         return .failure(error)
       }
       guard let fieldName = field.name else {
-        return .failure(.invalid("Field name not found"))
+        return .failure(.init(.invalid("Field name not found")))
       }
       let arrowField = ArrowField(
         name: fieldName,
@@ -121,11 +121,11 @@ public struct ArrowReaderX: Sendable {
     field: FField
   ) -> Result<AnyArrowArray, ArrowError> {
     guard let node = loadInfo.batchData.nextNode() else {
-      return .failure(.invalid("Node not found"))
+      return .failure(.init(.invalid("Node not found")))
     }
 
     guard let nullBuffer = loadInfo.batchData.nextBuffer() else {
-      return .failure(.invalid("Null buffer not found"))
+      return .failure(.init(.invalid("Null buffer not found")))
     }
 
     let nullLength = UInt(ceil(Double(node.length) / 8))
@@ -135,7 +135,7 @@ public struct ArrowReaderX: Sendable {
     var children: [ArrowData] = []
     for index in 0..<field.childrenCount {
       guard let childField = field.children(at: index) else {
-        return .failure(.invalid("Child field not found at index: \(index)"))
+        return .failure(.init(.invalid("Child field not found at index: \(index)")))
       }
       switch loadField(loadInfo, field: childField) {
       case .success(let holder):
@@ -157,15 +157,15 @@ public struct ArrowReaderX: Sendable {
     -> Result<AnyArrowArray, ArrowError>
   {
     guard let node = loadInfo.batchData.nextNode() else {
-      return .failure(.invalid("Node not found"))
+      return .failure(.init(.invalid("Node not found")))
     }
 
     guard let nullBuffer = loadInfo.batchData.nextBuffer() else {
-      return .failure(.invalid("Null buffer not found"))
+      return .failure(.init(.invalid("Null buffer not found")))
     }
 
     guard let offsetBuffer = loadInfo.batchData.nextBuffer() else {
-      return .failure(.invalid("Offset buffer not found"))
+      return .failure(.init(.invalid("Offset buffer not found")))
     }
 
     let nullLength = UInt(ceil(Double(node.length) / 8))
@@ -178,7 +178,7 @@ public struct ArrowReaderX: Sendable {
 
     guard field.childrenCount == 1, let childField = field.children(at: 0)
     else {
-      return .failure(.invalid("List must have exactly one child"))
+      return .failure(.init(.invalid("List must have exactly one child")))
     }
 
     switch loadField(loadInfo, field: childField) {
@@ -201,15 +201,15 @@ public struct ArrowReaderX: Sendable {
     -> Result<AnyArrowArray, ArrowError>
   {
     guard let node = loadInfo.batchData.nextNode() else {
-      return .failure(.invalid("Node not found"))
+      return .failure(.init(.invalid("Node not found")))
     }
 
     guard let nullBuffer = loadInfo.batchData.nextBuffer() else {
-      return .failure(.invalid("Null buffer not found"))
+      return .failure(.init(.invalid("Null buffer not found")))
     }
 
     guard let valueBuffer = loadInfo.batchData.nextBuffer() else {
-      return .failure(.invalid("Value buffer not found"))
+      return .failure(.init(.invalid("Value buffer not found")))
     }
 
     let nullLength = UInt(ceil(Double(node.length) / 8))
@@ -243,19 +243,19 @@ public struct ArrowReaderX: Sendable {
     -> Result<AnyArrowArray, ArrowError>
   {
     guard let node = loadInfo.batchData.nextNode() else {
-      return .failure(.invalid("Node not found"))
+      return .failure(.init(.invalid("Node not found")))
     }
 
     guard let nullBuffer = loadInfo.batchData.nextBuffer() else {
-      return .failure(.invalid("Null buffer not found"))
+      return .failure(.init(.invalid("Null buffer not found")))
     }
 
     guard let offsetBuffer = loadInfo.batchData.nextBuffer() else {
-      return .failure(.invalid("Offset buffer not found"))
+      return .failure(.init(.invalid("Offset buffer not found")))
     }
 
     guard let valueBuffer = loadInfo.batchData.nextBuffer() else {
-      return .failure(.invalid("Value buffer not found"))
+      return .failure(.init(.invalid("Value buffer not found")))
     }
 
     let nullLength = UInt(ceil(Double(node.length) / 8))
@@ -310,7 +310,7 @@ public struct ArrowReaderX: Sendable {
       batchData: batchData)
     while !batchData.isDone() {
       guard let field = batchData.nextField() else {
-        return .failure(.invalid("Field not found"))
+        return .failure(.init(.invalid("Field not found")))
       }
 
       let result = loadField(loadInfo, field: field)
@@ -359,13 +359,13 @@ public struct ArrowReaderX: Sendable {
       switch message.headerType {
       case .recordbatch:
         guard let rbMessage = message.header(type: FRecordBatch.self) else {
-          return .failure(.invalid("Failed to parse RecordBatch message"))
+          return .failure(.init(.invalid("Failed to parse RecordBatch message")))
         }
         guard let schemaMessage else {
-          return .failure(.invalid("Schema message not found"))
+          return .failure(.init(.invalid("Schema message not found")))
         }
         guard let resultSchema = result.schema else {
-          return .failure(.invalid("Result schema not loaded"))
+          return .failure(.init(.invalid("Result schema not loaded")))
         }
         let recordBatchResult = loadRecordBatch(
           rbMessage,
@@ -385,7 +385,7 @@ public struct ArrowReaderX: Sendable {
       case .schema:
         schemaMessage = message.header(type: FSchema.self)
         guard let schemaMessage else {
-          return .failure(.invalid("Schema message not found"))
+          return .failure(.init(.invalid("Schema message not found")))
         }
         let schemaResult = loadSchema(schemaMessage)
         switch schemaResult {
@@ -398,7 +398,7 @@ public struct ArrowReaderX: Sendable {
         length = getUInt32(input, offset: offset)
       default:
         return .failure(
-          .unknownError("Unhandled header type: \(message.headerType)"))
+          .init(.unknownError("Unhandled header type: \(message.headerType)")))
       }
     }
     return .success(result)
@@ -429,7 +429,7 @@ public struct ArrowReaderX: Sendable {
       allowReadingUnalignedBuffers: useUnalignedBuffers)
     let footer: FFooter = getRoot(byteBuffer: &footerBuffer)
     guard let footerSchema = footer.schema else {
-      return .failure(.invalid("Missing schema in footer"))
+      return .failure(.init(.invalid("Missing schema in footer")))
     }
     let schemaResult = loadSchema(footerSchema)
     switch schemaResult {
@@ -441,7 +441,7 @@ public struct ArrowReaderX: Sendable {
 
     for index in 0..<footer.recordBatchesCount {
       guard let recordBatch: FBlock = footer.recordBatches(at: index) else {
-        return .failure(.invalid("Missing record batch at index \(index)"))
+        return .failure(.init(.invalid("Missing record batch at index \(index)")))
       }
       var messageLength = fileData.withUnsafeBytes { rawBuffer in
         rawBuffer.loadUnaligned(
@@ -470,14 +470,14 @@ public struct ArrowReaderX: Sendable {
       switch message.headerType {
       case .recordbatch:
         guard let rbMessage = message.header(type: FRecordBatch.self) else {
-          return .failure(.invalid("Expected RecordBatch as message header"))
+          return .failure(.init(.invalid("Expected RecordBatch as message header")))
         }
         guard let footerSchema = footer.schema else {
-          return .failure(.invalid("Expected schema in footer"))
+          return .failure(.init(.invalid("Expected schema in footer")))
         }
         // TODO: the result used here is also the return type. Ideally is would be constructed once as a struct.
         guard let resultSchema = result.schema else {
-          return .failure(.invalid("Expected schema in reader result"))
+          return .failure(.init(.invalid("Expected schema in reader result")))
         }
         let recordBatchResult = loadRecordBatch(
           rbMessage,
@@ -494,7 +494,7 @@ public struct ArrowReaderX: Sendable {
         }
       default:
         return .failure(
-          .unknownError("Unhandled header type: \(message.headerType)"))
+          .init(.unknownError("Unhandled header type: \(message.headerType)")))
       }
     }
 
@@ -509,12 +509,12 @@ public struct ArrowReaderX: Sendable {
       let fileData = try Data(contentsOf: fileURL, options: .mappedIfSafe)
 
       if !validateFileData(fileData) {
-        return .failure(.ioError("Not a valid arrow file."))
+        return .failure(.init(.ioError("Not a valid arrow file.")))
       }
       let data = fileData[..<Int(fileData.count - 6)]
       return readFile(data)
     } catch {
-      return .failure(.unknownError("Error loading file: \(error)"))
+      return .failure(.init(.unknownError("Error loading file: \(error)")))
     }
   }
 
@@ -535,7 +535,7 @@ public struct ArrowReaderX: Sendable {
     switch message.headerType {
     case .schema:
       guard let sMessage = message.header(type: FSchema.self) else {
-        return .failure(.unknownError("Expected a schema but found none"))
+        return .failure(.init(.unknownError("Expected a schema but found none")))
       }
       switch loadSchema(sMessage) {
       case .success(let schema):
@@ -547,15 +547,15 @@ public struct ArrowReaderX: Sendable {
       }
     case .recordbatch:
       guard let rbMessage = message.header(type: FRecordBatch.self) else {
-        return .failure(.invalid("Expected a RecordBatch but found none"))
+        return .failure(.init(.invalid("Expected a RecordBatch but found none")))
       }
       // TODO: the result used here is also the return type. Ideally is would be constructed once as a struct (same issue as above)
       guard let messageSchema = result.messageSchema else {
         return .failure(
-          .invalid("Expected the result to have the messageSchema already"))
+          .init(.invalid("Expected the result to have the messageSchema already")))
       }
       guard let resultSchema = result.schema else {
-        return .failure(.invalid("Expected result to have a schema"))
+        return .failure(.init(.invalid("Expected result to have a schema")))
       }
       let recordBatchResult = loadRecordBatch(
         rbMessage,
@@ -573,7 +573,7 @@ public struct ArrowReaderX: Sendable {
       }
     default:
       return .failure(
-        .unknownError("Unhandled header type: \(message.headerType)"))
+        .init(.unknownError("Unhandled header type: \(message.headerType)")))
     }
   }
 

@@ -96,7 +96,7 @@ extension ArrowArrayBase {
 
   public func isNull(at index: UInt) throws(ArrowError) -> Bool {
     if index >= self.length {
-      throw .outOfBounds(index: Int64(index))
+      throw .init(.outOfBounds(index: Int64(index)))
     }
     return arrowData.isNull(index)
   }
@@ -302,7 +302,7 @@ public class NestedArray: ArrowArrayBase<[Any?]> {
     switch arrowData.type {
     case .list(let field):
       guard arrowData.children.count == 1 else {
-        throw ArrowError.invalid("List array must have exactly one child")
+        throw ArrowError(.invalid("List array must have exactly one child"))
       }
       self.children = [
         try ArrowArrayLoader.loadArray(
@@ -319,9 +319,9 @@ public class NestedArray: ArrowArrayBase<[Any?]> {
       }
       self.children = fields
     default:
-      throw .invalid(
+      throw .init(.invalid(
         "NestedArray only supports list and struct types, got: \(arrowData.type)"
-      )
+      ))
     }
   }
 

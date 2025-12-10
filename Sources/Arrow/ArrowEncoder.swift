@@ -73,7 +73,7 @@ public class ArrowEncoder: Encoder {
     let batchBuilder = RecordBatchX.Builder()
     for key in byIndex {
       guard let builder = builders[key] else {
-        throw .invalid("Missing builder for \(key)")
+        throw .init(.invalid("Missing builder for \(key)"))
       }
       batchBuilder.addColumn(key, arrowArray: try builder.toAnyArrowArray())
     }
@@ -100,7 +100,7 @@ public class ArrowEncoder: Encoder {
   func doEncodeNil(key: CodingKey) throws {
     try throwIfInvalid()
     guard let builder = builders[key.stringValue] else {
-      throw ArrowError.invalid("Column not found for key: \(key)")
+      throw ArrowError(.invalid("Column not found for key: \(key)"))
     }
     builder.appendAny(nil)
   }
@@ -136,11 +136,11 @@ public class ArrowEncoder: Encoder {
     try throwIfInvalid()
     let index = self.getIndex(keyIndex)
     guard index < builders.count else {
-      throw ArrowError.outOfBounds(index: Int64(index))
+      throw .init(.outOfBounds(index: Int64(index)))
     }
     let key = byIndex[index]
     guard let builder = builders[key] else {
-      throw .invalid("Missing builder for key: \(key)")
+      throw .init(.invalid("Missing builder for key: \(key)"))
     }
     builder.appendAny(nil)
   }
@@ -155,21 +155,21 @@ public class ArrowEncoder: Encoder {
     try throwIfInvalid()
     let index = self.getIndex(keyIndex)
     if index > builders.count {
-      throw .outOfBounds(index: Int64(index))
+      throw .init(.outOfBounds(index: Int64(index)))
     }
     if index == builders.count {
       try ensureColumnExists(value, key: "col\(index)")
     }
     let key = byIndex[index]
     guard let builder = builders[key] else {
-      throw .invalid("Missing builder for key: \(key)")
+      throw .init(.invalid("Missing builder for key: \(key)"))
     }
     builder.appendAny(value)
   }
 
   func throwIfInvalid() throws(ArrowError) {
     if let errorMsg = self.errorMsg {
-      throw ArrowError.invalid(errorMsg)
+      throw .init(.invalid(errorMsg))
     }
   }
 }
@@ -238,13 +238,13 @@ private struct ArrowKeyedEncoding<Key: CodingKey>:
   }
 
   mutating func encode(_ value: Int, forKey key: Key) throws {
-    throw ArrowError.invalid(
-      "Int type is not supported (please use Int8, Int16, Int32 or Int64)")
+    throw ArrowError(.invalid(
+      "Int type is not supported (please use Int8, Int16, Int32 or Int64)"))
   }
 
   mutating func encodeIfPresent(_ value: Int?, forKey key: Key) throws {
-    throw ArrowError.invalid(
-      "Int type is not supported (please use Int8, Int16, Int32 or Int64)")
+    throw ArrowError(.invalid(
+      "Int type is not supported (please use Int8, Int16, Int32 or Int64)"))
   }
 
   mutating func encode(_ value: Int8, forKey key: Key) throws {
@@ -280,13 +280,13 @@ private struct ArrowKeyedEncoding<Key: CodingKey>:
   }
 
   mutating func encode(_ value: UInt, forKey key: Key) throws {
-    throw ArrowError.invalid(
-      "UInt type is not supported (please use UInt8, UInt16, UInt32 or UInt64)")
+    throw ArrowError(.invalid(
+      "UInt type is not supported (please use UInt8, UInt16, UInt32 or UInt64)"))
   }
 
   mutating func encodeIfPresent(_ value: UInt?, forKey key: Key) throws {
-    throw ArrowError.invalid(
-      "UInt type is not supported (please use UInt8, UInt16, UInt32 or UInt64)")
+    throw ArrowError(.invalid(
+      "UInt type is not supported (please use UInt8, UInt16, UInt32 or UInt64)"))
   }
 
   mutating func encode(_ value: UInt8, forKey key: Key) throws {
@@ -325,7 +325,7 @@ private struct ArrowKeyedEncoding<Key: CodingKey>:
     if ArrowArrayBuilders.isValidBuilderType(T.self) {
       try encoder.doEncode(value, key: key)
     } else {
-      throw ArrowError.invalid("Type \(T.self) is currently not supported")
+      throw ArrowError(.invalid("Type \(T.self) is currently not supported"))
     }
   }
 
@@ -334,7 +334,7 @@ private struct ArrowKeyedEncoding<Key: CodingKey>:
     if ArrowArrayBuilders.isValidBuilderType(T?.self) {
       try doEncodeIf(value, forKey: key)
     } else {
-      throw ArrowError.invalid("Type \(T.self) is currently not supported")
+      throw ArrowError(.invalid("Type \(T.self) is currently not supported"))
     }
   }
 
@@ -413,7 +413,7 @@ private struct ArrowUnkeyedEncoding: UnkeyedEncodingContainer {
       defer { increment() }
       return try self.encoder.doEncode(value, keyIndex: self.currentIndex)
     } else {
-      throw ArrowError.invalid("Type \(type) is currently not supported")
+      throw ArrowError(.invalid("Type \(type) is currently not supported"))
     }
   }
 
@@ -463,7 +463,7 @@ private struct ArrowSingleValueEncoding: SingleValueEncodingContainer {
     if ArrowArrayBuilders.isValidBuilderType(T.self) {
       return try self.encoder.doEncode(value, keyIndex: 0)
     } else {
-      throw ArrowError.invalid("Type \(T.self) is currently not supported")
+      throw ArrowError(.invalid("Type \(T.self) is currently not supported"))
     }
   }
 }

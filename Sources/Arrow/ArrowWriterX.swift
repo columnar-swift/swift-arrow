@@ -170,9 +170,9 @@ public class ArrowWriter {
           let expectedSize = startIndex + metadataLength + bodyLength
           guard expectedSize == writer.count else {
             return .failure(
-              .invalid(
+              .init(.invalid(
                 "Invalid Block. Expected \(expectedSize), got \(writer.count)"
-              ))
+              )))
           }
           rbBlocks.append(
             FBlock(
@@ -314,7 +314,7 @@ public class ArrowWriter {
             let nestedFields = nestedArray.fields
           else {
             return .failure(
-              .invalid("Struct type array expected for nested type")
+              .init(.invalid("Struct type array expected for nested type"))
             )
           }
           switch writeRecordBatchData(
@@ -436,7 +436,7 @@ public class ArrowWriter {
     if let memWriter = writer as? InMemDataWriter {
       return .success(memWriter.data)
     } else {
-      return .failure(.invalid("Unable to cast writer"))
+      return .failure(.init(.invalid("Unable to cast writer")))
     }
   }
 
@@ -447,7 +447,7 @@ public class ArrowWriter {
       if let memWriter = writer as? InMemDataWriter {
         return .success(memWriter.data)
       } else {
-        return .failure(.invalid("Unable to cast writer"))
+        return .failure(.init(.invalid("Unable to cast writer")))
       }
     case .failure(let error):
       return .failure(error)
@@ -461,10 +461,10 @@ public class ArrowWriter {
     do {
       try Data().write(to: fileName)
     } catch {
-      return .failure(.ioError("\(error)"))
+      return .failure(.init(.ioError("\(error)")))
     }
     guard let fileHandle = FileHandle(forUpdatingAtPath: fileName.path) else {
-      return .failure(.ioError("Unable to open \(fileName.path) for writing"))
+      return .failure(.init(.ioError("Unable to open \(fileName.path) for writing")))
     }
     defer { fileHandle.closeFile() }
 
@@ -496,7 +496,7 @@ public class ArrowWriter {
         guard let inMemWriter = writer as? InMemDataWriter,
           let inMemDataWriter = dataWriter as? InMemDataWriter
         else {
-          return .failure(.invalid("Unable to cast writer"))
+          return .failure(.init(.invalid("Unable to cast writer")))
         }
         return .success([
           inMemWriter.data,

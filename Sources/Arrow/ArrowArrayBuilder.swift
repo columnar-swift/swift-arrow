@@ -284,7 +284,7 @@ public class ListArrayBuilder: ArrowArrayBuilderBase<
 
   public override init(_ elementType: ArrowType) throws(ArrowError) {
     guard case .list(let field) = elementType else {
-      throw .invalid("Expected a field with type .list")
+      throw .init(.invalid("Expected a field with type .list"))
     }
     self.valueBuilder = try ArrowArrayBuilders.loadBuilder(
       arrowType: field.type
@@ -358,7 +358,7 @@ public enum ArrowArrayBuilders {
     } else if builderType == Date.self || builderType == Date?.self {
       return try ArrowArrayBuilders.loadDate64ArrayBuilder()
     } else {
-      throw .invalid("Invalid type for builder: \(builderType)")
+      throw .init(.invalid("Invalid type for builder: \(builderType)"))
     }
   }
 
@@ -449,9 +449,9 @@ public enum ArrowArrayBuilders {
     case .list(_):
       return try ListArrayBuilder(arrowType)
     default:
-      throw ArrowError.unknownType(
+      throw .init(.unknownType(
         "Builder not found for arrow type: \(arrowType)"
-      )
+      ))
     }
   }
 
@@ -480,7 +480,7 @@ public enum ArrowArrayBuilders {
     } else if type == Double.self {
       return try NumberArrayBuilder<T>()
     } else {
-      throw ArrowError.unknownType("Type is invalid for NumberArrayBuilder")
+      throw .init(.unknownType("Type is invalid for NumberArrayBuilder"))
     }
   }
 

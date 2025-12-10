@@ -118,9 +118,9 @@ struct ArrowTestingIPC {
         switch arrowField.type {
         case .fixedSizeBinary(let byteWidth):
           guard let expectedByteWidth = expectedField.type.byteWidth else {
-            throw ArrowError.invalid(
+            throw ArrowError(.invalid(
               "Test case is missing byteWidth for fixedSizeBinary field."
-            )
+            ))
           }
           #expect(expectedByteWidth == byteWidth)
           guard let actual = arrowArray as? any BinaryArrayProtocol else {
@@ -193,11 +193,11 @@ struct ArrowTestingIPC {
   ) throws {
     guard let validity = expected.validity, let dataValues = expected.data
     else {
-      throw ArrowError.invalid("Test column is incomplete.")
+      throw ArrowError(.invalid("Test column is incomplete."))
     }
     for (i, isNull) in validity.enumerated() {
       guard case .string(let hex) = dataValues[i] else {
-        throw ArrowError.invalid("Data values are not all strings.")
+        throw ArrowError(.invalid("Data values are not all strings."))
       }
       guard let data = Data(hex: hex) else {
         Issue.record("Failed to decode data from hex: \(hex)")
@@ -218,7 +218,7 @@ struct ArrowTestingIPC {
     guard let expectedValidity = expected.validity,
       let expectedValues = expected.data
     else {
-      throw ArrowError.invalid("Test column is incomplete.")
+      throw ArrowError(.invalid("Test column is incomplete."))
     }
     guard let array = actual as? ArrowArrayBoolean,
       array.length == expectedValidity.count
@@ -228,7 +228,7 @@ struct ArrowTestingIPC {
     }
     for (i, isNull) in expectedValidity.enumerated() {
       guard case .bool(let expectedValue) = expectedValues[i] else {
-        throw ArrowError.invalid("Expected boolean value")
+        throw ArrowError(.invalid("Expected boolean value"))
       }
       if isNull == 0 {
         #expect(array[i] == nil)
@@ -246,7 +246,7 @@ struct ArrowTestingIPC {
     guard let expectedValidity = expected.validity,
       let expectedValues = expected.data
     else {
-      throw ArrowError.invalid("Test column is incomplete.")
+      throw ArrowError(.invalid("Test column is incomplete."))
     }
     guard let array = actual as? any ArrowArrayProtocol,
       array.length == expectedValidity.count
@@ -263,7 +263,7 @@ struct ArrowTestingIPC {
       {
         expected = parsed
       } else {
-        throw ArrowError.invalid("Expected integer value or numeric string")
+        throw ArrowError(.invalid("Expected integer value or numeric string"))
       }
 
       if isNull == 0 {
@@ -282,7 +282,7 @@ struct ArrowTestingIPC {
     guard let expectedValidity = expected.validity,
       let expectedValues = expected.data
     else {
-      throw ArrowError.invalid("Test column is incomplete.")
+      throw ArrowError(.invalid("Test column is incomplete."))
     }
     guard let array = actual as? any ArrowArrayProtocol,
       array.length == expectedValidity.count
@@ -294,7 +294,7 @@ struct ArrowTestingIPC {
       guard case .string(let strVal) = expectedValues[i],
         let expected = T(strVal)
       else {
-        throw ArrowError.invalid("Expected float value or numeric string")
+        throw ArrowError(.invalid("Expected float value or numeric string"))
       }
       if isValid == 1 {
         #expect(array[i] as? T == expected)
@@ -313,7 +313,7 @@ struct ArrowTestingIPC {
 
     guard let expectedValidity = expected.validity
     else {
-      throw ArrowError.invalid("Test column is incomplete.")
+      throw ArrowError(.invalid("Test column is incomplete."))
     }
     guard let listArray = actual as? ArrowFixedSizeListArray
     else {
@@ -341,7 +341,7 @@ struct ArrowTestingIPC {
     guard let expectedValidity = expected.validity,
       let expectedOffsets = expected.offset
     else {
-      throw ArrowError.invalid("Test column is incomplete.")
+      throw ArrowError(.invalid("Test column is incomplete."))
     }
 
     // Validate the offsets buffer
@@ -362,7 +362,7 @@ struct ArrowTestingIPC {
     }
 
     guard let child = expected.children?.first else {
-      throw ArrowError.invalid("List array missing child column")
+      throw ArrowError(.invalid("List array missing child column"))
     }
 
     // Validate each list entry
@@ -399,13 +399,13 @@ struct ArrowTestingIPC {
           // Validate the actual value based on child type
           // This is where you'd dispatch based on child column type
           guard let childData = child.data else {
-            throw ArrowError.invalid("Child column missing DATA")
+            throw ArrowError(.invalid("Child column missing DATA"))
           }
 
           // TODO:  Type-specific validation
           guard case .int(let expectedValue) = childData[expectedDataIndex]
           else {
-            throw ArrowError.invalid("Unexpected child data type")
+            throw ArrowError(.invalid("Unexpected child data type"))
           }
         }
       }
@@ -421,7 +421,7 @@ struct ArrowTestingIPC {
       let expectedOffsets = expected.offset,
       let expectedValues = expected.data
     else {
-      throw ArrowError.invalid("Test column is incomplete.")
+      throw ArrowError(.invalid("Test column is incomplete."))
     }
 
     actual.buffers[1].withUnsafeBytes { ptr in
@@ -438,7 +438,7 @@ struct ArrowTestingIPC {
       }
       for i in 0..<expected.count {
         guard case .string(let hex) = expectedValues[i] else {
-          throw ArrowError.invalid("Data values are not all strings.")
+          throw ArrowError(.invalid("Data values are not all strings."))
         }
         guard let expectedData = Data(hex: hex) else {
           Issue.record("Failed to decode data from hex: \(hex)")
@@ -457,7 +457,7 @@ struct ArrowTestingIPC {
       }
       for i in 0..<expected.count {
         guard case .string(let utf8) = expectedValues[i] else {
-          throw ArrowError.invalid("Data values are not all strings.")
+          throw ArrowError(.invalid("Data values are not all strings."))
         }
         if expectedValidity[i] == 0 {
           #expect(binaryArray[i] == nil)

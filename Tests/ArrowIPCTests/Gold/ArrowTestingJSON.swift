@@ -39,6 +39,7 @@ struct ArrowTestingJSON {
     "generated_recursive_nested",
     "generated_map",
     "generated_datetime",
+    "generated_duration",
   ]
 
   @Test(arguments: testCases)
@@ -138,7 +139,7 @@ func diffEncodable<T: Encodable>(
     let actualString = String(data: actualJSON, encoding: .utf8),
     let expectedString = String(data: expectedJSON, encoding: .utf8)
   else {
-    throw ArrowError.runtimeError("Invalid UTF-8 data.")
+    throw ArrowError(.runtimeError("Invalid UTF-8 data."))
   }
   let actualLines = actualString.split(separator: "\n")
   let expectedLines = expectedString.split(separator: "\n")

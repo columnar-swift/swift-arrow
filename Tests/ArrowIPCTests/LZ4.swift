@@ -118,7 +118,7 @@ public struct LZ4 {
     init(parsing input: inout ParserSpan) throws {
       let magicNumber = try UInt32(parsingLittleEndian: &input)
       guard magicNumber == 0x184D_2204 else {
-        throw ArrowError.invalid("Invalid magic number")
+        throw ArrowError(.invalid("Invalid magic number"))
       }
 
       self.flags = try Flags(parsingLittleEndian: &input)
@@ -195,7 +195,7 @@ public struct LZ4 {
         self.length = try Int(
           parsingLZ4Sequence: &input, token: copyLengthToken, constant: 4)
         guard offset != 0 else {
-          throw ArrowError.invalid("2")
+          throw ArrowError(.invalid("2"))
         }
       }
     }
@@ -219,7 +219,7 @@ extension LZ4: ExpressibleByParsing {
 
       if size.isCompressed {
         guard let max = header.flags.blockMaximum else {
-          throw ArrowError.invalid("Invalid block maximum in header flags")
+          throw ArrowError(.invalid("Invalid block maximum in header flags"))
         }
         // TODO: Switch to OutputSpan when we can implement a copying append
         var blockData = Data(capacity: max.bytes)
@@ -232,9 +232,9 @@ extension LZ4: ExpressibleByParsing {
           }
 
           guard seq.offset <= blockData.count else {
-            throw ArrowError.invalid(
+            throw ArrowError(.invalid(
               "Tried to offset too much: \(seq.offset) with count \(blockData.count)"
-            )
+            ))
           }
 
           if seq.offset == 0 {

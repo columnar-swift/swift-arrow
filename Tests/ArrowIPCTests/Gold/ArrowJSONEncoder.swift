@@ -29,7 +29,7 @@ func encodeColumn(
   field: ArrowField
 ) throws(ArrowError) -> ArrowGold.Column {
   guard let array = array as? (any ArrowArrayProtocol) else {
-    throw .invalid("Expected ArrowArray, got \(type(of: array))")
+    throw .init(.invalid("Expected ArrowArray, got \(type(of: array))"))
   }
   // Validity is always present in the gold files.
   let validity: [Int] = (0..<array.length).map { i in
@@ -58,7 +58,7 @@ func encodeColumn(
     switch field.type {
     case .list(let listField), .map(let listField, _):
       guard let listArray = array as? ListArrayProtocol else {
-        throw ArrowError.invalid("Expected list array")
+        throw .init(.invalid("Expected list array"))
       }
       let childColumn = try encodeColumn(
         array: listArray.values, field: listField)
@@ -67,7 +67,7 @@ func encodeColumn(
       data = nil
     case .fixedSizeList(let listField, _):
       guard let listArray = array as? ListArrayProtocol else {
-        throw ArrowError.invalid("Expected list array")
+        throw .init(.invalid("Expected list array"))
       }
       let childColumn = try encodeColumn(
         array: listArray.values, field: listField)
@@ -75,7 +75,7 @@ func encodeColumn(
       data = nil
     case .strct(let arrowFields):
       guard let structArray = array as? ArrowStructArray else {
-        throw ArrowError.invalid("Expected list array")
+        throw .init(.invalid("Expected list array"))
       }
       children = []
       for (arrowField, (_, array)) in zip(arrowFields, structArray.fields) {
@@ -140,7 +140,7 @@ func encodeColumn(
     case .utf8:
       try extractUtf8Data(from: array, into: &data)
     default:
-      throw .invalid("Encoder did not handle a field type: \(field.type)")
+      throw .init(.invalid("Encoder did not handle a field type: \(field.type)"))
     }
   }
   return .init(
@@ -158,7 +158,7 @@ func extractIntData<T: FixedWidthInteger & BitwiseCopyable>(
   expectedType: T.Type
 ) throws(ArrowError) -> [DataValue] {
   guard let typedArray = array as? ArrowArrayNumeric<T> else {
-    throw .invalid("Expected \(T.self) array, got \(type(of: array))")
+    throw .init(.invalid("Expected \(T.self) array, got \(type(of: array))"))
   }
   do {
     return try (0..<typedArray.length).map { i in
@@ -172,7 +172,7 @@ func extractIntData<T: FixedWidthInteger & BitwiseCopyable>(
       }
     }
   } catch {
-    throw .invalid("Failed to extract Int data: \(error)")
+    throw .init(.invalid("Failed to extract Int data: \(error)"))
   }
 }
 
@@ -181,7 +181,7 @@ func extractFloatData<T: BinaryFloatingPoint & BitwiseCopyable>(
   expectedType: T.Type
 ) throws(ArrowError) -> [DataValue] {
   guard let typedArray = array as? ArrowArrayNumeric<T> else {
-    throw ArrowError.invalid("Expected \(T.self) array, got \(type(of: array))")
+    throw .init(.invalid("Expected \(T.self) array, got \(type(of: array))"))
   }
   let encoder = JSONEncoder()
   let decoder = JSONDecoder()
@@ -204,11 +204,11 @@ func extractFloatData<T: BinaryFloatingPoint & BitwiseCopyable>(
         let jsonNumber = try decoder.decode(Float.self, from: data)
         return .string(String(jsonNumber))
       } else {
-        throw ArrowError.invalid("Expected float type")
+        throw ArrowError(.invalid("Expected float type"))
       }
     }
   } catch {
-    throw .ioError("Failed to round-trip float to/from JSON")
+    throw .init(.ioError("Failed to round-trip float to/from JSON"))
   }
 }
 
@@ -216,7 +216,7 @@ func extractBoolData(
   from array: AnyArrowArrayProtocol
 ) throws(ArrowError) -> [DataValue] {
   guard let typedArray = array as? ArrowArrayBoolean else {
-    throw .invalid("Expected boolean array, got \(type(of: array))")
+    throw .init(.invalid("Expected boolean array, got \(type(of: array))"))
   }
   return (0..<typedArray.length).map { i in
     guard let value = typedArray[i] else { return .null }
@@ -229,7 +229,7 @@ func extractBinaryData(
   into dataValues: inout [DataValue]?
 ) throws(ArrowError) {
   guard let binaryArray = array as? any BinaryArrayProtocol else {
-    throw .invalid("Expected binary array")
+    throw .init(.invalid("Expected binary array"))
   }
   dataValues = (0..<binaryArray.length).map { i in
     guard let value = binaryArray[i] else {
@@ -245,7 +245,7 @@ func extractUtf8Data(
   into dataValues: inout [DataValue]?
 ) throws(ArrowError) {
   guard let stringArray = array as? StringArrayProtocol else {
-    throw .invalid("Expected UTF-8 array")
+    throw .init(.invalid("Expected UTF-8 array"))
   }
   dataValues = (0..<stringArray.length).map { i in
     guard let value = stringArray[i] else {

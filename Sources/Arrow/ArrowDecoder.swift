@@ -51,9 +51,9 @@ public class ArrowDecoder: Decoder {
   ) throws -> [T: U] {
     var output: [T: U] = [:]
     if rb.columnCount != 2 {
-      throw ArrowError.invalid(
+      throw ArrowError(.invalid(
         "RecordBatch column count of 2 is required to decode to map"
-      )
+      ))
     }
     for index in 0..<rb.length {
       self.rbIndex = index
@@ -93,7 +93,7 @@ public class ArrowDecoder: Decoder {
 
   func getCol(_ name: String) throws -> AnyArrowArray {
     guard let col = self.nameToCol[name] else {
-      throw ArrowError.invalid("Column for key \"\(name)\" not found")
+      throw ArrowError(.invalid("Column for key \"\(name)\" not found"))
     }
 
     return col
@@ -101,7 +101,7 @@ public class ArrowDecoder: Decoder {
 
   func getCol(_ index: Int) throws -> AnyArrowArray {
     if index >= self.columns.count {
-      throw ArrowError.outOfBounds(index: Int64(index))
+      throw ArrowError(.outOfBounds(index: Int64(index)))
     }
 
     return self.columns[index]
@@ -168,26 +168,26 @@ private struct ArrowUnkeyedDecoding: UnkeyedDecodingContainer {
     {
       defer { increment() }
       guard let value: T = try self.decoder.doDecode(self.currentIndex) else {
-        throw ArrowError.invalid("Failed to decode value for \(type)")
+        throw ArrowError(.invalid("Failed to decode value for \(type)"))
       }
       return value
     } else {
-      throw ArrowError.invalid("Type \(type) is currently not supported")
+      throw ArrowError(.invalid("Type \(type) is currently not supported"))
     }
   }
 
   func nestedContainer<NestedKey>(
     keyedBy type: NestedKey.Type
   ) throws -> KeyedDecodingContainer<NestedKey> where NestedKey: CodingKey {
-    throw ArrowError.invalid("Nested decoding is currently not supported.")
+    throw ArrowError(.invalid("Nested decoding is currently not supported."))
   }
 
   func nestedUnkeyedContainer() throws -> UnkeyedDecodingContainer {
-    throw ArrowError.invalid("Nested decoding is currently not supported.")
+    throw ArrowError(.invalid("Nested decoding is currently not supported."))
   }
 
   func superDecoder() throws -> Decoder {
-    throw ArrowError.invalid("super decoding is currently not supported.")
+    throw ArrowError(.invalid("super decoding is currently not supported."))
   }
 }
 
@@ -213,94 +213,94 @@ private struct ArrowKeyedDecoding<Key: CodingKey>:
 
   func decode(_ type: Bool.Type, forKey key: Key) throws -> Bool {
     guard let value: Bool = try self.decoder.doDecode(key) else {
-      throw ArrowError.invalid("Failed to decode \(type) for key \(key)")
+      throw ArrowError(.invalid("Failed to decode \(type) for key \(key)"))
     }
     return value
   }
 
   func decode(_ type: String.Type, forKey key: Key) throws -> String {
     guard let value: String = try self.decoder.doDecode(key) else {
-      throw ArrowError.invalid("Failed to decode \(type) for key \(key)")
+      throw ArrowError(.invalid("Failed to decode \(type) for key \(key)"))
     }
     return value
   }
 
   func decode(_ type: Double.Type, forKey key: Key) throws -> Double {
     guard let value: Double = try self.decoder.doDecode(key) else {
-      throw ArrowError.invalid("Failed to decode \(type) for key \(key)")
+      throw ArrowError(.invalid("Failed to decode \(type) for key \(key)"))
     }
     return value
   }
 
   func decode(_ type: Float.Type, forKey key: Key) throws -> Float {
     guard let value: Float = try self.decoder.doDecode(key) else {
-      throw ArrowError.invalid("Failed to decode \(type) for key \(key)")
+      throw ArrowError(.invalid("Failed to decode \(type) for key \(key)"))
     }
     return value
   }
 
   func decode(_ type: Int.Type, forKey key: Key) throws -> Int {
-    throw ArrowError.invalid(
-      "Int type is not supported (please use Int8, Int16, Int32 or Int64)")
+    throw ArrowError(.invalid(
+      "Int type is not supported (please use Int8, Int16, Int32 or Int64)"))
   }
 
   func decode(_ type: Int8.Type, forKey key: Key) throws -> Int8 {
     guard let value: Int8 = try self.decoder.doDecode(key) else {
-      throw ArrowError.invalid("Failed to decode \(type) for key \(key)")
+      throw ArrowError(.invalid("Failed to decode \(type) for key \(key)"))
     }
     return value
   }
 
   func decode(_ type: Int16.Type, forKey key: Key) throws -> Int16 {
     guard let value: Int16 = try self.decoder.doDecode(key) else {
-      throw ArrowError.invalid("Failed to decode \(type) for key \(key)")
+      throw ArrowError(.invalid("Failed to decode \(type) for key \(key)"))
     }
     return value
   }
 
   func decode(_ type: Int32.Type, forKey key: Key) throws -> Int32 {
     guard let value: Int32 = try self.decoder.doDecode(key) else {
-      throw ArrowError.invalid("Failed to decode \(type) for key \(key)")
+      throw ArrowError(.invalid("Failed to decode \(type) for key \(key)"))
     }
     return value
   }
 
   func decode(_ type: Int64.Type, forKey key: Key) throws -> Int64 {
     guard let value: Int64 = try self.decoder.doDecode(key) else {
-      throw ArrowError.invalid("Failed to decode \(type) for key \(key)")
+      throw ArrowError(.invalid("Failed to decode \(type) for key \(key)"))
     }
     return value
   }
 
   func decode(_ type: UInt.Type, forKey key: Key) throws -> UInt {
-    throw ArrowError.invalid(
-      "UInt type is not supported (please use UInt8, UInt16, UInt32 or UInt64)")
+    throw ArrowError(.invalid(
+      "UInt type is not supported (please use UInt8, UInt16, UInt32 or UInt64)"))
   }
 
   func decode(_ type: UInt8.Type, forKey key: Key) throws -> UInt8 {
     guard let value: UInt8 = try self.decoder.doDecode(key) else {
-      throw ArrowError.invalid("Failed to decode \(type) for key \(key)")
+      throw ArrowError(.invalid("Failed to decode \(type) for key \(key)"))
     }
     return value
   }
 
   func decode(_ type: UInt16.Type, forKey key: Key) throws -> UInt16 {
     guard let value: UInt16 = try self.decoder.doDecode(key) else {
-      throw ArrowError.invalid("Failed to decode \(type) for key \(key)")
+      throw ArrowError(.invalid("Failed to decode \(type) for key \(key)"))
     }
     return value
   }
 
   func decode(_ type: UInt32.Type, forKey key: Key) throws -> UInt32 {
     guard let value: UInt32 = try self.decoder.doDecode(key) else {
-      throw ArrowError.invalid("Failed to decode \(type) for key \(key)")
+      throw ArrowError(.invalid("Failed to decode \(type) for key \(key)"))
     }
     return value
   }
 
   func decode(_ type: UInt64.Type, forKey key: Key) throws -> UInt64 {
     guard let value: UInt64 = try self.decoder.doDecode(key) else {
-      throw ArrowError.invalid("Failed to decode \(type) for key \(key)")
+      throw ArrowError(.invalid("Failed to decode \(type) for key \(key)"))
     }
     return value
   }
@@ -309,11 +309,11 @@ private struct ArrowKeyedDecoding<Key: CodingKey>:
   where T: Decodable {
     if ArrowArrayBuilders.isValidBuilderType(type) || type == Date.self {
       guard let value: T = try self.decoder.doDecode(key) else {
-        throw ArrowError.invalid("Failed to decode \(type) for key \(key)")
+        throw ArrowError(.invalid("Failed to decode \(type) for key \(key)"))
       }
       return value
     } else {
-      throw ArrowError.invalid("Type \(type) is currently not supported")
+      throw ArrowError(.invalid("Type \(type) is currently not supported"))
     }
   }
 
@@ -321,21 +321,21 @@ private struct ArrowKeyedDecoding<Key: CodingKey>:
     keyedBy type: NestedKey.Type,
     forKey key: Key
   ) throws -> KeyedDecodingContainer<NestedKey> where NestedKey: CodingKey {
-    throw ArrowError.invalid("Nested decoding is currently not supported.")
+    throw ArrowError(.invalid("Nested decoding is currently not supported."))
   }
 
   func nestedUnkeyedContainer(forKey key: Key) throws
     -> UnkeyedDecodingContainer
   {
-    throw ArrowError.invalid("Nested decoding is currently not supported.")
+    throw ArrowError(.invalid("Nested decoding is currently not supported."))
   }
 
   func superDecoder() throws -> Decoder {
-    throw ArrowError.invalid("super decoding is currently not supported.")
+    throw ArrowError(.invalid("super decoding is currently not supported."))
   }
 
   func superDecoder(forKey key: Key) throws -> Decoder {
-    throw ArrowError.invalid("super decoding is currently not supported.")
+    throw ArrowError(.invalid("super decoding is currently not supported."))
   }
 }
 
@@ -359,7 +359,7 @@ private struct ArrowSingleValueDecoding: SingleValueDecodingContainer {
   func decode(_ type: Bool.Type) throws -> Bool {
     guard let value: Bool = try self.decoder.doDecode(self.decoder.singleRBCol)
     else {
-      throw ArrowError.invalid("Failed to decode \(type)")
+      throw ArrowError(.invalid("Failed to decode \(type)"))
     }
     return value
   }
@@ -368,7 +368,7 @@ private struct ArrowSingleValueDecoding: SingleValueDecodingContainer {
     guard
       let value: String = try self.decoder.doDecode(self.decoder.singleRBCol)
     else {
-      throw ArrowError.invalid("Failed to decode \(type)")
+      throw ArrowError(.invalid("Failed to decode \(type)"))
     }
     return value
   }
@@ -377,7 +377,7 @@ private struct ArrowSingleValueDecoding: SingleValueDecodingContainer {
     guard
       let value: Double = try self.decoder.doDecode(self.decoder.singleRBCol)
     else {
-      throw ArrowError.invalid("Failed to decode \(type)")
+      throw ArrowError(.invalid("Failed to decode \(type)"))
     }
     return value
   }
@@ -385,20 +385,20 @@ private struct ArrowSingleValueDecoding: SingleValueDecodingContainer {
   func decode(_ type: Float.Type) throws -> Float {
     guard let value: Float = try self.decoder.doDecode(self.decoder.singleRBCol)
     else {
-      throw ArrowError.invalid("Failed to decode \(type)")
+      throw ArrowError(.invalid("Failed to decode \(type)"))
     }
     return value
   }
 
   func decode(_ type: Int.Type) throws -> Int {
-    throw ArrowError.invalid(
-      "Int type is not supported (please use Int8, Int16, Int32 or Int64)")
+    throw ArrowError(.invalid(
+      "Int type is not supported (please use Int8, Int16, Int32 or Int64)"))
   }
 
   func decode(_ type: Int8.Type) throws -> Int8 {
     guard let value: Int8 = try self.decoder.doDecode(self.decoder.singleRBCol)
     else {
-      throw ArrowError.invalid("Failed to decode \(type)")
+      throw ArrowError(.invalid("Failed to decode \(type)"))
     }
     return value
   }
@@ -406,7 +406,7 @@ private struct ArrowSingleValueDecoding: SingleValueDecodingContainer {
   func decode(_ type: Int16.Type) throws -> Int16 {
     guard let value: Int16 = try self.decoder.doDecode(self.decoder.singleRBCol)
     else {
-      throw ArrowError.invalid("Failed to decode \(type)")
+      throw ArrowError(.invalid("Failed to decode \(type)"))
     }
     return value
   }
@@ -414,7 +414,7 @@ private struct ArrowSingleValueDecoding: SingleValueDecodingContainer {
   func decode(_ type: Int32.Type) throws -> Int32 {
     guard let value: Int32 = try self.decoder.doDecode(self.decoder.singleRBCol)
     else {
-      throw ArrowError.invalid("Failed to decode \(type)")
+      throw ArrowError(.invalid("Failed to decode \(type)"))
     }
     return value
   }
@@ -422,20 +422,20 @@ private struct ArrowSingleValueDecoding: SingleValueDecodingContainer {
   func decode(_ type: Int64.Type) throws -> Int64 {
     guard let value: Int64 = try self.decoder.doDecode(self.decoder.singleRBCol)
     else {
-      throw ArrowError.invalid("Failed to decode \(type)")
+      throw ArrowError(.invalid("Failed to decode \(type)"))
     }
     return value
   }
 
   func decode(_ type: UInt.Type) throws -> UInt {
-    throw ArrowError.invalid(
-      "UInt type is not supported (please use UInt8, UInt16, UInt32 or UInt64)")
+    throw ArrowError(.invalid(
+      "UInt type is not supported (please use UInt8, UInt16, UInt32 or UInt64)"))
   }
 
   func decode(_ type: UInt8.Type) throws -> UInt8 {
     guard let value: UInt8 = try self.decoder.doDecode(self.decoder.singleRBCol)
     else {
-      throw ArrowError.invalid("Failed to decode \(type)")
+      throw ArrowError(.invalid("Failed to decode \(type)"))
     }
     return value
   }
@@ -444,7 +444,7 @@ private struct ArrowSingleValueDecoding: SingleValueDecodingContainer {
     guard
       let value: UInt16 = try self.decoder.doDecode(self.decoder.singleRBCol)
     else {
-      throw ArrowError.invalid("Failed to decode \(type)")
+      throw ArrowError(.invalid("Failed to decode \(type)"))
     }
     return value
   }
@@ -453,7 +453,7 @@ private struct ArrowSingleValueDecoding: SingleValueDecodingContainer {
     guard
       let value: UInt32 = try self.decoder.doDecode(self.decoder.singleRBCol)
     else {
-      throw ArrowError.invalid("Failed to decode \(type)")
+      throw ArrowError(.invalid("Failed to decode \(type)"))
     }
     return value
   }
@@ -462,7 +462,7 @@ private struct ArrowSingleValueDecoding: SingleValueDecodingContainer {
     guard
       let value: UInt64 = try self.decoder.doDecode(self.decoder.singleRBCol)
     else {
-      throw ArrowError.invalid("Failed to decode \(type)")
+      throw ArrowError(.invalid("Failed to decode \(type)"))
     }
     return value
   }
@@ -471,11 +471,11 @@ private struct ArrowSingleValueDecoding: SingleValueDecodingContainer {
     if ArrowArrayBuilders.isValidBuilderType(type) || type == Date.self {
       guard let value: T = try self.decoder.doDecode(self.decoder.singleRBCol)
       else {
-        throw ArrowError.invalid("Failed to decode \(type)")
+        throw ArrowError(.invalid("Failed to decode \(type)"))
       }
       return value
     } else {
-      throw ArrowError.invalid("Type \(type) is currently not supported")
+      throw ArrowError(.invalid("Type \(type) is currently not supported"))
     }
   }
 }

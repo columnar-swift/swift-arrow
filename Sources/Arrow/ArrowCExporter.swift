@@ -46,12 +46,14 @@ public class ArrowCExporter {
       self.name = name
       self.arrowTypeName = try arrowType.cDataFormatId
       guard let nameCstr = (self.name as NSString).utf8String else {
-        throw ArrowError.runtimeError("Failed to convert name to C string")
+        throw ArrowError(.runtimeError("Failed to convert name to C string"))
       }
       self.nameCstr = nameCstr
       guard let typeNameCstr = (self.arrowTypeName as NSString).utf8String
       else {
-        throw ArrowError.runtimeError("Failed to convert type name to C string")
+        throw ArrowError(
+         .runtimeError("Failed to convert type name to C string") 
+        )
       }
       self.arrowTypeNameCstr = typeNameCstr
       super.init()
@@ -117,7 +119,7 @@ public class ArrowCExporter {
         ArrowC.ArrowSwiftClearReleaseSchema(data)
       }
     } catch {
-      return .failure(.unknownError("\(error)"))
+      return .failure(.init(.unknownError("\(error)")))
     }
     return .success(true)
   }

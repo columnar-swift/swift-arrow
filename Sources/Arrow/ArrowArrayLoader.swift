@@ -61,7 +61,7 @@ struct ArrowArrayLoader {
     case .list(let _):
       return try NestedArray(arrowData)
     default:
-      throw .invalid("Array not found for type: \(arrowType)")
+      throw .init(.invalid("Array not found for type: \(arrowType)"))
     }
   }
 

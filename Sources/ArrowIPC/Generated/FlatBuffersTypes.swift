@@ -26,6 +26,7 @@ typealias FInt = org_apache_arrow_flatbuf_Int
 typealias FBool = org_apache_arrow_flatbuf_Bool
 typealias FDate = org_apache_arrow_flatbuf_Date
 typealias FTime = org_apache_arrow_flatbuf_Time
+typealias FDuration = org_apache_arrow_flatbuf_Duration
 typealias FTimestamp = org_apache_arrow_flatbuf_Timestamp
 typealias FTimeUnit = org_apache_arrow_flatbuf_TimeUnit
 typealias FStruct = org_apache_arrow_flatbuf_Struct_

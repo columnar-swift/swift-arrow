@@ -32,7 +32,7 @@ public class ArrowColumn {
     if let holder = self.dataHolder.holder as? ChunkedArray<T> {
       return holder
     } else {
-      throw .runtimeError("Could not cast array holder to chunked array.")
+      throw .init(.runtimeError("Could not cast array holder to chunked array."))
     }
   }
 }
@@ -56,7 +56,7 @@ public class ArrowTable {
     recordBatches: [RecordBatchX]
   ) -> Result<ArrowTable, ArrowError> {
     if recordBatches.isEmpty {
-      return .failure(.arrayHasNoElements)
+      return .failure(.init(.arrayHasNoElements))
     }
     var holders: [[AnyArrowArray]] = []
     let schema = recordBatches[0].schema
@@ -117,7 +117,7 @@ public class ArrowTable {
       return try makeTypedColumn(field, holders, type: Date.self)
     // TODO: make a fuzzer to make sure all types are hit
     default:
-      throw ArrowError.unknownType("Unsupported type: \(field.type)")
+      throw .init(.unknownType("Unsupported type: \(field.type)"))
     }
   }
 
@@ -129,9 +129,9 @@ public class ArrowTable {
     var arrays: [any ArrowArray<T>] = []
     for holder in holders {
       guard let array = holder as? (any ArrowArray<T>) else {
-        throw .runtimeError(
+        throw .init(.runtimeError(
           "Array type mismatch: expected \(T.self) for field \(field.name)"
-        )
+        ))
       }
       arrays.append(array)
     }
@@ -266,7 +266,7 @@ public class RecordBatchX {
         let columnLength = columns[0].length
         for column in columns {
           if column.length != columnLength {
-            return .failure(.runtimeError("Columns have different sizes"))
+            return .failure(.init(.runtimeError("Columns have different sizes")))
           }
         }
       }
@@ -275,10 +275,8 @@ public class RecordBatchX {
       for (index, field) in schema.fields.enumerated() {
         let column = columns[index]
         if !field.isNullable && column.nullCount > 0 {
-          return .failure(
-            .invalid(
-              "non-nullable column '\(field.name)' contains \(column.nullCount) null values."
-            ))
+          return .failure(.init( .invalid("non-nullable column '\(field.name)' contains \(column.nullCount) null values." )))
+            
         }
       }
       return .success(
@@ -294,9 +292,9 @@ public class RecordBatchX {
     if let array = arrayHolder as? any ArrowArray<T> {
       return array
     } else {
-      throw .invalid(
-        "Could not convert \(arrayHolder) for \(columnIndex)"
-      )
+      throw .init(
+        .invalid("Could not convert \(arrayHolder) for \(columnIndex)"
+      ))
     }
   }
 

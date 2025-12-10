@@ -45,7 +45,7 @@ func loadArrowResource(name: String) throws(ArrowError) -> URL {
   ) {
     return resource
   } else {
-    throw .runtimeError("Couldn't find \(name).arrow in the test resources.")
+    throw .init(.runtimeError("Couldn't find \(name).arrow in the test resources."))
   }
 }
 
@@ -109,10 +109,10 @@ func checkStructRecordBatch(
       return []
     }
     guard let nestedArray = recordBatch.columns[0] as? NestedArray else {
-      throw .runtimeError("Could not cast to NestedArray")
+      throw .init(.runtimeError("Could not cast to NestedArray"))
     }
     guard let fields = nestedArray.fields else {
-      throw .runtimeError("NestedArray.fields is nil")
+      throw .init(.runtimeError("NestedArray.fields is nil"))
     }
     #expect(fields.count == 2)
     #expect(fields[0].type == .utf8)

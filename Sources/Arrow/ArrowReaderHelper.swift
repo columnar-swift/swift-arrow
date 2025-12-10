@@ -234,20 +234,20 @@ func makeArrayHolder(
     }
   case .strct:
     guard let children else {
-      return .failure(.invalid("Expected a struct field to have children"))
+      return .failure(.init(.invalid("Expected a struct field to have children")))
     }
     return makeNestedHolder(
       field, buffers: buffers, nullCount: nullCount, children: children,
       rbLength: rbLength)
   case .list:
     guard let children else {
-      return .failure(.invalid("Expected a list field to have children"))
+      return .failure(.init(.invalid("Expected a list field to have children")))
     }
     return makeNestedHolder(
       field, buffers: buffers, nullCount: nullCount, children: children,
       rbLength: rbLength)
   default:
-    return .failure(.unknownType("Type \(typeId) currently not supported"))
+    return .failure(.init(.unknownType("Type \(typeId) currently not supported")))
   }
 }
 

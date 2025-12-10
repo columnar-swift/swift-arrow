@@ -12,14 +12,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-public enum ArrowError: Error {
-  case none
-  case unknownType(String)
-  case runtimeError(String)
-  case outOfBounds(index: Int64)
-  case arrayHasNoElements
-  case unknownError(String)
-  case notImplemented
-  case ioError(String)
-  case invalid(String)
+public struct ArrowError: Error {
+  
+  public enum ErrorType: Equatable, Sendable {
+    case none
+    case unknownType(String)
+    case runtimeError(String)
+    case outOfBounds(index: Int64)
+    case arrayHasNoElements
+    case unknownError(String)
+    case notImplemented
+    case ioError(String)
+    case invalid(String)
+  }
+  
+  let type: ErrorType
+  let underlyingError: Error?
+  
+  public init(_ type: ErrorType, underlyingError: Error? = nil) {
+    self.type = type
+    self.underlyingError = underlyingError
+  }
 }

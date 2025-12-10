@@ -29,7 +29,7 @@ func findArrowType(_ field: FField) throws(ArrowError) -> ArrowType {
   switch type {
   case .int:
     guard let intType = field.type(type: FInt.self) else {
-      throw .invalid("Could not get integer type from \(field)")
+      throw .init(.invalid("Could not get integer type from \(field)"))
     }
     let bitWidth = intType.bitWidth
     if bitWidth == 8 {
@@ -48,12 +48,12 @@ func findArrowType(_ field: FField) throws(ArrowError) -> ArrowType {
     if bitWidth == 64 {
       return intType.isSigned ? .int64 : .uint64
     }
-    throw .invalid("Unhandled integer bit width: \(bitWidth)")
+    throw .init(.invalid("Unhandled integer bit width: \(bitWidth)"))
   case .bool:
     return .boolean
   case .floatingpoint:
     guard let floatType = field.type(type: FFloatingPoint.self) else {
-      throw .invalid("Could not get floating point type from field")
+      throw .init(.invalid("Could not get floating point type from field"))
     }
     switch floatType.precision {
     case .half:
@@ -69,7 +69,7 @@ func findArrowType(_ field: FField) throws(ArrowError) -> ArrowType {
     return .binary
   case .date:
     guard let dateType = field.type(type: FDate.self) else {
-      throw .invalid("Could not get date type from field")
+      throw .init(.invalid("Could not get date type from field"))
     }
     if dateType.unit == .day {
       return .date32
@@ -77,7 +77,7 @@ func findArrowType(_ field: FField) throws(ArrowError) -> ArrowType {
     return .date64
   case .time:
     guard let timeType = field.type(type: FTime.self) else {
-      throw .invalid("Could not get time type from field")
+      throw .init(.invalid("Could not get time type from field"))
     }
     if timeType.unit == .second || timeType.unit == .millisecond {
       return .time32(
@@ -89,7 +89,7 @@ func findArrowType(_ field: FField) throws(ArrowError) -> ArrowType {
     )
   case .timestamp:
     guard let timestampType = field.type(type: FTimestamp.self) else {
-      throw .invalid("Could not get timestamp type from field")
+      throw .init(.invalid("Could not get timestamp type from field"))
     }
     let arrowUnit: TimeUnit
     switch timestampType.unit {
@@ -106,16 +106,16 @@ func findArrowType(_ field: FField) throws(ArrowError) -> ArrowType {
     return .timestamp(arrowUnit, timezone)
   case .struct_:
     guard field.type(type: FStruct.self) != nil else {
-      throw .invalid("Could not get struct type from field")
+      throw .init(.invalid("Could not get struct type from field"))
     }
     var fields: [ArrowField] = []
     for index in 0..<field.childrenCount {
       guard let childField = field.children(at: index) else {
-        throw .invalid("Could not get child at index: \(index) ofrom struct")
+        throw .init(.invalid("Could not get child at index: \(index) ofrom struct"))
       }
       let childType = try findArrowType(childField)
       guard let name = childField.name else {
-        throw .invalid("Could not get name of child field")
+        throw .init(.invalid("Could not get name of child field"))
       }
       fields.append(
         ArrowField(
@@ -129,11 +129,11 @@ func findArrowType(_ field: FField) throws(ArrowError) -> ArrowType {
   case .list:
     guard field.childrenCount == 1, let childField = field.children(at: 0)
     else {
-      throw .invalid("Expected list field to have exactly one child")
+      throw .init(.invalid("Expected list field to have exactly one child"))
     }
     let childType = try findArrowType(childField)
     guard let name = childField.name else {
-      throw .invalid("Could not get name of child field")
+      throw .init(.invalid("Could not get name of child field"))
     }
     let arrowField = ArrowField(
       name: name,
@@ -142,12 +142,12 @@ func findArrowType(_ field: FField) throws(ArrowError) -> ArrowType {
     )
     return .list(arrowField)
   default:
-    throw .invalid("Unhandled field type: \(field.typeType)")
+    throw .init(.invalid("Unhandled field type: \(field.typeType)"))
   }
 }
 
-func validateBufferIndex(_ recordBatch: FRecordBatch, index: Int32) throws {
+func validateBufferIndex(_ recordBatch: FRecordBatch, index: Int32) throws(ArrowError) {
   if index >= recordBatch.buffersCount {
-    throw ArrowError.outOfBounds(index: Int64(index))
+    throw .init(.outOfBounds(index: Int64(index)))
   }
 }

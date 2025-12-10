@@ -917,7 +917,7 @@ extension ArrowType {
         case .second:
           return "tts"
         default:
-          throw .invalid("\(unit) invalid for Time32.")
+          throw .init(.invalid("\(unit) invalid for Time32."))
         }
       case .time64(let unit):
         switch unit {
@@ -926,7 +926,7 @@ extension ArrowType {
         case .nanosecond:
           return "ttn"
         default:
-          throw .invalid("\(unit) invalid for Time64.")
+          throw .init(.invalid("\(unit) invalid for Time64."))
         }
       case .timestamp(let unit, let timezone):
         let unitChar: Character =
@@ -955,7 +955,7 @@ extension ArrowType {
       case .list(let field):
         return "+l" + (try field.type.cDataFormatId)
       default:
-        throw .notImplemented
+        throw .init(.notImplemented)
       }
     }
   }
@@ -1000,9 +1000,9 @@ extension ArrowType {
     } else if from.starts(with: "ts") {
       let components = from.split(separator: ":", maxSplits: 1)
       guard let unitPart = components.first, unitPart.count == 3 else {
-        throw .invalid(
+        throw .init(.invalid(
           "Invalid timestamp format '\(from)'. Expected format 'ts[s|m|u|n][:timezone]'"
-        )
+        ))
       }
       let unitChar = unitPart.suffix(1)
       let unit: TimeUnit =
@@ -1012,9 +1012,9 @@ extension ArrowType {
         case "u": .microsecond
         case "n": .nanosecond
         default:
-          throw .invalid(
+          throw .init(.invalid(
             "Unrecognized timestamp unit '\(unitChar)'. Expected 's', 'm', 'u', or 'n'."
-          )
+          ))
         }
       let timezone = components.count > 1 ? String(components[1]) : nil
       return .timestamp(unit, timezone)
@@ -1023,6 +1023,6 @@ extension ArrowType {
     } else if from == "u" {
       return .utf8
     }
-    throw .notImplemented
+    throw .init(.notImplemented)
   }
 }

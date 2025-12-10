@@ -44,7 +44,9 @@ func toFBTypeEnum(_ arrowType: ArrowType) -> Result<FType, ArrowError> {
     return .success(FType.struct_)
   default:
     return .failure(
-      .unknownType("Unable to find flatbuf type for Arrow type: \(typeId)")
+      .init(
+        .unknownType("Unable to find flatbuf type for Arrow type: \(typeId)")
+      )
     )
   }
 }
@@ -121,7 +123,7 @@ func toFBType(
     return .success(FStruct.endStruct_(&fbb, start: startOffset))
   default:
     return .failure(
-      .unknownType("Unable to add flatbuf type for Arrow type: \(arrowType)")
+      .init(.unknownType("Unable to add flatbuf type for Arrow type: \(arrowType)"))
     )
   }
 }
