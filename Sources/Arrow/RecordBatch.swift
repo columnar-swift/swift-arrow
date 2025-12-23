@@ -14,7 +14,7 @@
 
 import Arrow
 
-public struct RecordBatch {
+public struct RecordBatch: Sendable {
 
   public let schema: ArrowSchema
   public let arrays: [AnyArrowArrayProtocol]

@@ -19,14 +19,14 @@ public protocol FixedWidthBufferProtocol<ElementType>: ArrowBufferProtocol {
 }
 
 /// A  buffer used in Arrow arrays that hold fixed-width types.
-public final class FixedWidthBuffer<T>: FixedWidthBufferProtocol
+public final class FixedWidthBuffer<T>: @unchecked Sendable, FixedWidthBufferProtocol
 where T: Numeric {
   public typealias ElementType = T
-  public var length: Int
-  var capacity: Int
+  public let length: Int
+  let capacity: Int
   let valueCount: Int
   let ownsMemory: Bool
-  var buffer: UnsafePointer<T>
+  let buffer: UnsafePointer<T>
 
   public init(
     length: Int,

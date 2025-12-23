@@ -43,7 +43,7 @@ public class ArrowTable {
   public var columnCount: UInt { UInt(self.columns.count) }
   public let rowCount: UInt
   public let columns: [ArrowColumn]
-  init(_ schema: ArrowSchema, columns: [ArrowColumn]) {
+  public init(_ schema: ArrowSchema, columns: [ArrowColumn]) {
     self.schema = schema
     self.columns = columns
     self.rowCount = columns[0].length

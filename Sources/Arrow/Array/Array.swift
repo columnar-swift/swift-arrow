@@ -15,7 +15,7 @@
 import Foundation
 
 /// The type-independent Arrow array capabilities.
-public protocol AnyArrowArrayProtocol {
+public protocol AnyArrowArrayProtocol: Sendable {
   var offset: Int { get }
   var length: Int { get }
   var nullCount: Int { get }
