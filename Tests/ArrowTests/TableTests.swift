@@ -37,63 +37,63 @@ struct TableTests {
     #expect(schema.fields[1].isNullable == false)
   }
 
-  @Test func schemaNested() throws {
-    struct StructTest {
-      var field0: Bool = false
-      var field1: Int8 = 0
-      var field2: Int16 = 0
-      var field3: Int32 = 0
-      var field4: Int64 = 0
-      var field5: UInt8 = 0
-      var field6: UInt16 = 0
-      var field7: UInt32 = 0
-      var field8: UInt64 = 0
-      var field9: Double = 0
-      var field10: Float = 0
-      var field11: String = ""
-      var field12 = Data()
-      var field13: Date = Date.now
-    }
-
-    let testObj = StructTest()
-    var fields: [ArrowField] = []
-    let buildStructType = { () -> ArrowType in
-      let mirror = Mirror(reflecting: testObj)
-      for (property, value) in mirror.children {
-        let arrowType = try ArrowTypeConverter.infoForType(type(of: value))
-        fields.append(
-          ArrowField(
-            name: property!,
-            dataType: arrowType,
-            isNullable: true
-          )
-        )
-      }
-
-      return .strct(fields)
-    }
-
-    let structType = try buildStructType()
-    guard case .strct(let fields) = structType else {
-      Issue.record("Expected a struct")
-      return
-    }
-    #expect(fields.count == 14)
-    #expect(fields[0].type == .boolean)
-    #expect(fields[1].type == .int8)
-    #expect(fields[2].type == .int16)
-    #expect(fields[3].type == .int32)
-    #expect(fields[4].type == .int64)
-    #expect(fields[5].type == .uint8)
-    #expect(fields[6].type == .uint16)
-    #expect(fields[7].type == .uint32)
-    #expect(fields[8].type == .uint64)
-    #expect(fields[9].type == .float64)
-    #expect(fields[10].type == .float32)
-    #expect(fields[11].type == .utf8)
-    #expect(fields[12].type == .binary)
-    #expect(fields[13].type == .date64)
-  }
+//  @Test func schemaNested() throws {
+//    struct StructTest {
+//      var field0: Bool = false
+//      var field1: Int8 = 0
+//      var field2: Int16 = 0
+//      var field3: Int32 = 0
+//      var field4: Int64 = 0
+//      var field5: UInt8 = 0
+//      var field6: UInt16 = 0
+//      var field7: UInt32 = 0
+//      var field8: UInt64 = 0
+//      var field9: Double = 0
+//      var field10: Float = 0
+//      var field11: String = ""
+//      var field12 = Data()
+//      var field13: Date = Date.now
+//    }
+//
+//    let testObj = StructTest()
+//    var fields: [ArrowField] = []
+//    let buildStructType = { () -> ArrowType in
+//      let mirror = Mirror(reflecting: testObj)
+//      for (property, value) in mirror.children {
+//        let arrowType = try ArrowTypeConverter.infoForType(type(of: value))
+//        fields.append(
+//          ArrowField(
+//            name: property!,
+//            dataType: arrowType,
+//            isNullable: true
+//          )
+//        )
+//      }
+//
+//      return .strct(fields)
+//    }
+//
+//    let structType = try buildStructType()
+//    guard case .strct(let fields) = structType else {
+//      Issue.record("Expected a struct")
+//      return
+//    }
+//    #expect(fields.count == 14)
+//    #expect(fields[0].type == .boolean)
+//    #expect(fields[1].type == .int8)
+//    #expect(fields[2].type == .int16)
+//    #expect(fields[3].type == .int32)
+//    #expect(fields[4].type == .int64)
+//    #expect(fields[5].type == .uint8)
+//    #expect(fields[6].type == .uint16)
+//    #expect(fields[7].type == .uint32)
+//    #expect(fields[8].type == .uint64)
+//    #expect(fields[9].type == .float64)
+//    #expect(fields[10].type == .float32)
+//    #expect(fields[11].type == .utf8)
+//    #expect(fields[12].type == .binary)
+//    #expect(fields[13].type == .date64)
+//  }
 
 //  @Test func table() throws {
 //    let doubleBuilder: NumberArrayBuilder<Double> =

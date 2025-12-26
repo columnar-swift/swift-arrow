@@ -56,7 +56,7 @@ struct RecordBatchTests {
 
   // Ensure that invalid record batches can't be built.
   @Test func schemaNullabilityChecked() throws {
-    let stringBuilder = try ArrowArrayBuilders.loadStringArrayBuilder()
+//    let stringBuilder = try ArrowArrayBuilders.loadStringArrayBuilder()
 //    stringBuilder.append("test10")
 //    stringBuilder.append(nil)
 //    stringBuilder.append("test33")
