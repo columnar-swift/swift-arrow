@@ -129,8 +129,6 @@ extension ArrowType {
         return .duration(.microsecond)
       case .nanosecond:
         return .duration(.nanosecond)
-      default:
-        throw .init(.invalid("Unknown duration unit"))
       }
     case .timestamp:
       guard let timestampType = field.type(type: FTimestamp.self) else {

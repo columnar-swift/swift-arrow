@@ -187,7 +187,7 @@ public struct ArrowReader {
       guard let rbMessage = message.header(type: FRecordBatch.self) else {
         throw ArrowError(.invalid("Expected RecordBatch as message header"))
       }
-      guard let footerSchema = footer.schema else {
+      guard footer.schema != nil else {
         throw ArrowError(.invalid("Expected schema in footer"))
       }
 

@@ -17,7 +17,6 @@ import Foundation
 
 public class ArrowTable {
   public let schema: ArrowSchema
-  public var columnCount: Int { self.columns.count }
   public let rowCount: Int
   public let columns: [ArrowColumn]
   public init(_ schema: ArrowSchema, columns: [ArrowColumn]) {
@@ -48,51 +47,48 @@ public class ArrowTable {
     }
     let builder = ArrowTable.Builder()
     for index in 0..<schema.fields.count {
-      do {
         let field = schema.fields[index]
         let column = try makeArrowColumn(
-          for: schema.fields[index],
-          holders: holders[index]
+          for: field,
+          arrays: holders[index]
         )
         builder.addColumn(column)
-      } catch {
-      }
     }
     return builder.finish()
   }
 
   private static func makeArrowColumn(
     for field: ArrowField,
-    holders: [AnyArrowArrayProtocol]
+    arrays: [AnyArrowArrayProtocol]
   ) throws(ArrowError) -> ArrowColumn {
     // Dispatch based on the field's type, not the first holder
     switch field.type {
     case .int8:
-      return try makeTypedColumn(field, holders, type: Int8.self)
+      return try makeTypedColumn(field, arrays, type: Int8.self)
     case .int16:
-      return try makeTypedColumn(field, holders, type: Int16.self)
+      return try makeTypedColumn(field, arrays, type: Int16.self)
     case .int32:
-      return try makeTypedColumn(field, holders, type: Int32.self)
+      return try makeTypedColumn(field, arrays, type: Int32.self)
     case .int64:
-      return try makeTypedColumn(field, holders, type: Int64.self)
+      return try makeTypedColumn(field, arrays, type: Int64.self)
     case .uint8:
-      return try makeTypedColumn(field, holders, type: UInt8.self)
+      return try makeTypedColumn(field, arrays, type: UInt8.self)
     case .uint16:
-      return try makeTypedColumn(field, holders, type: UInt16.self)
+      return try makeTypedColumn(field, arrays, type: UInt16.self)
     case .uint32:
-      return try makeTypedColumn(field, holders, type: UInt32.self)
+      return try makeTypedColumn(field, arrays, type: UInt32.self)
     case .uint64:
-      return try makeTypedColumn(field, holders, type: UInt64.self)
+      return try makeTypedColumn(field, arrays, type: UInt64.self)
     case .float32:
-      return try makeTypedColumn(field, holders, type: Float.self)
+      return try makeTypedColumn(field, arrays, type: Float.self)
     case .float64:
-      return try makeTypedColumn(field, holders, type: Double.self)
+      return try makeTypedColumn(field, arrays, type: Double.self)
     case .utf8, .binary:
-      return try makeTypedColumn(field, holders, type: String.self)
+      return try makeTypedColumn(field, arrays, type: String.self)
     case .boolean:
-      return try makeTypedColumn(field, holders, type: Bool.self)
+      return try makeTypedColumn(field, arrays, type: Bool.self)
     case .date32, .date64:
-      return try makeTypedColumn(field, holders, type: Date.self)
+      return try makeTypedColumn(field, arrays, type: Date.self)
     // TODO: make a fuzzer to make sure all types are hit
     default:
       throw .init(.unknownType("Unsupported type: \(field.type)"))
@@ -150,16 +146,16 @@ public class ArrowTable {
 //      return self
 //    }
 
-//    @discardableResult
-//    public func addColumn<T>(
-//      _ field: ArrowField,
-//      arrowArray: any ArrowArrayProtocol<T>
-//    ) throws -> Builder {
-//      self.schemaBuilder.addField(field)
-//      let holder = ChunkedArrayHolder(try ChunkedArrayX([arrowArray]))
-//      self.columns.append(ArrowColumn(field, chunked: holder))
-//      return self
-//    }
+    @discardableResult
+    public func addColumn<T>(
+      _ field: ArrowField,
+      arrowArray: any ArrowArrayProtocol<T>
+    ) throws -> Builder {
+      self.schemaBuilder.addField(field)
+      let holder = try ChunkedArray([arrowArray])
+      self.columns.append(ArrowColumn(field, chunked: holder))
+      return self
+    }
 
     @discardableResult
     public func addColumn<T>(

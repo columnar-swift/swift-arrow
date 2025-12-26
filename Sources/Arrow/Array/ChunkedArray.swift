@@ -20,17 +20,14 @@ public protocol ChunkedArrayProtocol {
 
 public class ChunkedArray<T>: ChunkedArrayProtocol {
   public let arrays: [any ArrowArrayProtocol<T>]
-//  public let type: ArrowType
   public let nullCount: Int
   public let length: Int
-  public var arrayCount: Int { Int(self.arrays.count) }
 
   public init(_ arrays: [any ArrowArrayProtocol<T>]) throws(ArrowError) {
     if arrays.count == 0 {
       throw ArrowError(.arrayHasNoElements)
     }
 
-//    self.type = arrays[0].type
     var len: Int = 0
     var nullCount: Int = 0
     for array in arrays {
