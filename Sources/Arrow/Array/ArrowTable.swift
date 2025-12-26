@@ -48,15 +48,12 @@ public class ArrowTable {
     }
     let builder = ArrowTable.Builder()
     for index in 0..<schema.fields.count {
-      do {
         let field = schema.fields[index]
         let column = try makeArrowColumn(
-          for: schema.fields[index],
+          for: field,
           holders: holders[index]
         )
         builder.addColumn(column)
-      } catch {
-      }
     }
     return builder.finish()
   }
@@ -150,16 +147,16 @@ public class ArrowTable {
 //      return self
 //    }
 
-//    @discardableResult
-//    public func addColumn<T>(
-//      _ field: ArrowField,
-//      arrowArray: any ArrowArrayProtocol<T>
-//    ) throws -> Builder {
-//      self.schemaBuilder.addField(field)
-//      let holder = ChunkedArrayHolder(try ChunkedArrayX([arrowArray]))
-//      self.columns.append(ArrowColumn(field, chunked: holder))
-//      return self
-//    }
+    @discardableResult
+    public func addColumn<T>(
+      _ field: ArrowField,
+      arrowArray: any ArrowArrayProtocol<T>
+    ) throws -> Builder {
+      self.schemaBuilder.addField(field)
+      let holder = try ChunkedArray([arrowArray])
+      self.columns.append(ArrowColumn(field, chunked: holder))
+      return self
+    }
 
     @discardableResult
     public func addColumn<T>(
