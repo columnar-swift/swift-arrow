@@ -14,6 +14,7 @@
 // limitations under the License.
 
 import Arrow
+import ArrowIPC
 import Foundation
 import GRPC
 
@@ -21,10 +22,10 @@ public struct RecordBatchStreamReader: AsyncSequence, AsyncIteratorProtocol,
   Sendable
 {
   public typealias AsyncIterator = RecordBatchStreamReader
-  public typealias Element = (Arrow.RecordBatchX?, FlightDescriptor?)
-  let reader = ArrowReaderX()
+  public typealias Element = (RecordBatch?, FlightDescriptor?)
+//  let reader = ArrowReader(url: URL(fileURLWithPath: "/dev/null"))
   // FIXME: this is hack to make this sendable
-  nonisolated(unsafe) var batches: [RecordBatchX] = []
+  nonisolated(unsafe) var batches: [RecordBatch] = []
   nonisolated(unsafe) var streamIterator: any AsyncIteratorProtocol
   var descriptor: FlightDescriptor?
   var batchIndex = 0
@@ -40,7 +41,7 @@ public struct RecordBatchStreamReader: AsyncSequence, AsyncIteratorProtocol,
   }
 
   public mutating func next() async throws -> (
-    Arrow.RecordBatchX?, FlightDescriptor?
+    Arrow.RecordBatch?, FlightDescriptor?
   )? {
     guard !Task.isCancelled else {
       return nil
@@ -52,7 +53,7 @@ public struct RecordBatchStreamReader: AsyncSequence, AsyncIteratorProtocol,
       return (batch, descriptor)
     }
 
-    let result = ArrowReaderX.makeArrowReaderResult()
+    var result: [RecordBatch] = []
     while true {
       let streamData = try await self.streamIterator.next()
       if streamData == nil {
@@ -66,21 +67,23 @@ public struct RecordBatchStreamReader: AsyncSequence, AsyncIteratorProtocol,
       let dataBody = flightData.dataBody
       let dataHeader = flightData.dataHeader
       descriptor = FlightDescriptor(flightData.flightDescriptor)
-      switch reader.fromMessage(
-        dataHeader,
-        dataBody: dataBody,
-        result: result,
-        useUnalignedBuffers: useUnalignedBuffers)
-      {
-      case .success(()):
-        if result.batches.count > 0 {
-          batches = result.batches
-          batchIndex = 1
-          return (batches[0], descriptor)
-        }
-      case .failure(let error):
-        throw error
-      }
+      
+      // TODO: streaming
+//      switch reader.fromMessage(
+//        dataHeader,
+//        dataBody: dataBody,
+//        result: result,
+//        useUnalignedBuffers: useUnalignedBuffers)
+//      {
+//      case .success(()):
+//        if result.count > 0 {
+//          batches = result
+//          batchIndex = 1
+//          return (batches[0], descriptor)
+//        }
+//      case .failure(let error):
+//        throw error
+//      }
     }
   }
 

@@ -136,12 +136,12 @@ func addPadForAlignment(_ data: inout Data, alignment: Int = 8) {
   }
 }
 
-func addPadForAlignment(_ writer: inout DataWriter, alignment: Int = 8) {
-  let padding = writer.count % Int(alignment)
-  if padding > 0 {
-    writer.append(Data([UInt8](repeating: 0, count: alignment - padding)))
-  }
-}
+//func addPadForAlignment(_ writer: inout DataWriter, alignment: Int = 8) {
+//  let padding = writer.count % Int(alignment)
+//  if padding > 0 {
+//    writer.append(Data([UInt8](repeating: 0, count: alignment - padding)))
+//  }
+//}
 
 func getPadForAlignment(_ count: Int, alignment: Int = 8) -> Int {
   let padding = count % Int(alignment)

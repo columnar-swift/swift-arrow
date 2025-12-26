@@ -28,7 +28,7 @@ public protocol AnyArrowArrayProtocol: Sendable {
 /// Typed array conformance.
 ///
 /// Public access to typed arays is provided via concrete types or individual protocols as appropriate.
-public protocol ArrowArrayProtocol: AnyArrowArrayProtocol {
+public protocol ArrowArrayProtocol<ItemType>: AnyArrowArrayProtocol {
   associatedtype ItemType
   subscript(_ index: Int) -> ItemType? { get }
 }

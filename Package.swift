@@ -83,6 +83,7 @@ let package = Package(
       name: "ArrowFlight",
       dependencies: [
         "Arrow",
+        "ArrowIPC",
         .product(name: "GRPC", package: "grpc-swift"),
         .product(name: "SwiftProtobuf", package: "swift-protobuf"),
       ],

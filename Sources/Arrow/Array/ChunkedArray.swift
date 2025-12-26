@@ -1,4 +1,5 @@
 // Copyright 2025 The Apache Software Foundation
+// Copyright 2025 The Columnar Swift Contributors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,37 +13,26 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import Foundation
-
-public class ChunkedArrayHolder {
-  public let type: ArrowType
-  public let length: UInt
-  public let nullCount: UInt
-  public let holder: Any
-
-  public init<T>(_ chunked: ChunkedArray<T>) {
-    self.holder = chunked
-    self.length = chunked.length
-    self.type = chunked.type
-    self.nullCount = chunked.nullCount
-  }
+public protocol ChunkedArrayProtocol {
+  var length: Int { get }
+  var nullCount: Int { get }
 }
 
-public class ChunkedArray<T> {
-  public let arrays: [any ArrowArray<T>]
-  public let type: ArrowType
-  public let nullCount: UInt
-  public let length: UInt
-  public var arrayCount: UInt { UInt(self.arrays.count) }
+public class ChunkedArray<T>: ChunkedArrayProtocol {
+  public let arrays: [any ArrowArrayProtocol<T>]
+//  public let type: ArrowType
+  public let nullCount: Int
+  public let length: Int
+  public var arrayCount: Int { Int(self.arrays.count) }
 
-  public init(_ arrays: [any ArrowArray<T>]) throws(ArrowError) {
+  public init(_ arrays: [any ArrowArrayProtocol<T>]) throws(ArrowError) {
     if arrays.count == 0 {
       throw ArrowError(.arrayHasNoElements)
     }
 
-    self.type = arrays[0].type
-    var len: UInt = 0
-    var nullCount: UInt = 0
+//    self.type = arrays[0].type
+    var len: Int = 0
+    var nullCount: Int = 0
     for array in arrays {
       len += array.length
       nullCount += array.nullCount
@@ -53,13 +43,13 @@ public class ChunkedArray<T> {
     self.nullCount = nullCount
   }
 
-  public subscript(_ index: UInt) -> T? {
+  public subscript(_ index: Int) -> T? {
     if arrays.count == 0 {
       return nil
     }
     var localIndex = index
     var arrayIndex = 0
-    var len: UInt = arrays[arrayIndex].length
+    var len: Int = arrays[arrayIndex].length
     while localIndex > (len - 1) {
       arrayIndex += 1
       if arrayIndex > arrays.count {
@@ -73,7 +63,7 @@ public class ChunkedArray<T> {
     return arrays[arrayIndex][localIndex]
   }
 
-  public func asString(_ index: UInt) -> String {
+  public func asString(_ index: Int) -> String {
     guard let value = self[index] else {
       return ""
     }
