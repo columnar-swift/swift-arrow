@@ -30,6 +30,7 @@ typealias FDuration = org_apache_arrow_flatbuf_Duration
 typealias FTimestamp = org_apache_arrow_flatbuf_Timestamp
 typealias FTimeUnit = org_apache_arrow_flatbuf_TimeUnit
 typealias FStruct = org_apache_arrow_flatbuf_Struct_
+typealias FList = org_apache_arrow_flatbuf_List
 
 typealias FUtf8 = org_apache_arrow_flatbuf_Utf8
 typealias FBinary = org_apache_arrow_flatbuf_Binary

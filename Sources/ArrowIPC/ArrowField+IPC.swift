@@ -219,6 +219,8 @@ extension ArrowType {
       return .timestamp
     case .strct:
       return .struct_
+    case .list:
+      return .list
     default:
       throw .init(.invalid("Unhandled field type: \(self)"))
     }

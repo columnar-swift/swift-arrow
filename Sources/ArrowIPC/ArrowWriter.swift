@@ -26,9 +26,10 @@ public struct ArrowWriter {
     write(bytes: fileMarker)
   }
 
-  mutating func finish() throws {
+  public mutating func finish() throws -> Data {
     data.append(contentsOf: fileMarker)
     try data.write(to: url)
+    return data
   }
 
   func padded(byteCount: Int, alignment: Int = 8) -> Int {
@@ -67,7 +68,7 @@ public struct ArrowWriter {
     precondition(data.count % 8 == 0, "File must be aligned to 8 bytes.")
   }
 
-  mutating func write(
+  public mutating func write(
     schema: ArrowSchema,
     recordBatches: [RecordBatch]
   ) throws {
@@ -127,14 +128,7 @@ public struct ArrowWriter {
   ) throws(ArrowError) -> Data {
     var fbb: FlatBufferBuilder = .init()
     let schemaOffset = try write(schema: schema, to: &fbb)
-    fbb.startVector(
-      blocks.count,
-      elementSize: MemoryLayout<FBlock>.size
-    )
-    for block in blocks.reversed() {
-      fbb.create(struct: block)
-    }
-    let blocksOffset = fbb.endVector(len: blocks.count)
+    let blocksOffset = fbb.createVector(ofStructs: blocks)
     let footerStartOffset = FFooter.startFooter(&fbb)
     FFooter.add(schema: schemaOffset, &fbb)
     FFooter.addVectorOf(recordBatches: blocksOffset, &fbb)

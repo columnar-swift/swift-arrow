@@ -108,6 +108,9 @@ extension ArrowWriter {
     case .strct(_):
       let startOffset = FStruct.startStruct_(&fbb)
       return FStruct.endStruct_(&fbb, start: startOffset)
+    case .list(_):
+      let startOffset = FList.startList(&fbb)
+      return FList.endList(&fbb, start: startOffset)
     default:
       throw .init(
         .unknownType(
