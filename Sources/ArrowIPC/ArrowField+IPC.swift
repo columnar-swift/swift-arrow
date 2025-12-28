@@ -15,6 +15,17 @@
 
 import Arrow
 
+extension TimeUnit {
+  func toFlatBufferUnit() -> FTimeUnit {
+    switch self {
+    case .second: return .second
+    case .millisecond: return .millisecond
+    case .microsecond: return .microsecond
+    case .nanosecond: return .nanosecond
+    }
+  }
+}
+
 extension ArrowField {
 
   /// Parses an `ArrowField` from the FlatBuffers representation.
@@ -217,10 +228,18 @@ extension ArrowType {
       return .time
     case .timestamp:
       return .timestamp
+    case .duration:
+      return .duration
     case .strct:
       return .struct_
     case .list:
       return .list
+    case .map:
+      return .map
+    case .fixedSizeBinary:
+      return .fixedsizebinary
+    case .fixedSizeList:
+      return .fixedsizelist
     default:
       throw .init(.invalid("Unhandled field type: \(self)"))
     }

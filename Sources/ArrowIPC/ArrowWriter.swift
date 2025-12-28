@@ -26,10 +26,9 @@ public struct ArrowWriter {
     write(bytes: fileMarker)
   }
 
-  public mutating func finish() throws -> Data {
+  public mutating func finish() throws {
     data.append(contentsOf: fileMarker)
     try data.write(to: url)
-    return data
   }
 
   func padded(byteCount: Int, alignment: Int = 8) -> Int {
@@ -223,7 +222,6 @@ public struct ArrowWriter {
   ) throws -> Data {
     let schema = batch.schema
     var fbb = FlatBufferBuilder()
-
     // MARK: Field nodes.
     var fieldNodeOffsets: [Offset] = []
     fbb.startVector(
@@ -290,6 +288,33 @@ public struct ArrowWriter {
             fields: fields,
             columns: column.fields.map(\.array),
             offsets: &offsets,
+            fbb: &fbb
+          )
+        }
+      }
+    }
+  }
+  
+  private func writeFieldNodes(
+    fields: [ArrowField],
+    columns: [AnyArrowArrayProtocol],
+    nodes: inout [FFieldNode],  // changed from offsets
+    fbb: inout FlatBufferBuilder
+  ) {
+    for index in (0..<fields.count).reversed() {
+      let column = columns[index]
+      let field = fields[index]
+      let fieldNode = FFieldNode(
+        length: Int64(column.length),
+        nullCount: Int64(column.nullCount)
+      )
+      nodes.append(fieldNode)  // just append the struct
+      if case .strct(let fields) = field.type {
+        if let column = column as? ArrowStructArray {
+          writeFieldNodes(
+            fields: fields,
+            columns: column.fields.map(\.array),
+            nodes: &nodes,
             fbb: &fbb
           )
         }

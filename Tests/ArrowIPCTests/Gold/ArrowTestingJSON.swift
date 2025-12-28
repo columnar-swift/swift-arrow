@@ -27,7 +27,7 @@ import Testing
 /// Arrow in-memory data; it also reads the same JSON file as the producer, and validates that both
 /// datasets are identical.
 struct ArrowTestingJSON {
-
+  
   static let testCases: [String] = [
     "generated_primitive",
     "generated_primitive_no_batches",
@@ -41,9 +41,9 @@ struct ArrowTestingJSON {
     "generated_datetime",
     "generated_duration",
   ]
-
+  
   @Test(arguments: testCases)
-  func json(name: String) throws {
+  func read(name: String) throws {
     let resourceURL = try loadTestResource(
       name: name,
       withExtension: "json.lz4",
@@ -84,6 +84,62 @@ struct ArrowTestingJSON {
       try printCodable(actualBatches)
       try diffEncodable(actualBatches, expectedBatches)
     }
+    let actualGold = ArrowGold(
+      schema: actualSchema,
+      batches: actualBatches,
+      dictionaries: nil
+    )
+    // The gold-standard comparison.
+    #expect(actualGold == expectedGold)
+  }
+  
+  @Test(arguments: testCases)
+  func write(name: String) throws {
+    
+    let resourceURL = try loadTestResource(
+      name: name,
+      withExtension: "json.lz4",
+      subdirectory: "integration/cpp-21.0.0"
+    )
+    let lz4Data = try Data(contentsOf: resourceURL)
+    let lz4 = try LZ4(parsing: lz4Data)
+    let testCase = try JSONDecoder().decode(ArrowGold.self, from: lz4.data)
+    let testFile = try loadTestResource(
+      name: name,
+      withExtension: "arrow_file",
+      subdirectory: "integration/cpp-21.0.0"
+    )
+    let arrowReader = try ArrowReader(url: testFile)
+    let (arrowSchema, recordBatches) = try arrowReader.read()
+    
+    let tempDir = FileManager.default.temporaryDirectory
+    let tempFile = tempDir.appendingPathComponent(UUID().uuidString + ".arrow")
+    
+    var arrowWriter = ArrowWriter(url: tempFile)
+    try arrowWriter.write(schema: arrowSchema, recordBatches: recordBatches)
+    try arrowWriter.finish()
+    
+    let testReader = try ArrowReader(url: testFile)
+    let (arrowSchemaRead, recordBatchesRead) = try testReader.read()
+    
+    let actualSchema = encode(schema: arrowSchemaRead)
+    let expectedSchema = testCase.schema
+    let expectedBatches = testCase.batches.map { batch in
+      ArrowGold.Batch(
+        count: batch.count,
+        columns: batch.columns.map { $0.withoutJunkData() }
+      )
+    }
+    let expectedDictionaries = testCase.dictionaries
+    let expectedGold = ArrowGold(
+      schema: expectedSchema,
+      batches: expectedBatches,
+      dictionaries: expectedDictionaries
+    )
+    #expect(actualSchema == expectedSchema)
+    #expect(recordBatchesRead.count == expectedBatches.count)
+    let actualBatches = try encode(batches: recordBatches, schema: arrowSchema)
+    #expect(actualBatches == expectedBatches)
     let actualGold = ArrowGold(
       schema: actualSchema,
       batches: actualBatches,

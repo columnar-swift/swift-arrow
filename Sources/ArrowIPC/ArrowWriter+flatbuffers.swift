@@ -68,6 +68,8 @@ extension ArrowWriter {
       return FUtf8.endUtf8(&fbb, start: FUtf8.startUtf8(&fbb))
     case .binary:
       return FBinary.endBinary(&fbb, start: FBinary.startBinary(&fbb))
+    case .fixedSizeBinary:
+      return FFixedSizeBinary.endFixedSizeBinary(&fbb, start: FFixedSizeBinary.startFixedSizeBinary(&fbb))
     case .boolean:
       return FBool.endBool(&fbb, start: FBool.startBool(&fbb))
     case .date32:
@@ -87,6 +89,8 @@ extension ArrowWriter {
       FTime.add(unit: unit == .microsecond ? .microsecond : .nanosecond, &fbb)
       return FTime.endTime(&fbb, start: startOffset)
     case .timestamp(let unit, let timezone):
+      // Timezone string must be created before starting the timestamp table.
+      let timezoneOffset: Offset? = timezone.map { fbb.create(string: $0) }
       let startOffset = FTimestamp.startTimestamp(&fbb)
       let fbUnit: FTimeUnit
       switch unit {
@@ -100,17 +104,26 @@ extension ArrowWriter {
         fbUnit = .nanosecond
       }
       FTimestamp.add(unit: fbUnit, &fbb)
-      if let timezone {
-        let timezoneOffset = fbb.create(string: timezone)
+      if let timezoneOffset {
         FTimestamp.add(timezone: timezoneOffset, &fbb)
       }
       return FTimestamp.endTimestamp(&fbb, start: startOffset)
-    case .strct(_):
+    case .duration(let timeUnit):
+      let startOffset = FDuration.startDuration(&fbb)
+      FDuration.add(unit: timeUnit.toFlatBufferUnit(), &fbb)
+      return FDuration.endDuration(&fbb, start: startOffset)
+    case .strct:
       let startOffset = FStruct.startStruct_(&fbb)
       return FStruct.endStruct_(&fbb, start: startOffset)
-    case .list(_):
+    case .list:
       let startOffset = FList.startList(&fbb)
       return FList.endList(&fbb, start: startOffset)
+    case .fixedSizeList:
+      let startOffset = FFixedSizeList.startFixedSizeList(&fbb)
+      return FFixedSizeList.endFixedSizeList(&fbb, start: startOffset)
+    case .map:
+      let startOffset = FMap.startMap(&fbb)
+      return FMap.endMap(&fbb, start: startOffset)
     default:
       throw .init(
         .unknownType(
