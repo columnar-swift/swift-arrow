@@ -323,9 +323,8 @@ public struct ArrowArrayDate64: ArrowArrayProtocol {
 
 ///// An Arrow list array which may be nested arbitrarily.
 public struct ArrowListArray<
-    OffsetType: FixedWidthInteger & SignedInteger
->: ArrowArrayProtocol
-{
+  OffsetType: FixedWidthInteger & SignedInteger
+>: ArrowArrayProtocol {
   public let offset: Int
   public let length: Int
   public var bufferSizes: [Int] {

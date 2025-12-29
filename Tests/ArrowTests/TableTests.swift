@@ -151,39 +151,39 @@ struct TableTests {
     #expect(col2.asString(2) == "test33")
   }
 
-//  @Test func tableToRecordBatch() throws {
-//    let uint8Builder: NumberArrayBuilder<UInt8> =
-//      try ArrowArrayBuilders.loadNumberArrayBuilder()
-//    uint8Builder.append(10)
-//    uint8Builder.append(22)
-//    let stringBuilder = try ArrowArrayBuilders.loadStringArrayBuilder()
-//    stringBuilder.append("test10")
-//    stringBuilder.append("test22")
-//    let intArray = try uint8Builder.finish()
-//    let stringArray = try stringBuilder.finish()
-//    let result = RecordBatchX.Builder()
-//      .addColumn("col1", arrowArray: intArray)
-//      .addColumn("col2", arrowArray: stringArray)
-//      .finish().flatMap({ rb in
-//        ArrowTable.from(recordBatches: [rb])
-//      })
-//    switch result {
-//    case .success(let table):
-//      let schema = table.schema
-//      #expect(schema.fields.count == 2)
-//      #expect(schema.fields[0].name == "col1")
-//      #expect(schema.fields[0].type == .uint8)
-//      #expect(schema.fields[0].isNullable == false)
-//      #expect(schema.fields[1].name == "col2")
-//      #expect(schema.fields[1].type == .utf8)
-//      #expect(schema.fields[1].isNullable == false)
-//      #expect(table.columns.count == 2)
-//      let col1: ChunkedArray<UInt8> = try table.columns[0].data()
-//      let col2: ChunkedArray<String> = try table.columns[1].data()
-//      #expect(col1.length == 2)
-//      #expect(col2.length == 2)
-//    case .failure(let error):
-//      throw error
-//    }
-//  }
+  //  @Test func tableToRecordBatch() throws {
+  //    let uint8Builder: NumberArrayBuilder<UInt8> =
+  //      try ArrowArrayBuilders.loadNumberArrayBuilder()
+  //    uint8Builder.append(10)
+  //    uint8Builder.append(22)
+  //    let stringBuilder = try ArrowArrayBuilders.loadStringArrayBuilder()
+  //    stringBuilder.append("test10")
+  //    stringBuilder.append("test22")
+  //    let intArray = try uint8Builder.finish()
+  //    let stringArray = try stringBuilder.finish()
+  //    let result = RecordBatchX.Builder()
+  //      .addColumn("col1", arrowArray: intArray)
+  //      .addColumn("col2", arrowArray: stringArray)
+  //      .finish().flatMap({ rb in
+  //        ArrowTable.from(recordBatches: [rb])
+  //      })
+  //    switch result {
+  //    case .success(let table):
+  //      let schema = table.schema
+  //      #expect(schema.fields.count == 2)
+  //      #expect(schema.fields[0].name == "col1")
+  //      #expect(schema.fields[0].type == .uint8)
+  //      #expect(schema.fields[0].isNullable == false)
+  //      #expect(schema.fields[1].name == "col2")
+  //      #expect(schema.fields[1].type == .utf8)
+  //      #expect(schema.fields[1].isNullable == false)
+  //      #expect(table.columns.count == 2)
+  //      let col1: ChunkedArray<UInt8> = try table.columns[0].data()
+  //      let col2: ChunkedArray<String> = try table.columns[1].data()
+  //      #expect(col1.length == 2)
+  //      #expect(col2.length == 2)
+  //    case .failure(let error):
+  //      throw error
+  //    }
+  //  }
 }

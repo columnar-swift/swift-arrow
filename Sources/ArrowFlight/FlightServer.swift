@@ -29,19 +29,19 @@ public enum ArrowFlightError: Error {
 
 public func schemaToMessage(_ schema: ArrowSchema) throws -> Data {
   fatalError()
-//  let arrowWriter = ArrowWriter()
-//  switch arrowWriter.toMessage(schema) {
-//  case .success(let result):
-//    var outputResult = Data()
-//    withUnsafeBytes(of: Int32(0).littleEndian) { outputResult.append(Data($0)) }
-//    withUnsafeBytes(of: Int32(result.count).littleEndian) {
-//      outputResult.append(Data($0))
-//    }
-//    outputResult.append(result)
-//    return outputResult
-//  case .failure(let error):
-//    throw error
-//  }
+  //  let arrowWriter = ArrowWriter()
+  //  switch arrowWriter.toMessage(schema) {
+  //  case .success(let result):
+  //    var outputResult = Data()
+  //    withUnsafeBytes(of: Int32(0).littleEndian) { outputResult.append(Data($0)) }
+  //    withUnsafeBytes(of: Int32(result.count).littleEndian) {
+  //      outputResult.append(Data($0))
+  //    }
+  //    outputResult.append(result)
+  //    return outputResult
+  //  case .failure(let error):
+  //    throw error
+  //  }
 }
 
 public func schemaFromMessage(_ schemaData: Data) throws(ArrowFlightError)
@@ -54,18 +54,18 @@ public func schemaFromMessage(_ schemaData: Data) throws(ArrowFlightError)
   let startIndex = schemaData.count - Int(messageLength)
   let schema = schemaData[startIndex...]
 
-//  let reader = ArrowReaderX()
-//  let result = ArrowReaderX.makeArrowReaderResult()
-//  switch reader.fromMessage(schema, dataBody: Data(), result: result) {
-//  case .success:
-//    if let resultSchema = result.schema {
-//      return resultSchema
-//    } else {
-//      throw .unknown("Unable to parse Arrow schema from data")
-//    }
-//  case .failure:
-//    throw .unknown("Unable to parse Arrow schema from data")
-//  }
+  //  let reader = ArrowReaderX()
+  //  let result = ArrowReaderX.makeArrowReaderResult()
+  //  switch reader.fromMessage(schema, dataBody: Data(), result: result) {
+  //  case .success:
+  //    if let resultSchema = result.schema {
+  //      return resultSchema
+  //    } else {
+  //      throw .unknown("Unable to parse Arrow schema from data")
+  //    }
+  //  case .failure:
+  //    throw .unknown("Unable to parse Arrow schema from data")
+  //  }
   fatalError()
 }
 

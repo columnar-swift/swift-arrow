@@ -53,7 +53,9 @@ public struct AllNullBuffer: NullBuffer, ArrowBufferEmpty {
 }
 
 /// A  bit-packed buffer used to represent nulls and booleans in Arrow arrays.
-final class BitPackedNullBuffer: NullBuffer, ArrowBufferUInt8, @unchecked Sendable {
+final class BitPackedNullBuffer: NullBuffer, ArrowBufferUInt8,
+  @unchecked Sendable
+{
   let length: Int
   let capacity: Int
   let valueCount: Int

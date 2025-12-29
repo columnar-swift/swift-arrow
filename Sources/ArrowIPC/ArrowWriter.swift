@@ -239,7 +239,7 @@ public struct ArrowWriter {
     // MARK: Buffers.
     var buffers: [FBuffer] = .init()
     var bufferOffset: Int = 0
-    writeBufferInfo(
+    try writeBufferInfo(
       schema.fields, columns: batch.arrays,
       bufferOffset: &bufferOffset, buffers: &buffers,
       fbb: &fbb
@@ -303,34 +303,34 @@ public struct ArrowWriter {
       }
     }
   }
-  
+
   // FIXME: Unused duplicate
-//  private func writeFieldNodes(
-//    fields: [ArrowField],
-//    columns: [AnyArrowArrayProtocol],
-//    nodes: inout [FFieldNode],  // changed from offsets
-//    fbb: inout FlatBufferBuilder
-//  ) {
-//    for index in (0..<fields.count).reversed() {
-//      let column = columns[index]
-//      let field = fields[index]
-//      let fieldNode = FFieldNode(
-//        length: Int64(column.length),
-//        nullCount: Int64(column.nullCount)
-//      )
-//      nodes.append(fieldNode)  // just append the struct
-//      if case .strct(let fields) = field.type {
-//        if let column = column as? ArrowStructArray {
-//          writeFieldNodes(
-//            fields: fields,
-//            columns: column.fields.map(\.array),
-//            nodes: &nodes,
-//            fbb: &fbb
-//          )
-//        }
-//      }
-//    }
-//  }
+  //  private func writeFieldNodes(
+  //    fields: [ArrowField],
+  //    columns: [AnyArrowArrayProtocol],
+  //    nodes: inout [FFieldNode],  // changed from offsets
+  //    fbb: inout FlatBufferBuilder
+  //  ) {
+  //    for index in (0..<fields.count).reversed() {
+  //      let column = columns[index]
+  //      let field = fields[index]
+  //      let fieldNode = FFieldNode(
+  //        length: Int64(column.length),
+  //        nullCount: Int64(column.nullCount)
+  //      )
+  //      nodes.append(fieldNode)  // just append the struct
+  //      if case .strct(let fields) = field.type {
+  //        if let column = column as? ArrowStructArray {
+  //          writeFieldNodes(
+  //            fields: fields,
+  //            columns: column.fields.map(\.array),
+  //            nodes: &nodes,
+  //            fbb: &fbb
+  //          )
+  //        }
+  //      }
+  //    }
+  //  }
 
   private func writeBufferInfo(
     _ fields: [ArrowField],
@@ -338,7 +338,7 @@ public struct ArrowWriter {
     bufferOffset: inout Int,
     buffers: inout [FBuffer],
     fbb: inout FlatBufferBuilder
-  ) {
+  ) throws(ArrowError) {
     for index in 0..<fields.count {
       let column = columns[index]
       let field = fields[index]
@@ -350,15 +350,30 @@ public struct ArrowWriter {
         bufferOffset += bufferDataSize
 
         if case .strct(let fields) = field.type {
-          if let column = column as? ArrowStructArray {
-            writeBufferInfo(
-              fields,
-              columns: column.fields.map(\.array),
-              bufferOffset: &bufferOffset,
-              buffers: &buffers,
-              fbb: &fbb
-            )
+          guard let column = column as? ArrowStructArray else {
+            throw .init(.invalid("Expected ArrowStructArray for nested struct"))
           }
+          try writeBufferInfo(
+            fields,
+            columns: column.fields.map(\.array),
+            bufferOffset: &bufferOffset,
+            buffers: &buffers,
+            fbb: &fbb
+          )
+        } else if case .list(let childField) = field.type {
+          guard let column = column as? ArrowListArray<Int32> else {
+            throw .init(
+              .invalid(
+                "Expected ArrowListArray<Int32>, got \(String(describing: type(of: column)))"
+              ))
+          }
+          try writeBufferInfo(
+            [childField],
+            columns: [column.values],
+            bufferOffset: &bufferOffset,
+            buffers: &buffers,
+            fbb: &fbb
+          )
         }
       }
     }

@@ -58,28 +58,28 @@ public struct RecordBatchStreamWriter: Sendable {
   }
 
   public func write(_ rb: RecordBatch) async throws {
-//    // FIXME: this was moved here to make this sendable.
-//    let writer = ArrowWriter()
-//    switch writer.toMessage(rb.schema) {
-//    case .success(let schemaData):
-//      let schemaFlightData = ProtoFlightData.with {
-//        $0.dataHeader = schemaData
-//      }
-//
-//      try await self.stream.send(schemaFlightData)
-//      switch writer.toMessage(rb) {
-//      case .success(let recordMessages):
-//        let rbMessage = ProtoFlightData.with {
-//          $0.dataHeader = recordMessages[0]
-//          $0.dataBody = recordMessages[1]
-//        }
-//        try await self.stream.send(rbMessage)
-//      case .failure(let error):
-//        throw error
-//      }
-//    case .failure(let error):
-//      throw error
-//    }
+    //    // FIXME: this was moved here to make this sendable.
+    //    let writer = ArrowWriter()
+    //    switch writer.toMessage(rb.schema) {
+    //    case .success(let schemaData):
+    //      let schemaFlightData = ProtoFlightData.with {
+    //        $0.dataHeader = schemaData
+    //      }
+    //
+    //      try await self.stream.send(schemaFlightData)
+    //      switch writer.toMessage(rb) {
+    //      case .success(let recordMessages):
+    //        let rbMessage = ProtoFlightData.with {
+    //          $0.dataHeader = recordMessages[0]
+    //          $0.dataBody = recordMessages[1]
+    //        }
+    //        try await self.stream.send(rbMessage)
+    //      case .failure(let error):
+    //        throw error
+    //      }
+    //    case .failure(let error):
+    //      throw error
+    //    }
     fatalError()
   }
 }

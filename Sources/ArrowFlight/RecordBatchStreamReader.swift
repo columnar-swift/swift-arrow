@@ -23,7 +23,7 @@ public struct RecordBatchStreamReader: AsyncSequence, AsyncIteratorProtocol,
 {
   public typealias AsyncIterator = RecordBatchStreamReader
   public typealias Element = (RecordBatch?, FlightDescriptor?)
-//  let reader = ArrowReader(url: URL(fileURLWithPath: "/dev/null"))
+  //  let reader = ArrowReader(url: URL(fileURLWithPath: "/dev/null"))
   // FIXME: this is hack to make this sendable
   nonisolated(unsafe) var batches: [RecordBatch] = []
   nonisolated(unsafe) var streamIterator: any AsyncIteratorProtocol
@@ -67,23 +67,23 @@ public struct RecordBatchStreamReader: AsyncSequence, AsyncIteratorProtocol,
       let dataBody = flightData.dataBody
       let dataHeader = flightData.dataHeader
       descriptor = FlightDescriptor(flightData.flightDescriptor)
-      
+
       // TODO: streaming
-//      switch reader.fromMessage(
-//        dataHeader,
-//        dataBody: dataBody,
-//        result: result,
-//        useUnalignedBuffers: useUnalignedBuffers)
-//      {
-//      case .success(()):
-//        if result.count > 0 {
-//          batches = result
-//          batchIndex = 1
-//          return (batches[0], descriptor)
-//        }
-//      case .failure(let error):
-//        throw error
-//      }
+      //      switch reader.fromMessage(
+      //        dataHeader,
+      //        dataBody: dataBody,
+      //        result: result,
+      //        useUnalignedBuffers: useUnalignedBuffers)
+      //      {
+      //      case .success(()):
+      //        if result.count > 0 {
+      //          batches = result
+      //          batchIndex = 1
+      //          return (batches[0], descriptor)
+      //        }
+      //      case .failure(let error):
+      //        throw error
+      //      }
     }
   }
 

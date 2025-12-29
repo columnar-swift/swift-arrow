@@ -72,7 +72,8 @@ extension ArrowWriter {
     case .binary:
       return FBinary.endBinary(&fbb, start: FBinary.startBinary(&fbb))
     case .fixedSizeBinary:
-      return FFixedSizeBinary.endFixedSizeBinary(&fbb, start: FFixedSizeBinary.startFixedSizeBinary(&fbb))
+      return FFixedSizeBinary.endFixedSizeBinary(
+        &fbb, start: FFixedSizeBinary.startFixedSizeBinary(&fbb))
     case .boolean:
       return FBool.endBool(&fbb, start: FBool.startBool(&fbb))
     case .date32:

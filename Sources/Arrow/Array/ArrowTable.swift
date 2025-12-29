@@ -27,8 +27,8 @@ public class ArrowTable {
 
   /// Create an ArrowTable from a 'RecordBatch' list.
   /// - Parameter recordBatches: The record batches.
-  /// - Returns: An `ArrowResult` holding an `ArrowTable` on success, or an`ArrowError`
-  ///   on failure.
+  /// - Returns: An `ArrowResult` holding an `ArrowTable` on success.
+  /// - Throws: an `ArrowError` if arrays have no elements or if elements have mismatched types.
   public static func from(
     recordBatches: [RecordBatch]
   ) throws(ArrowError) -> ArrowTable {
@@ -47,12 +47,12 @@ public class ArrowTable {
     }
     let builder = ArrowTable.Builder()
     for index in 0..<schema.fields.count {
-        let field = schema.fields[index]
-        let column = try makeArrowColumn(
-          for: field,
-          arrays: holders[index]
-        )
-        builder.addColumn(column)
+      let field = schema.fields[index]
+      let column = try makeArrowColumn(
+        for: field,
+        arrays: holders[index]
+      )
+      builder.addColumn(column)
     }
     return builder.finish()
   }
@@ -122,29 +122,29 @@ public class ArrowTable {
 
     public init() {}
 
-//    @discardableResult
-//    public func addColumn<T>(
-//      _ fieldName: String,
-//      arrowArray: any ArrowArray<T>
-//    ) throws -> Builder {
-//      self.addColumn(fieldName, chunked: try ChunkedArrayX([arrowArray]))
-//    }
+    //    @discardableResult
+    //    public func addColumn<T>(
+    //      _ fieldName: String,
+    //      arrowArray: any ArrowArray<T>
+    //    ) throws -> Builder {
+    //      self.addColumn(fieldName, chunked: try ChunkedArrayX([arrowArray]))
+    //    }
 
-//    @discardableResult
-//    public func addColumn<T>(
-//      _ fieldName: String,
-//      chunked: ChunkedArray<T>
-//    ) -> Builder {
-//      let field = ArrowField(
-//        name: fieldName,
-//        dataType: chunked.type,
-//        isNullable: chunked.nullCount != 0
-//      )
-//      self.schemaBuilder.addField(field)
-//      let column = ArrowColumn(field, chunked: chunked)
-//      self.columns.append(column)
-//      return self
-//    }
+    //    @discardableResult
+    //    public func addColumn<T>(
+    //      _ fieldName: String,
+    //      chunked: ChunkedArray<T>
+    //    ) -> Builder {
+    //      let field = ArrowField(
+    //        name: fieldName,
+    //        dataType: chunked.type,
+    //        isNullable: chunked.nullCount != 0
+    //      )
+    //      self.schemaBuilder.addField(field)
+    //      let column = ArrowColumn(field, chunked: chunked)
+    //      self.columns.append(column)
+    //      return self
+    //    }
 
     @discardableResult
     public func addColumn<T>(

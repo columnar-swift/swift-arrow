@@ -20,7 +20,7 @@ public class ArrowColumn {
   public var nullCount: Int { self.dataHolder.nullCount }
 
   public var name: String { field.name }
-  
+
   public init(_ field: ArrowField, chunked: any ChunkedArrayProtocol) {
     self.field = field
     self.dataHolder = chunked

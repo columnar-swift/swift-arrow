@@ -29,45 +29,45 @@ struct RecordBatchTests {
 
     let intArray = uint8Builder.finish()
     let stringArray = stringBuilder.finish()
-//    let result = RecordBatch.Builder()
-//      .addColumn("col1", arrowArray: intArray)
-//      .addColumn("col2", arrowArray: stringArray)
-//      .finish()
-//    switch result {
-//    case .success(let recordBatch):
-//      let schema = recordBatch.schema
-//      #expect(schema.fields.count == 2)
-//      #expect(schema.fields[0].name == "col1")
-//      #expect(schema.fields[0].type == .uint8)
-//      #expect(schema.fields[0].isNullable == true)
-//      #expect(schema.fields[1].name == "col2")
-//      #expect(schema.fields[1].type == .utf8)
-//      #expect(schema.fields[1].isNullable == false)
-//      #expect(recordBatch.columns.count == 2)
-//      let col1: any ArrowArray<UInt8> = try recordBatch.data(for: 0)
-//      let col2: any ArrowArray<String> = try recordBatch.data(for: 1)
-//      #expect(col1.length == 3)
-//      #expect(col2.length == 3)
-//      #expect(col1.nullCount == 1)
-//    case .failure(let error):
-//      throw error
-//    }
+    //    let result = RecordBatch.Builder()
+    //      .addColumn("col1", arrowArray: intArray)
+    //      .addColumn("col2", arrowArray: stringArray)
+    //      .finish()
+    //    switch result {
+    //    case .success(let recordBatch):
+    //      let schema = recordBatch.schema
+    //      #expect(schema.fields.count == 2)
+    //      #expect(schema.fields[0].name == "col1")
+    //      #expect(schema.fields[0].type == .uint8)
+    //      #expect(schema.fields[0].isNullable == true)
+    //      #expect(schema.fields[1].name == "col2")
+    //      #expect(schema.fields[1].type == .utf8)
+    //      #expect(schema.fields[1].isNullable == false)
+    //      #expect(recordBatch.columns.count == 2)
+    //      let col1: any ArrowArray<UInt8> = try recordBatch.data(for: 0)
+    //      let col2: any ArrowArray<String> = try recordBatch.data(for: 1)
+    //      #expect(col1.length == 3)
+    //      #expect(col2.length == 3)
+    //      #expect(col1.nullCount == 1)
+    //    case .failure(let error):
+    //      throw error
+    //    }
   }
 
   // Ensure that invalid record batches can't be built.
   @Test func schemaNullabilityChecked() throws {
-//    let stringBuilder = try ArrowArrayBuilders.loadStringArrayBuilder()
-//    stringBuilder.append("test10")
-//    stringBuilder.append(nil)
-//    stringBuilder.append("test33")
-//    let array = try stringBuilder.finish()
-//
-//    let field = ArrowField(name: "col1", dataType: .utf8, isNullable: false)
-//    let result = RecordBatchX.Builder()
-//      .addColumn(field, arrowArray: array)
-//      .finish()
-//    if case .success(_) = result {
-//      Issue.record("Record batch should have rejected null data.")
-//    }
+    //    let stringBuilder = try ArrowArrayBuilders.loadStringArrayBuilder()
+    //    stringBuilder.append("test10")
+    //    stringBuilder.append(nil)
+    //    stringBuilder.append("test33")
+    //    let array = try stringBuilder.finish()
+    //
+    //    let field = ArrowField(name: "col1", dataType: .utf8, isNullable: false)
+    //    let result = RecordBatchX.Builder()
+    //      .addColumn(field, arrowArray: array)
+    //      .finish()
+    //    if case .success(_) = result {
+    //      Issue.record("Record batch should have rejected null data.")
+    //    }
   }
 }

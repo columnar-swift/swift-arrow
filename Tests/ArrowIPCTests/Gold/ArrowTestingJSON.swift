@@ -27,7 +27,7 @@ import Testing
 /// Arrow in-memory data; it also reads the same JSON file as the producer, and validates that both
 /// datasets are identical.
 struct ArrowTestingJSON {
-  
+
   static let testCases: [String] = [
     "generated_primitive",
     "generated_primitive_no_batches",
@@ -41,7 +41,7 @@ struct ArrowTestingJSON {
     "generated_datetime",
     "generated_duration",
   ]
-  
+
   @Test(arguments: testCases)
   func read(name: String) throws {
     let resourceURL = try loadTestResource(
@@ -92,10 +92,10 @@ struct ArrowTestingJSON {
     // The gold-standard comparison.
     #expect(actualGold == expectedGold)
   }
-  
+
   @Test(arguments: testCases)
   func write(name: String) throws {
-    
+
     let resourceURL = try loadTestResource(
       name: name,
       withExtension: "json.lz4",
@@ -111,17 +111,17 @@ struct ArrowTestingJSON {
     )
     let arrowReader = try ArrowReader(url: testFile)
     let (arrowSchema, recordBatches) = try arrowReader.read()
-    
+
     let tempDir = FileManager.default.temporaryDirectory
     let tempFile = tempDir.appendingPathComponent(UUID().uuidString + ".arrow")
-    
+
     var arrowWriter = ArrowWriter(url: tempFile)
     try arrowWriter.write(schema: arrowSchema, recordBatches: recordBatches)
     try arrowWriter.finish()
-    
+
     let testReader = try ArrowReader(url: testFile)
     let (arrowSchemaRead, recordBatchesRead) = try testReader.read()
-    
+
     let actualSchema = encode(schema: arrowSchemaRead)
     let expectedSchema = testCase.schema
     let expectedBatches = testCase.batches.map { batch in

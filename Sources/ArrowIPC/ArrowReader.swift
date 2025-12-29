@@ -516,8 +516,7 @@ public struct ArrowReader {
     nullBuffer: NullBuffer,
     offsetsBuffer: any FixedWidthBufferProtocol<OffsetType>,
     values: AnyArrowArrayProtocol
-  ) -> ArrowListArray<OffsetType>
-  {
+  ) -> ArrowListArray<OffsetType> {
     ArrowListArray(
       length: length,
       nullBuffer: nullBuffer,
