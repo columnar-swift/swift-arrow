@@ -30,6 +30,9 @@ extension ArrowWriter {
         offsets.append(offset)
       }
       fieldsOffset = fbb.createVector(ofOffsets: offsets)
+    } else if case .list(let childField) = field.type {
+      let offset = try write(field: childField, to: &fbb)
+      fieldsOffset = fbb.createVector(ofOffsets: [offset])
     }
     let nameOffset = fbb.create(string: field.name)
     let fieldTypeOffset = try append(arrowType: field.type, to: &fbb)

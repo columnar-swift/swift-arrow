@@ -325,9 +325,6 @@ public struct ArrowArrayDate64: ArrowArrayProtocol {
 public struct ArrowListArray<
     OffsetType: FixedWidthInteger & SignedInteger
 >: ArrowArrayProtocol
-//where
-//  OffsetsBuffer: FixedWidthBufferProtocol,
-//  OffsetsBuffer.ElementType: FixedWidthInteger & SignedInteger
 {
   public let offset: Int
   public let length: Int

@@ -291,36 +291,46 @@ public struct ArrowWriter {
             fbb: &fbb
           )
         }
-      }
-    }
-  }
-  
-  private func writeFieldNodes(
-    fields: [ArrowField],
-    columns: [AnyArrowArrayProtocol],
-    nodes: inout [FFieldNode],  // changed from offsets
-    fbb: inout FlatBufferBuilder
-  ) {
-    for index in (0..<fields.count).reversed() {
-      let column = columns[index]
-      let field = fields[index]
-      let fieldNode = FFieldNode(
-        length: Int64(column.length),
-        nullCount: Int64(column.nullCount)
-      )
-      nodes.append(fieldNode)  // just append the struct
-      if case .strct(let fields) = field.type {
-        if let column = column as? ArrowStructArray {
+      } else if case .list(let childField) = field.type {
+        if let column = column as? ArrowListArray<Int32> {
           writeFieldNodes(
-            fields: fields,
-            columns: column.fields.map(\.array),
-            nodes: &nodes,
+            fields: [childField],
+            columns: [column.values],
+            offsets: &offsets,
             fbb: &fbb
           )
         }
       }
     }
   }
+  
+  // FIXME: Unused duplicate
+//  private func writeFieldNodes(
+//    fields: [ArrowField],
+//    columns: [AnyArrowArrayProtocol],
+//    nodes: inout [FFieldNode],  // changed from offsets
+//    fbb: inout FlatBufferBuilder
+//  ) {
+//    for index in (0..<fields.count).reversed() {
+//      let column = columns[index]
+//      let field = fields[index]
+//      let fieldNode = FFieldNode(
+//        length: Int64(column.length),
+//        nullCount: Int64(column.nullCount)
+//      )
+//      nodes.append(fieldNode)  // just append the struct
+//      if case .strct(let fields) = field.type {
+//        if let column = column as? ArrowStructArray {
+//          writeFieldNodes(
+//            fields: fields,
+//            columns: column.fields.map(\.array),
+//            nodes: &nodes,
+//            fbb: &fbb
+//          )
+//        }
+//      }
+//    }
+//  }
 
   private func writeBufferInfo(
     _ fields: [ArrowField],
@@ -340,14 +350,13 @@ public struct ArrowWriter {
         bufferOffset += bufferDataSize
 
         if case .strct(let fields) = field.type {
-
           if let column = column as? ArrowStructArray {
-
             writeBufferInfo(
               fields,
               columns: column.fields.map(\.array),
               bufferOffset: &bufferOffset,
-              buffers: &buffers, fbb: &fbb
+              buffers: &buffers,
+              fbb: &fbb
             )
           }
         }

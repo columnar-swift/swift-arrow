@@ -412,7 +412,7 @@ public struct ArrowReader {
           guard offsetsBuffer.length >= requiredBytes else {
             throw ArrowError(
               .invalid(
-                "Offsets buffer too small: need \(requiredBytes) bytes for \(length) lists"
+                "Offsets buffer of length: \(offsetsBuffer.length) too small: need \(requiredBytes) bytes for \(length) lists"
               )
             )
           }
