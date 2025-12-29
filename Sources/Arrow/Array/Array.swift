@@ -322,10 +322,12 @@ public struct ArrowArrayDate64: ArrowArrayProtocol {
 }
 
 ///// An Arrow list array which may be nested arbitrarily.
-public struct ArrowListArray<OffsetsBuffer>: ArrowArrayProtocol
-where
-  OffsetsBuffer: FixedWidthBufferProtocol,
-  OffsetsBuffer.ElementType: FixedWidthInteger & SignedInteger
+public struct ArrowListArray<
+    OffsetType: FixedWidthInteger & SignedInteger
+>: ArrowArrayProtocol
+//where
+//  OffsetsBuffer: FixedWidthBufferProtocol,
+//  OffsetsBuffer.ElementType: FixedWidthInteger & SignedInteger
 {
   public let offset: Int
   public let length: Int
@@ -338,14 +340,14 @@ where
   public var nullCount: Int { nullBuffer.nullCount }
 
   let nullBuffer: NullBuffer
-  let offsetsBuffer: OffsetsBuffer
+  let offsetsBuffer: any FixedWidthBufferProtocol<OffsetType>
   public let values: AnyArrowArrayProtocol
 
   public init(
     offset: Int = 0,
     length: Int,
     nullBuffer: NullBuffer,
-    offsetsBuffer: OffsetsBuffer,
+    offsetsBuffer: any FixedWidthBufferProtocol<OffsetType>,
     values: AnyArrowArrayProtocol
   ) {
     self.offset = offset

@@ -354,9 +354,7 @@ struct ArrowTestingIPC {
         #expect(actualOffset == expectedOffset)
       }
     }
-
-    // TODO: Need a simpler type signature at call site.
-    guard let listArray = actual as? ArrowListArray<FixedWidthBufferIPC<Int32>>
+    guard let listArray = actual as? ArrowListArray<Int32>
     else {
       Issue.record("Unexpected array type: \(type(of: actual))")
       return

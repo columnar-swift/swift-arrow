@@ -292,7 +292,7 @@ public typealias ArrayBuilderTimestamp = ArrayBuilderFixedWidth<Timestamp>
 
 public class ArrayBuilderList<T: AnyArrayBuilder> {
 
-  typealias ArrayType = ArrowListArray<FixedWidthBuffer<Int32>>
+  typealias ArrayType = ArrowListArray<Int32>
 
   var length: Int
   let nullBuilder: NullBufferBuilder

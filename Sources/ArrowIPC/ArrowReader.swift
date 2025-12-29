@@ -511,15 +511,12 @@ public struct ArrowReader {
     )
   }
 
-  func makeListArray<OffsetsBuffer>(
+  func makeListArray<OffsetType>(
     length: Int,
     nullBuffer: NullBuffer,
-    offsetsBuffer: OffsetsBuffer,
+    offsetsBuffer: any FixedWidthBufferProtocol<OffsetType>,
     values: AnyArrowArrayProtocol
-  ) -> ArrowListArray<OffsetsBuffer>
-  where
-    OffsetsBuffer: FixedWidthBufferProtocol,
-    OffsetsBuffer.ElementType: FixedWidthInteger & SignedInteger
+  ) -> ArrowListArray<OffsetType>
   {
     ArrowListArray(
       length: length,
