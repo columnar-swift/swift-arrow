@@ -71,9 +71,10 @@ extension ArrowWriter {
       return FUtf8.endUtf8(&fbb, start: FUtf8.startUtf8(&fbb))
     case .binary:
       return FBinary.endBinary(&fbb, start: FBinary.startBinary(&fbb))
-    case .fixedSizeBinary:
-      return FFixedSizeBinary.endFixedSizeBinary(
-        &fbb, start: FFixedSizeBinary.startFixedSizeBinary(&fbb))
+    case .fixedSizeBinary(let byteWidth):
+      let startOffset = FFixedSizeBinary.startFixedSizeBinary(&fbb)
+      FFixedSizeBinary.add(byteWidth: byteWidth, &fbb)
+      return FFixedSizeBinary.endFixedSizeBinary(&fbb, start: startOffset)
     case .boolean:
       return FBool.endBool(&fbb, start: FBool.startBool(&fbb))
     case .date32:
@@ -87,10 +88,12 @@ extension ArrowWriter {
     case .time32(let unit):
       let startOffset = FTime.startTime(&fbb)
       FTime.add(unit: unit == .second ? .second : .millisecond, &fbb)
+      FTime.add(bitWidth: 32, &fbb)
       return FTime.endTime(&fbb, start: startOffset)
     case .time64(let unit):
       let startOffset = FTime.startTime(&fbb)
       FTime.add(unit: unit == .microsecond ? .microsecond : .nanosecond, &fbb)
+      FTime.add(bitWidth: 64, &fbb)
       return FTime.endTime(&fbb, start: startOffset)
     case .timestamp(let unit, let timezone):
       // Timezone string must be created before starting the timestamp table.
