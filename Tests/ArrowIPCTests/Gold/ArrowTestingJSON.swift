@@ -123,6 +123,18 @@ struct ArrowTestingJSON {
     let testReader = try ArrowReader(url: tempFile)
     let (arrowSchemaRead, recordBatchesRead) = try testReader.read()
 
+    for recordBatch in recordBatchesRead {
+      let lengths = recordBatch.arrays.map(\.length)
+      guard let first = lengths.first else {
+        Issue.record("Empty batch")
+        return
+      }
+      guard lengths.allSatisfy({ $0 == first }) else {
+        Issue.record("Mixed-length batch.")
+        return
+      }
+    }
+
     let actualSchema = encode(schema: arrowSchemaRead)
     let expectedSchema = testCase.schema
     let expectedBatches = testCase.batches.map { batch in

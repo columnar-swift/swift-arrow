@@ -58,7 +58,7 @@ func encodeColumn(
     switch field.type {
     case .list(let listField), .map(let listField, _):
       guard let listArray = array as? ListArrayProtocol else {
-        throw .init(.invalid("Expected list array"))
+        throw .init(.invalid("Expected list array."))
       }
       let childColumn = try encodeColumn(
         array: listArray.values, field: listField)
@@ -67,7 +67,7 @@ func encodeColumn(
       data = nil
     case .fixedSizeList(let listField, _):
       guard let listArray = array as? ListArrayProtocol else {
-        throw .init(.invalid("Expected list array"))
+        throw .init(.invalid("Expected fixed-size list array."))
       }
       let childColumn = try encodeColumn(
         array: listArray.values, field: listField)
@@ -75,7 +75,7 @@ func encodeColumn(
       data = nil
     case .strct(let arrowFields):
       guard let structArray = array as? ArrowStructArray else {
-        throw .init(.invalid("Expected list array"))
+        throw .init(.invalid("Expected struct array."))
       }
       children = []
       for (arrowField, (_, array)) in zip(arrowFields, structArray.fields) {

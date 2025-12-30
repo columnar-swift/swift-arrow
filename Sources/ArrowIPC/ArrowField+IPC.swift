@@ -182,7 +182,10 @@ extension ArrowType {
     case .fixedsizelist:
       guard field.childrenCount == 1, let childField = field.children(at: 0)
       else {
-        throw .init(.invalid("Expected list field to have exactly one child"))
+        throw .init(
+          .invalid(
+            "Expected list field to have exactly one child. Found: \(field.childrenCount) children"
+          ))
       }
       guard let fType = field.type(type: FFixedSizeList.self) else {
         throw .init(.invalid("Could not get type from fixed size list field."))

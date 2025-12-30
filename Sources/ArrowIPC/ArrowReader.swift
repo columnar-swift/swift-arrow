@@ -514,10 +514,13 @@ public struct ArrowReader {
 
   func nextBuffer(
     message: FRecordBatch, index: inout Int32, offset: Int64, data: Data
-  ) throws -> FileDataBuffer {
+  ) throws(ArrowError) -> FileDataBuffer {
     guard index < message.buffersCount, let buffer = message.buffers(at: index)
     else {
-      throw ArrowError(.invalid("Invalid buffer index."))
+      throw .init(
+        .invalid(
+          "Buffer index \(index) requested for message with \(message.buffersCount) buffers."
+        ))
     }
     index += 1
     let startOffset = offset + buffer.offset

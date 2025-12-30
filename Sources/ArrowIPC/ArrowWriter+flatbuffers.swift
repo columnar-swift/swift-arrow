@@ -57,6 +57,9 @@ extension ArrowWriter {
     } else if case .list(let childField) = field.type {
       let offset = try write(field: childField, to: &fbb)
       fieldsOffset = fbb.createVector(ofOffsets: [offset])
+    } else if case .fixedSizeList(let childField, _) = field.type {
+      let offset = try write(field: childField, to: &fbb)
+      fieldsOffset = fbb.createVector(ofOffsets: [offset])
     }
     // Create all strings and nested objects before startField.
     let nameOffset = fbb.create(string: field.name)
@@ -79,6 +82,12 @@ extension ArrowWriter {
     return FField.endField(&fbb, start: startOffset)
   }
 
+  /// Append the arrow type to the FlatBuffers builder.
+  /// - Parameters:
+  ///   - arrowType: The `ArrowType`.
+  ///   - fbb: The FlatBuffers builder.
+  /// - Returns: The offset to the newly appended arrow type.
+  /// - Throws: An `ArrowError` if the type is not serializable.
   func append(
     arrowType: ArrowType,
     to fbb: inout FlatBufferBuilder,
@@ -156,8 +165,9 @@ extension ArrowWriter {
     case .list:
       let startOffset = FList.startList(&fbb)
       return FList.endList(&fbb, start: startOffset)
-    case .fixedSizeList:
+    case .fixedSizeList(_, let listSize):
       let startOffset = FFixedSizeList.startFixedSizeList(&fbb)
+      FFixedSizeList.add(listSize: listSize, &fbb)
       return FFixedSizeList.endFixedSizeList(&fbb, start: startOffset)
     case .map:
       let startOffset = FMap.startMap(&fbb)
@@ -165,7 +175,7 @@ extension ArrowWriter {
     default:
       throw .init(
         .unknownType(
-          "Unable to add flatbuf type for Arrow type: \(arrowType)"))
+          "Unable to add FlatBuffers type for Arrow type: \(arrowType)."))
     }
   }
 }
