@@ -39,3 +39,4 @@ typealias FFixedSizeList = org_apache_arrow_flatbuf_FixedSizeList
 typealias FMap = org_apache_arrow_flatbuf_Map
 
 typealias FMessageHeader = org_apache_arrow_flatbuf_MessageHeader
+typealias FKeyValue = org_apache_arrow_flatbuf_KeyValue

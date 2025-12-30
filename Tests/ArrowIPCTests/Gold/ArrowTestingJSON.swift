@@ -118,7 +118,7 @@ struct ArrowTestingJSON {
     var arrowWriter = ArrowWriter(url: tempFile)
     try arrowWriter.write(schema: arrowSchema, recordBatches: recordBatches)
     try arrowWriter.finish()
-//    try FileManager.default.copyItem(at: tempFile, to: URL(fileURLWithPath: "/tmp/\(name).arrow"))
+    //    try FileManager.default.copyItem(at: tempFile, to: URL(fileURLWithPath: "/tmp/\(name).arrow"))
 
     let testReader = try ArrowReader(url: tempFile)
     let (arrowSchemaRead, recordBatchesRead) = try testReader.read()
@@ -139,16 +139,17 @@ struct ArrowTestingJSON {
     )
     if actualSchema != expectedSchema {
       try diffEncodable(actualSchema, expectedSchema)
-      return
+      try printCodable(actualSchema)
+      try printCodable(expectedSchema)
+      //      return
     }
     #expect(actualSchema == expectedSchema)
     #expect(recordBatchesRead.count == expectedBatches.count)
-    let actualBatches = try encode(batches: recordBatchesRead, schema: arrowSchema)
-    
+    let actualBatches = try encode(
+      batches: recordBatchesRead, schema: arrowSchema)
+
     if actualBatches != expectedBatches {
       for (a, e) in zip(actualBatches, expectedBatches) where a != e {
-//        try diffEncodable(a, e)
-//        return
         for (aField, eField) in zip(a.columns, e.columns) {
           if aField == eField {
             print("MATCH: \(aField)")
@@ -161,15 +162,15 @@ struct ArrowTestingJSON {
         }
       }
     }
-    
+
     #expect(actualBatches == expectedBatches)
-//    let actualGold = ArrowGold(
-//      schema: actualSchema,
-//      batches: actualBatches,
-//      dictionaries: nil
-//    )
-//    // The gold-standard comparison.
-//    #expect(actualGold == expectedGold)
+    let actualGold = ArrowGold(
+      schema: actualSchema,
+      batches: actualBatches,
+      dictionaries: nil
+    )
+    // The gold-standard comparison.
+    #expect(actualGold == expectedGold)
   }
 }
 

@@ -73,13 +73,35 @@ where
 {
   typealias ElementType = Element
   let buffer: FileDataBuffer
-  var length: Int { buffer.range.count }
+  let valueCount: Int
+  var length: Int { valueCount * MemoryLayout<Element>.stride }
+
+  init(buffer: FileDataBuffer, valueCount: Int) {
+    self.buffer = buffer
+    self.valueCount = valueCount
+  }
 
   subscript(index: Int) -> Element {
     buffer.data.withUnsafeBytes { rawBuffer in
       let sub = rawBuffer[buffer.range]
       let span = Span<Element>(_unsafeBytes: sub)
       return span[index]
+    }
+  }
+
+  public func withUnsafeBytes<R>(
+    _ body: (UnsafeRawBufferPointer) throws -> R
+  ) rethrows -> R {
+    try buffer.data.withUnsafeBytes { dataPtr in
+      let rangedPtr = UnsafeRawBufferPointer(
+        rebasing: dataPtr[buffer.range]
+      )
+      // Only return valueCount * stride bytes, not the full padded range
+      let unpaddedPtr = UnsafeRawBufferPointer(
+        start: rangedPtr.baseAddress,
+        count: valueCount * MemoryLayout<Element>.stride
+      )
+      return try body(unpaddedPtr)
     }
   }
 }
@@ -357,9 +379,10 @@ public struct ArrowReader {
         message: rbMessage, index: &bufferIndex, offset: offset, data: data)
       let buffer2 = try nextBuffer(
         message: rbMessage, index: &bufferIndex, offset: offset, data: data)
-
-      let offsetsBufferTyped = FixedWidthBufferIPC<Int32>(buffer: buffer1)
-
+      let offsetsBufferTyped = FixedWidthBufferIPC<Int32>(
+        buffer: buffer1,
+        valueCount: length + 1
+      )
       if arrowType == .utf8 {
         let valueBufferTyped = VariableLengthBufferIPC<String, Int32>(
           buffer: buffer2)
@@ -387,7 +410,10 @@ public struct ArrowReader {
         // A map is simply a list of struct<k,v> items.
         let buffer1 = try nextBuffer(
           message: rbMessage, index: &bufferIndex, offset: offset, data: data)
-        var offsetsBuffer = FixedWidthBufferIPC<Int32>(buffer: buffer1)
+        var offsetsBuffer = FixedWidthBufferIPC<Int32>(
+          buffer: buffer1,
+          valueCount: length + 1
+        )
 
         let array: AnyArrowArrayProtocol = try loadField(
           rbMessage: rbMessage,
@@ -401,12 +427,16 @@ public struct ArrowReader {
           // Empty offsets buffer is valid when child array is empty
           // There could be any number of empty lists referencing into an empty list
           guard array.length == 0 else {
+
             throw ArrowError(
               .invalid(
                 "Empty offsets buffer but non-empty child array"))
           }
           let emptyBuffer = emptyOffsetBuffer(offsetCount: length + 1)
-          offsetsBuffer = FixedWidthBufferIPC<Int32>(buffer: emptyBuffer)
+          offsetsBuffer = FixedWidthBufferIPC<Int32>(
+            buffer: emptyBuffer,
+            valueCount: length + 1
+          )
         } else {
           let requiredBytes = (length + 1) * MemoryLayout<Int32>.stride
           guard offsetsBuffer.length >= requiredBytes else {
@@ -503,7 +533,10 @@ public struct ArrowReader {
     nullBuffer: NullBuffer,
     buffer: FileDataBuffer
   ) -> ArrowArrayNumeric<T> {
-    let fixedBuffer = FixedWidthBufferIPC<T>(buffer: buffer)
+    let fixedBuffer = FixedWidthBufferIPC<T>(
+      buffer: buffer,
+      valueCount: length
+    )
     return ArrowArrayNumeric(
       length: length,
       nullBuffer: nullBuffer,

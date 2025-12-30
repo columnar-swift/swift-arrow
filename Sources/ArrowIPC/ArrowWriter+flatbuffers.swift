@@ -18,10 +18,34 @@ import FlatBuffers
 
 extension ArrowWriter {
 
+  /// Creeate an offsets array for key-value metadata entries.
+  /// - Parameters:
+  ///   - metadata: The String;String key-value metadata.
+  ///   - fbb: The FlatBuffers builder.
+  /// - Returns: The offsets to the key-value entries.
+  func metadataOffsets(
+    metadata: [String: String],
+    fbb: inout FlatBufferBuilder
+  ) -> [Offset] {
+    var keyValueOffsets: [Offset] = []
+    for (key, value) in metadata {
+      let keyOffset = fbb.create(string: key)
+      let valueOffset = fbb.create(string: value)
+      let kvOffset = FKeyValue.createKeyValue(
+        &fbb,
+        keyOffset: keyOffset,
+        valueOffset: valueOffset
+      )
+      keyValueOffsets.append(kvOffset)
+    }
+    return keyValueOffsets
+  }
+
   func write(
     field: ArrowField,
     to fbb: inout FlatBufferBuilder,
   ) throws(ArrowError) -> Offset {
+    // Create child fields first.
     var fieldsOffset: Offset?
     if case .strct(let fields) = field.type {
       var offsets: [Offset] = []
@@ -34,8 +58,14 @@ extension ArrowWriter {
       let offset = try write(field: childField, to: &fbb)
       fieldsOffset = fbb.createVector(ofOffsets: [offset])
     }
+    // Create all strings and nested objects before startField.
     let nameOffset = fbb.create(string: field.name)
     let fieldTypeOffset = try append(arrowType: field.type, to: &fbb)
+    // Create metadata vector before startField.
+    let metadata = field.metadata
+    let keyValueOffsets = metadataOffsets(metadata: metadata, fbb: &fbb)
+    let customMetadataOffset = fbb.createVector(ofOffsets: keyValueOffsets)
+    // Start the Field table.
     let startOffset = FField.startField(&fbb)
     FField.add(name: nameOffset, &fbb)
     FField.add(nullable: field.isNullable, &fbb)
@@ -45,6 +75,7 @@ extension ArrowWriter {
     let typeType = try field.type.fType()
     FField.add(typeType: typeType, &fbb)
     FField.add(type: fieldTypeOffset, &fbb)
+    FField.addVectorOf(customMetadata: customMetadataOffset, &fbb)
     return FField.endField(&fbb, start: startOffset)
   }
 
