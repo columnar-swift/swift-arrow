@@ -250,6 +250,7 @@ public struct ArrowArrayVariable<
     let startOffset = offsetsBuffer[offsetIndex]
     let endOffset = offsetsBuffer[offsetIndex + 1]
 
+    precondition(endOffset >= startOffset, "Corrupted Arrow data")
     return valueBuffer.loadVariable(
       at: Int(startOffset),
       arrayLength: Int(endOffset - startOffset)

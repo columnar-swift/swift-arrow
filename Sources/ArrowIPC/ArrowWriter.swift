@@ -207,18 +207,40 @@ public struct ArrowWriter {
         }
         pad()
         precondition(data.count % 8 == 0, "Data size must be multiple of 8")
-        if case .strct(let fields) = field.type {
-          guard let structArray = array as? ArrowStructArray
-          else {
-            throw ArrowError(
-              .invalid(
-                "Struct type array expected for nested type"))
-          }
-          try writeRecordBatchData(
-            fields: fields,
-            arrays: structArray.fields.map(\.array)
-          )
+      }
+      if case .strct(let fields) = field.type {
+        guard let structArray = array as? ArrowStructArray
+        else {
+          throw ArrowError(
+            .invalid(
+              "Struct type array expected for nested type"))
         }
+        try writeRecordBatchData(
+          fields: fields,
+          arrays: structArray.fields.map(\.array)
+        )
+      } else if case .list(let childType) = field.type {
+        guard let listArray = array as? ArrowListArray<Int32>
+        else {
+          throw ArrowError(
+            .invalid(
+              "List type array expected."))
+        }
+        try writeRecordBatchData(
+          fields: [childType],
+          arrays: [listArray.values]
+        )
+      } else if case .fixedSizeList(let childType, _) = field.type {
+        guard let listArray = array as? ArrowFixedSizeListArray
+        else {
+          throw ArrowError(
+            .invalid(
+              "Fixed size list type array expected."))
+        }
+        try writeRecordBatchData(
+          fields: [childType],
+          arrays: [listArray.values]
+        )
       }
     }
   }
@@ -289,7 +311,6 @@ public struct ArrowWriter {
         nullCount: Int64(column.nullCount)
       )
       nodes.append(fieldNode)
-
       switch field.type {
       case .strct(let fields):
         if let column = column as? ArrowStructArray {
@@ -333,14 +354,14 @@ public struct ArrowWriter {
       let field = fields[index]
 
       // Write all buffers for this field
-      for var bufferDataSize in column.bufferSizes {
-        bufferDataSize = padded(byteCount: bufferDataSize)
+      for bufferDataSize in column.bufferSizes {
         let buffer = FBuffer(
           offset: Int64(bufferOffset),
           length: Int64(bufferDataSize)
         )
         buffers.append(buffer)
-        bufferOffset += bufferDataSize
+        // Advance by padded amount
+        bufferOffset += padded(byteCount: bufferDataSize)
       }
 
       // AFTER writing this field's buffers, recurse into children

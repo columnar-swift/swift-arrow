@@ -108,3 +108,18 @@ func printCodable<T: Encodable>(_ value: T) throws {
   }
   print(formattted)
 }
+
+extension ArrowArrayVariable {
+
+  /// Debug print offsets buffer.
+  func printOffsets() {
+    // Print offsets buffer values
+    buffers[1].withUnsafeBytes { bufferPtr in
+      let typedPtr = bufferPtr.bindMemory(to: OffsetType.self)
+      print("Offsets buffer (\(typedPtr.count) elements):")
+      for i in 0..<min(typedPtr.count, 20) {  // Print first 20
+        print("  [\(i)]: \(typedPtr[i])")
+      }
+    }
+  }
+}

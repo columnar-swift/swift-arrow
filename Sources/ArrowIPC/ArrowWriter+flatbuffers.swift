@@ -60,6 +60,9 @@ extension ArrowWriter {
     } else if case .fixedSizeList(let childField, _) = field.type {
       let offset = try write(field: childField, to: &fbb)
       fieldsOffset = fbb.createVector(ofOffsets: [offset])
+    } else if case .map(let childField, _) = field.type {
+      let offset = try write(field: childField, to: &fbb)
+      fieldsOffset = fbb.createVector(ofOffsets: [offset])
     }
     // Create all strings and nested objects before startField.
     let nameOffset = fbb.create(string: field.name)

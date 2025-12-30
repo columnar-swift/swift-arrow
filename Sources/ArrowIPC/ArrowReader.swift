@@ -25,109 +25,11 @@ let continuationMarker = UInt32(0xFFFF_FFFF)
 struct FileDataBuffer {
   let data: Data
   let range: Range<Int>
-}
 
-/// An Arrow buffer backed by file data.
-internal protocol ArrowBufferIPC: ArrowBufferProtocol {
-  var buffer: FileDataBuffer { get }
-}
-
-extension ArrowBufferIPC {
-  public func withUnsafeBytes<R>(
-    _ body: (UnsafeRawBufferPointer) throws -> R
-  ) rethrows -> R {
-    try buffer.data.withUnsafeBytes { dataPtr in
-      let rangedPtr = UnsafeRawBufferPointer(
-        rebasing: dataPtr[buffer.range]
-      )
-      return try body(rangedPtr)
-    }
-  }
-}
-
-/// A `Data` backed buffer for null bitmaps and boolean arrays.
-struct NullBufferIPC: NullBuffer, ArrowBufferIPC {
-
-  let buffer: FileDataBuffer
-  var valueCount: Int
-  let nullCount: Int
-
-  var length: Int {
-    buffer.range.count
-  }
-
-  func isSet(_ bit: Int) -> Bool {
-    precondition(bit < valueCount, "Bit index \(bit) out of range")
-    let byteIndex = bit / 8
-    //    precondition(length > byteIndex, "Bit index \(bit) out of range")
-    let offsetIndex = buffer.range.lowerBound + byteIndex
-    let byte = self.buffer.data[offsetIndex]
-    return byte & (1 << (bit % 8)) > 0
-  }
-}
-
-/// A `Data` backed buffer for fixed-width types.
-struct FixedWidthBufferIPC<Element>: FixedWidthBufferProtocol, ArrowBufferIPC
-where
-  Element: Numeric, Element: BitwiseCopyable
-{
-  typealias ElementType = Element
-  let buffer: FileDataBuffer
-  let valueCount: Int
-  var length: Int { valueCount * MemoryLayout<Element>.stride }
-
-  init(buffer: FileDataBuffer, valueCount: Int) {
-    self.buffer = buffer
-    self.valueCount = valueCount
-  }
-
-  subscript(index: Int) -> Element {
-    buffer.data.withUnsafeBytes { rawBuffer in
-      let sub = rawBuffer[buffer.range]
-      let span = Span<Element>(_unsafeBytes: sub)
-      return span[index]
-    }
-  }
-
-  public func withUnsafeBytes<R>(
-    _ body: (UnsafeRawBufferPointer) throws -> R
-  ) rethrows -> R {
-    try buffer.data.withUnsafeBytes { dataPtr in
-      let rangedPtr = UnsafeRawBufferPointer(
-        rebasing: dataPtr[buffer.range]
-      )
-      // Only return valueCount * stride bytes, not the full padded range
-      let unpaddedPtr = UnsafeRawBufferPointer(
-        start: rangedPtr.baseAddress,
-        count: valueCount * MemoryLayout<Element>.stride
-      )
-      return try body(unpaddedPtr)
-    }
-  }
-}
-
-/// A `Data` backed buffer for variable-length types.
-struct VariableLengthBufferIPC<
-  Element: VariableLength, OffsetType: FixedWidthInteger
->:
-  VariableLengthBufferProtocol, ArrowBufferIPC
-{
-  typealias ElementType = Element
-  let buffer: FileDataBuffer
-  var length: Int { buffer.range.count }
-
-  func loadVariable(
-    at startIndex: Int,
-    arrayLength: Int
-  ) -> Element {
-    precondition(startIndex + arrayLength <= self.length)
-    return buffer.data.withUnsafeBytes { rawBuffer in
-      let offsetStart = buffer.range.lowerBound + startIndex
-      let offsetEnd = offsetStart + arrayLength
-      let slice = rawBuffer[offsetStart..<offsetEnd]
-      let uint8Buffer = slice.bindMemory(to: UInt8.self)
-      return Element(uint8Buffer)
-    }
+  init(data: Data, range: Range<Int>) {
+    self.data = data
+    self.range = range
+    precondition(range.lowerBound <= range.upperBound)
   }
 }
 
@@ -380,12 +282,12 @@ public struct ArrowReader {
       let buffer2 = try nextBuffer(
         message: rbMessage, index: &bufferIndex, offset: offset, data: data)
       let offsetsBufferTyped = FixedWidthBufferIPC<Int32>(
-        buffer: buffer1,
-        valueCount: length + 1
+        buffer: buffer1
       )
       if arrowType == .utf8 {
         let valueBufferTyped = VariableLengthBufferIPC<String, Int32>(
-          buffer: buffer2)
+          buffer: buffer2
+        )
         return ArrowArrayVariable<String, Int32>(
           length: length,
           nullBuffer: nullBuffer,
@@ -411,8 +313,7 @@ public struct ArrowReader {
         let buffer1 = try nextBuffer(
           message: rbMessage, index: &bufferIndex, offset: offset, data: data)
         var offsetsBuffer = FixedWidthBufferIPC<Int32>(
-          buffer: buffer1,
-          valueCount: length + 1
+          buffer: buffer1
         )
 
         let array: AnyArrowArrayProtocol = try loadField(
@@ -434,8 +335,7 @@ public struct ArrowReader {
           }
           let emptyBuffer = emptyOffsetBuffer(offsetCount: length + 1)
           offsetsBuffer = FixedWidthBufferIPC<Int32>(
-            buffer: emptyBuffer,
-            valueCount: length + 1
+            buffer: emptyBuffer
           )
         } else {
           let requiredBytes = (length + 1) * MemoryLayout<Int32>.stride
@@ -449,6 +349,11 @@ public struct ArrowReader {
           // Verify last offset matches child array length
           let lastOffset = offsetsBuffer[length]
           guard lastOffset == Int32(array.length) else {
+
+            for idx in 0..<offsetsBuffer.length {
+              print("idx: \(idx), value: \(offsetsBuffer[idx])")
+            }
+
             throw ArrowError(
               .invalid(
                 "Expected last offset to match child array length."))
@@ -513,7 +418,10 @@ public struct ArrowReader {
   }
 
   func nextBuffer(
-    message: FRecordBatch, index: inout Int32, offset: Int64, data: Data
+    message: FRecordBatch,
+    index: inout Int32,
+    offset: Int64,
+    data: Data
   ) throws(ArrowError) -> FileDataBuffer {
     guard index < message.buffersCount, let buffer = message.buffers(at: index)
     else {
@@ -537,8 +445,7 @@ public struct ArrowReader {
     buffer: FileDataBuffer
   ) -> ArrowArrayNumeric<T> {
     let fixedBuffer = FixedWidthBufferIPC<T>(
-      buffer: buffer,
-      valueCount: length
+      buffer: buffer
     )
     return ArrowArrayNumeric(
       length: length,
