@@ -208,39 +208,34 @@ public struct ArrowWriter {
         pad()
         precondition(data.count % 8 == 0, "Data size must be multiple of 8")
       }
-      if case .strct(let fields) = field.type {
-        guard let structArray = array as? ArrowStructArray
-        else {
+      switch field.type {
+      case .strct(let fields):
+        guard let structArray = array as? ArrowStructArray else {
           throw ArrowError(
-            .invalid(
-              "Struct type array expected for nested type"))
+            .invalid("Struct type array expected for nested type"))
         }
         try writeRecordBatchData(
           fields: fields,
           arrays: structArray.fields.map(\.array)
         )
-      } else if case .list(let childType) = field.type {
-        guard let listArray = array as? ArrowListArray<Int32>
-        else {
-          throw ArrowError(
-            .invalid(
-              "List type array expected."))
+      case .list(let childType), .map(let childType, _):
+        guard let listArray = array as? ArrowListArray<Int32> else {
+          throw ArrowError(.invalid("List type array expected."))
         }
         try writeRecordBatchData(
           fields: [childType],
           arrays: [listArray.values]
         )
-      } else if case .fixedSizeList(let childType, _) = field.type {
-        guard let listArray = array as? ArrowFixedSizeListArray
-        else {
-          throw ArrowError(
-            .invalid(
-              "Fixed size list type array expected."))
+      case .fixedSizeList(let childType, _):
+        guard let listArray = array as? ArrowFixedSizeListArray else {
+          throw ArrowError(.invalid("Fixed size list type array expected."))
         }
         try writeRecordBatchData(
           fields: [childType],
           arrays: [listArray.values]
         )
+      default:
+        break
       }
     }
   }
@@ -320,7 +315,7 @@ public struct ArrowWriter {
             nodes: &nodes,
           )
         }
-      case .list(let childField):
+      case .list(let childField), .map(let childField, _):
         if let column = column as? ArrowListArray<Int32> {
           writeFieldNodes(
             fields: [childField],
@@ -364,8 +359,9 @@ public struct ArrowWriter {
         bufferOffset += padded(byteCount: bufferDataSize)
       }
 
-      // AFTER writing this field's buffers, recurse into children
-      if case .strct(let fields) = field.type {
+      // After writing this field's buffers, recurse into children
+      switch field.type {
+      case .strct(let fields):
         guard let column = column as? ArrowStructArray else {
           throw .init(.invalid("Expected ArrowStructArray for nested struct"))
         }
@@ -376,7 +372,7 @@ public struct ArrowWriter {
           buffers: &buffers,
           fbb: &fbb
         )
-      } else if case .list(let childField) = field.type {
+      case .list(let childField), .map(let childField, _):
         guard let column = column as? ArrowListArray<Int32> else {
           throw .init(.invalid("Expected ArrowListArray<Int32>"))
         }
@@ -387,7 +383,7 @@ public struct ArrowWriter {
           buffers: &buffers,
           fbb: &fbb
         )
-      } else if case .fixedSizeList(let childField, _) = field.type {
+      case .fixedSizeList(let childField, _):
         guard let column = column as? ArrowFixedSizeListArray else {
           throw .init(.invalid("Expected ArrowFixedSizeListArray"))
         }
@@ -398,6 +394,8 @@ public struct ArrowWriter {
           buffers: &buffers,
           fbb: &fbb
         )
+      default:
+        break
       }
     }
   }

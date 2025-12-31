@@ -95,11 +95,6 @@ struct ArrowTestingGold {
 
   @Test(arguments: testCases)
   func write(name: String) throws {
-    
-    // FIXME: last test case.
-    if name == "generated_map" {
-      return
-    }
 
     let resourceURL = try loadTestResource(
       name: name,
@@ -140,7 +135,6 @@ struct ArrowTestingGold {
         return
       }
     }
-
 
     let actualSchema = encode(schema: arrowSchemaRead)
     let expectedSchema = testCase.schema
