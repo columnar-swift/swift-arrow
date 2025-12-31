@@ -95,7 +95,6 @@ struct ArrowTestingGold {
 
   @Test(arguments: testCases)
   func write(name: String) throws {
-
     let resourceURL = try loadTestResource(
       name: name,
       withExtension: "json.lz4",
