@@ -79,17 +79,27 @@ public class ArrowTable {
       return try makeTypedColumn(field, arrays, type: UInt32.self)
     case .uint64:
       return try makeTypedColumn(field, arrays, type: UInt64.self)
+    case .float16:
+      return try makeTypedColumn(field, arrays, type: Float16.self)
     case .float32:
       return try makeTypedColumn(field, arrays, type: Float.self)
     case .float64:
       return try makeTypedColumn(field, arrays, type: Double.self)
-    case .utf8, .binary:
+    case .binary:
+      return try makeTypedColumn(field, arrays, type: Data.self)
+    case .utf8:
       return try makeTypedColumn(field, arrays, type: String.self)
     case .boolean:
       return try makeTypedColumn(field, arrays, type: Bool.self)
     case .date32, .date64:
       return try makeTypedColumn(field, arrays, type: Date.self)
     // TODO: make a fuzzer to make sure all types are hit
+      
+    case .strct, .list:
+      return ArrowColumn(
+        field,
+        chunked: try AnyChunkedArray(arrays)
+      )
     default:
       throw .init(.unknownType("Unsupported type: \(field.type)"))
     }

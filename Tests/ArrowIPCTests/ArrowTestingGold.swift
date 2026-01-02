@@ -116,7 +116,9 @@ struct ArrowTestingGold {
 
     var arrowWriter = ArrowWriter(url: tempFile)
     try arrowWriter.write(
-      schema: arrowSchema, recordBatches: recordBatchesExpected)
+      schema: arrowSchema,
+      recordBatches: recordBatchesExpected
+    )
     try arrowWriter.finish()
     //    try FileManager.default.copyItem(at: tempFile, to: URL(fileURLWithPath: "/tmp/\(name).arrow"))
 

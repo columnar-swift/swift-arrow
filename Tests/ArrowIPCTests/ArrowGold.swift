@@ -14,7 +14,7 @@
 
 import Foundation
 
-/// The JSON file structure used to validate gold-standard  Arrow test files.
+/// The JSON file structure used to validate gold-standard Arrow test files.
 struct ArrowGold: Codable, Equatable {
   let schema: Schema
   let batches: [Batch]
