@@ -52,11 +52,9 @@ public class ChunkedArray<T>: ChunkedArrayProtocol {
       if arrayIndex > arrays.count {
         return nil
       }
-
       localIndex -= len
       len = arrays[arrayIndex].length
     }
-
     return arrays[arrayIndex][localIndex]
   }
 
@@ -67,3 +65,72 @@ public class ChunkedArray<T>: ChunkedArrayProtocol {
     return "\(value)"
   }
 }
+
+/// A type-erased chunked array, suitable for complex types.
+public final class AnyChunkedArray: ChunkedArrayProtocol {
+  private let arrays: [any AnyArrowArrayProtocol]
+  public let nullCount: Int
+  public let length: Int
+
+  // Cached chunk boundaries
+  private let chunkOffsets: [Int]
+
+  public init(_ arrays: [any AnyArrowArrayProtocol]) throws(ArrowError) {
+    guard !arrays.isEmpty else {
+      throw ArrowError(.arrayHasNoElements)
+    }
+
+    var len: Int = 0
+    var nullCount: Int = 0
+    var offsets: [Int] = [0]
+
+    for array in arrays {
+      len += array.length
+      nullCount += array.nullCount
+      offsets.append(len)
+    }
+
+    self.arrays = arrays
+    self.length = len
+    self.nullCount = nullCount
+    self.chunkOffsets = offsets
+  }
+
+  public subscript(_ index: Int) -> Any? {
+    guard index >= 0, index < length else {
+      return nil
+    }
+    // Binary search to find the right chunk
+    var low = 0
+    var high = arrays.count - 1
+
+    while low <= high {
+      let mid = (low + high) / 2
+      let chunkStart = chunkOffsets[mid]
+      let chunkEnd = chunkOffsets[mid + 1]
+
+      if index < chunkStart {
+        high = mid - 1
+      } else if index >= chunkEnd {
+        low = mid + 1
+      } else {
+        // Found the right chunk
+        let localIndex = index - chunkStart
+        return arrays[mid].any(at: localIndex)
+      }
+    }
+    return nil
+  }
+
+  public func any(at index: Int) -> Any? {
+    self[index]
+  }
+
+  public func asString(_ index: Int) -> String {
+    guard let value = self[index] else {
+      return ""
+    }
+    return "\(value)"
+  }
+}
+

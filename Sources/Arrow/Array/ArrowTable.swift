@@ -94,7 +94,7 @@ public class ArrowTable {
     case .date32, .date64:
       return try makeTypedColumn(field, arrays, type: Date.self)
     // TODO: make a fuzzer to make sure all types are hit
-      
+
     case .strct, .list:
       return ArrowColumn(
         field,
