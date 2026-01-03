@@ -94,7 +94,7 @@ struct ArrowTestingGold {
   }
 
   @Test(arguments: testCases)
-  func write(name: String) throws {
+  func write(name: String) async throws {
     let resourceURL = try loadTestResource(
       name: name,
       withExtension: "json.lz4",
@@ -120,9 +120,15 @@ struct ArrowTestingGold {
       recordBatches: recordBatchesExpected
     )
     try arrowWriter.finish()
-    //    try FileManager.default.copyItem(at: tempFile, to: URL(fileURLWithPath: "/tmp/\(name).arrow"))
 
-    let testReader = try ArrowReader(url: tempFile)
+    // Bypass pyArrow round-trip in CI.
+    #if os(macOS)
+    let ipcData = try await pyArrowRoundTrip(ipcData: arrowWriter.data)
+    #else
+    let ipcData = arrowWriter.data
+    #endif
+    
+    let testReader = try ArrowReader(data: ipcData)
     let (arrowSchemaRead, recordBatchesRead) = try testReader.read()
 
     for recordBatch in recordBatchesRead {

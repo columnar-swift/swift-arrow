@@ -52,7 +52,7 @@ public func schemaFromMessage(_ schemaData: Data) throws(ArrowFlightError)
   }
 
   let startIndex = schemaData.count - Int(messageLength)
-  let schema = schemaData[startIndex...]
+  let _ = schemaData[startIndex...]
 
   //  let reader = ArrowReaderX()
   //  let result = ArrowReaderX.makeArrowReaderResult()

@@ -44,8 +44,12 @@ let package = Package(
       from: "1.29.0"
     ),
     .package(
-      url: "https://github.com/apple/swift-binary-parsing",
+      url: "https://github.com/apple/swift-binary-parsing.git",
       from: "0.0.1"
+    ),
+    .package(
+      url: "https://github.com/swiftlang/swift-subprocess.git",
+      branch: "main"
     ),
   ],
   targets: [
@@ -104,7 +108,11 @@ let package = Package(
     ),
     .testTarget(
       name: "ArrowIPCTests",
-      dependencies: ["Arrow", "ArrowIPC"],
+      dependencies: [
+        "Arrow",
+        "ArrowIPC",
+        .product(name: "Subprocess", package: "swift-subprocess"),
+      ],
       resources: [
         .copy("Resources/")
       ],

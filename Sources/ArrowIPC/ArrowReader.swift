@@ -46,9 +46,20 @@ public struct ArrowReader {
   /// - Parameter url: the file to read from.
   /// - Throws: a ParsingError if the file could not be read.
   public init(url: URL) throws {
-
     self.data = try Data(contentsOf: url, options: .mappedIfSafe)
+    try validateFileMarker()
+  }
 
+  /// Create an `ArrowReader` from Arrow IPC data.
+  ///
+  /// - Parameter data: Arrow IPC format data (file or stream format).
+  /// - Throws: a ParsingError if the data is not valid Arrow IPC format.
+  public init(data: Data) throws {
+    self.data = data
+    try validateFileMarker()
+  }
+
+  private func validateFileMarker() throws {
     try data.withParserSpan { input in
       let marker = try [UInt8](parsing: &input, byteCount: 6)
       guard marker == fileMarker else {
