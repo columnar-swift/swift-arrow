@@ -31,59 +31,60 @@ public class FlightClient {
     self.allowReadingUnalignedBuffers = allowReadingUnalignedBuffers
   }
 
-  private func readMessages(
-    _ responseStream: GRPCAsyncResponseStream<ProtoFlightData>
-  ) async throws -> ArrowReaderX.ArrowReaderResult {
-    let reader = ArrowReaderX()
-    let arrowResult = ArrowReaderX.makeArrowReaderResult()
-    for try await data in responseStream {
-      switch reader.fromMessage(
-        data.dataHeader,
-        dataBody: data.dataBody,
-        result: arrowResult,
-        useUnalignedBuffers: allowReadingUnalignedBuffers)
-      {
-      case .success:
-        continue
-      case .failure(let error):
-        throw error
-      }
-    }
-
-    return arrowResult
-  }
+  //  private func readMessages(
+  //    _ responseStream: GRPCAsyncResponseStream<ProtoFlightData>
+  //  ) async throws -> ArrowReaderX.ArrowReaderResult {
+  //    let reader = ArrowReaderX()
+  //    let arrowResult = ArrowReaderX.makeArrowReaderResult()
+  //    for try await data in responseStream {
+  //      switch reader.fromMessage(
+  //        data.dataHeader,
+  //        dataBody: data.dataBody,
+  //        result: arrowResult,
+  //        useUnalignedBuffers: allowReadingUnalignedBuffers)
+  //      {
+  //      case .success:
+  //        continue
+  //      case .failure(let error):
+  //        throw error
+  //      }
+  //    }
+  //
+  //    return arrowResult
+  //  }
 
   private func writeBatches(
     _ requestStream: GRPCAsyncRequestStreamWriter<ProtoFlightData>,
     descriptor: FlightDescriptor,
-    recordBatches: [RecordBatchX]
+    recordBatches: [RecordBatch]
   ) async throws {
-    let writer = ArrowWriter()
-    switch writer.toMessage(recordBatches[0].schema) {
-    case .success(let schemaData):
-      try await requestStream.send(
-        FlightData(
-          schemaData,
-          dataBody: Data(),
-          flightDescriptor: descriptor
-        ).toProtocol())
-      for recordBatch in recordBatches {
-        switch writer.toMessage(recordBatch) {
-        case .success(let data):
-          try await requestStream.send(
-            FlightData(
-              data[0],
-              dataBody: data[1],
-              flightDescriptor: descriptor
-            ).toProtocol())
-        case .failure(let error):
-          throw error
-        }
-      }
-      requestStream.finish()
-    case .failure(let error):
-      throw error
-    }
+    //    let writer = ArrowWriter()
+    //    switch writer.toMessage(recordBatches[0].schema) {
+    //    case .success(let schemaData):
+    //      try await requestStream.send(
+    //        FlightData(
+    //          schemaData,
+    //          dataBody: Data(),
+    //          flightDescriptor: descriptor
+    //        ).toProtocol())
+    //      for recordBatch in recordBatches {
+    //        switch writer.toMessage(recordBatch) {
+    //        case .success(let data):
+    //          try await requestStream.send(
+    //            FlightData(
+    //              data[0],
+    //              dataBody: data[1],
+    //              flightDescriptor: descriptor
+    //            ).toProtocol())
+    //        case .failure(let error):
+    //          throw error
+    //        }
+    //      }
+    //      requestStream.finish()
+    //    case .failure(let error):
+    //      throw error
+    //    }
+    fatalError()
   }
 
   public func listActions(_ closure: (FlightActionType) -> Void) async throws {
@@ -119,13 +120,13 @@ public class FlightClient {
     return FlightSchemaResult(try await schemaResultResponse.response)
   }
 
-  public func doGet(
-    _ ticket: FlightTicket,
-    readerResultClosure: (ArrowReaderX.ArrowReaderResult) throws -> Void
-  ) async throws {
-    let getResult = client.makeDoGetCall(ticket.toProtocol())
-    try readerResultClosure(try await readMessages(getResult.responseStream))
-  }
+  //  public func doGet(
+  //    _ ticket: FlightTicket,
+  //    readerResultClosure: (ArrowReaderX.ArrowReaderResult) throws -> Void
+  //  ) async throws {
+  //    let getResult = client.makeDoGetCall(ticket.toProtocol())
+  //    try readerResultClosure(try await readMessages(getResult.responseStream))
+  //  }
 
   public func doGet(
     _ ticket: FlightTicket,
@@ -139,7 +140,7 @@ public class FlightClient {
 
   public func doPut(
     _ descriptor: FlightDescriptor,
-    recordBatches: [RecordBatchX],
+    recordBatches: [RecordBatch],
     closure: (FlightPutResult) throws -> Void
   ) async throws {
     if recordBatches.isEmpty {
@@ -178,21 +179,21 @@ public class FlightClient {
     }
   }
 
-  public func doExchange(
-    _ descriptor: FlightDescriptor,
-    recordBatches: [RecordBatchX],
-    closure: (ArrowReaderX.ArrowReaderResult) throws -> Void
-  ) async throws {
-    if recordBatches.isEmpty {
-      throw ArrowFlightError.emptyCollection
-    }
-
-    let exchangeCall = client.makeDoExchangeCall()
-    try await writeBatches(
-      exchangeCall.requestStream, descriptor: descriptor,
-      recordBatches: recordBatches)
-    try closure(try await readMessages(exchangeCall.responseStream))
-  }
+  //  public func doExchange(
+  //    _ descriptor: FlightDescriptor,
+  //    recordBatches: [RecordBatchX],
+  //    closure: (ArrowReaderX.ArrowReaderResult) throws -> Void
+  //  ) async throws {
+  //    if recordBatches.isEmpty {
+  //      throw ArrowFlightError.emptyCollection
+  //    }
+  //
+  //    let exchangeCall = client.makeDoExchangeCall()
+  //    try await writeBatches(
+  //      exchangeCall.requestStream, descriptor: descriptor,
+  //      recordBatches: recordBatches)
+  //    try closure(try await readMessages(exchangeCall.responseStream))
+  //  }
 
   public func doExchange(
     flightData: FlightData, closure: (FlightData) throws -> Void

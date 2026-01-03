@@ -18,7 +18,7 @@ import Foundation
 public final class ArrowSchema: Sendable {
   public let fields: [ArrowField]
   public let fieldLookup: [String: Int]
-  let metadata: [String: String]?
+  public let metadata: [String: String]?
 
   public init(_ fields: [ArrowField], metadata: [String: String]? = nil) {
     var fieldLookup: [String: Int] = [:]

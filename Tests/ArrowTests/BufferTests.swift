@@ -54,13 +54,10 @@ struct BufferTests {
   }
 
   @Test func fixedWidthBufferBuilder() {
-
     let builder = FixedWidthBufferBuilder<Int64>()
-
     for i in 0..<10_000 {
       builder.append(Int64(i))
     }
-
     let buffer = builder.finish()
     #expect(buffer.length == 10_000 * MemoryLayout<Int64>.stride)
   }
@@ -75,29 +72,5 @@ struct BufferTests {
     for i in 0..<1000 {
       #expect(array[i] == Int32(i))
     }
-  }
-
-  @Test func offsetsBuffer() {
-
-    let offsets: [UInt32] = [0, 4, 8, 12, 16, 20]
-    let data = offsets.withUnsafeBufferPointer { buffer in
-      Data(
-        buffer: UnsafeBufferPointer(
-          start: buffer.baseAddress,
-          count: buffer.count)
-      )
-    }
-    #expect(data.count == 24)
-    let range = 0..<data.count
-    let borrowed = BorrowedOffsets(
-      count: offsets.count - 1, data: data, range: range)
-
-    var (start, end) = borrowed.offsets(at: 2)
-    #expect(start == 8)
-    #expect(end == 12)
-
-    (start, end) = borrowed.offsets(at: 4)
-    #expect(start == 16)
-    #expect(end == 20)
   }
 }

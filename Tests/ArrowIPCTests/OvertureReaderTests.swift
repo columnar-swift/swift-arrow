@@ -13,17 +13,21 @@
 // limitations under the License.
 
 import Arrow
+import Testing
 
-public struct RecordBatch {
+@testable import ArrowIPC
 
-  let schema: ArrowSchema
-  let arrays: [AnyArrowArrayProtocol]
-  let length: Int
+struct OvertureReaderTests {
 
-  public init(schema: ArrowSchema, columns: [AnyArrowArrayProtocol]) {
-    self.schema = schema
-    self.arrays = columns
-    self.length = columns[0].length
+  @Test func overtureFile() throws {
+
+    let url = try loadTestResource(name: "overture_sample")
+    print(url)
+    let reader = try ArrowReader(url: url)
+
+    let (_, recordBatches) = try reader.read()
+    for recordBatch in recordBatches {
+      print(recordBatch)
+    }
   }
-
 }
