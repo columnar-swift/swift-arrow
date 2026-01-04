@@ -29,10 +29,8 @@ import Testing
 struct ArrowTestingGold {
 
   static let testCases: [String] = [
-    "generated_primitive",
-    "generated_primitive_no_batches",
-    "generated_primitive_zerolength",
     "generated_binary",
+    "generated_binary_no_batches",
     "generated_binary_zerolength",
     "generated_custom_metadata",
     "generated_nested",
@@ -40,6 +38,44 @@ struct ArrowTestingGold {
     "generated_map",
     "generated_datetime",
     "generated_duration",
+    "generated_primitive",
+    "generated_primitive_no_batches",
+    "generated_primitive_zerolength",
+  ]
+
+  static let allTestCases: [String] = [
+    "generated_binary",
+    "generated_binary_no_batches",
+    "generated_binary_view",
+    "generated_binary_zerolength",
+    "generated_custom_metadata",
+    "generated_datetime",
+    "generated_decimal",
+    "generated_decimal256",
+    "generated_decimal32",
+    "generated_decimal64",
+    "generated_dictionary",
+    "generated_dictionary_unsigned",
+    "generated_duplicate_fieldnames",
+    "generated_duration",
+    "generated_extension",
+    "generated_interval",
+    "generated_interval_mdn",
+    "generated_large_binary",
+    "generated_list_view",
+    "generated_map",
+    "generated_map_non_canonical",
+    "generated_nested",
+    "generated_nested_dictionary",
+    "generated_nested_large_offsets",
+    "generated_null",
+    "generated_null_trivial",
+    "generated_primitive",
+    "generated_primitive_no_batches",
+    "generated_primitive_zerolength",
+    "generated_recursive_nested",
+    "generated_run_end_encoded",
+    "generated_union",
   ]
 
   @Test(arguments: testCases)
@@ -121,13 +157,13 @@ struct ArrowTestingGold {
     )
     try arrowWriter.finish()
 
-    // Bypass pyArrow round-trip in CI.
+    // pyArrow round trip only supported on macOS.
     #if os(macOS)
     let ipcData = try await pyArrowRoundTrip(ipcData: arrowWriter.data)
     #else
     let ipcData = arrowWriter.data
     #endif
-    
+
     let testReader = try ArrowReader(data: ipcData)
     let (arrowSchemaRead, recordBatchesRead) = try testReader.read()
 

@@ -20,7 +20,7 @@ import PackageDescription
 let package = Package(
   name: "Arrow",
   platforms: [
-    .macOS(.v15)
+    .macOS(.v26)
   ],
   products: [
     .library(name: "Arrow", targets: ["Arrow"]),

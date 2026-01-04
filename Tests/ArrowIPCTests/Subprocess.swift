@@ -16,7 +16,6 @@ import Arrow
 import Foundation
 import Subprocess
 
-
 /// Deserialize Arrow IPC and re-serialize to IPC.
 /// - Parameter ipcData: The IPC data.
 /// - Throws: An error if either the subprocess call fails, or the called script fails.

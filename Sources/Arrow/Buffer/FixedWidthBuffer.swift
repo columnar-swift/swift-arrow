@@ -13,7 +13,7 @@
 // limitations under the License.
 
 public protocol FixedWidthBufferProtocol<ElementType>: ArrowBufferProtocol {
-  associatedtype ElementType: Numeric
+  associatedtype ElementType
   var length: Int { get }
   subscript(index: Int) -> ElementType { get }
 }
@@ -21,7 +21,7 @@ public protocol FixedWidthBufferProtocol<ElementType>: ArrowBufferProtocol {
 /// A  buffer used in Arrow arrays that hold fixed-width types.
 public final class FixedWidthBuffer<T>: @unchecked Sendable,
   FixedWidthBufferProtocol
-where T: Numeric {
+{
   public typealias ElementType = T
   public let length: Int
   let capacity: Int

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-final class FixedWidthBufferBuilder<T: Numeric> {
+final class FixedWidthBufferBuilder<T> {
   var valueCount: Int
   var valueCapacity: Int
   private var buffer: UnsafeMutablePointer<T>
