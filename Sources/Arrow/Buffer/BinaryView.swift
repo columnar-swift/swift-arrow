@@ -12,9 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-/// A 16-byte view that either stores data inline or references a buffer
-@frozen
-public struct BinaryView {
+/// A 16-byte view that either stores data inline or references a buffer.
+@frozen public struct BinaryView {
   private var words: InlineArray<4, Int32>
 
   private static let inlineThreshold = 12
@@ -70,7 +69,7 @@ public struct BinaryView {
 
   // MARK: - Creation
 
-  /// Create an inline view (for length ≤ 12)
+  /// Create an inline view (for length ≤ 12).
   public static func inline(_ data: Span<UInt8>) -> BinaryView {
     precondition(
       data.count <= inlineThreshold,
@@ -100,7 +99,7 @@ public struct BinaryView {
     offset: Int32
   ) -> BinaryView {
     precondition(
-      length > inlineThreshold, 
+      length > inlineThreshold,
       "Data small enough for inline storage."
     )
     var view = BinaryView()

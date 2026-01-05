@@ -53,6 +53,14 @@ func encodeColumn(
     }
   // Data are retrieved via the public interface to test the array API.
   var data: [DataValue]? = []
+  var views: [View?]? = nil
+  var variadicDataBuffers: [String]? = nil
+  if field.type.isBinaryView {
+    // Binary view has a different structure to all the others.
+    variadicDataBuffers = []
+    views = []
+    data = nil
+  }
   var children: [ArrowGold.Column]? = nil
   if array.length > 0 {
     switch field.type {
@@ -139,6 +147,12 @@ func encodeColumn(
       try extractBinaryData(from: array, into: &data)
     case .utf8:
       try extractUtf8Data(from: array, into: &data)
+    case .binaryView, .utf8View:
+      try extractBinaryViewData(
+        from: array,
+        into: &views,
+        variadicDataBuffers: &variadicDataBuffers
+      )
     default:
       throw .init(
         .invalid("Encoder did not handle a field type: \(field.type)"))
@@ -150,6 +164,8 @@ func encodeColumn(
     validity: validity,
     offset: offsets,
     data: data,
+    views: views,
+    variadicDataBuffers: variadicDataBuffers,
     children: children
   )
 }
@@ -253,5 +269,92 @@ func extractUtf8Data(
       return .null
     }
     return .string(value)
+  }
+}
+
+func extractBinaryViewData(
+  from array: AnyArrowArrayProtocol,
+  into dataValues: inout [View?]?,
+  variadicDataBuffers: inout [String]?
+) throws(ArrowError) {
+  // Check which type we're dealing with
+  let buffers: [ArrowBufferProtocol]
+  let length: Int
+  let getValue: (Int) -> Data?
+  let isStringView: Bool
+  if let stringArray = array as? StringArrayProtocol {
+    buffers = stringArray.buffers
+    length = stringArray.length
+    isStringView = true
+    getValue = { i in
+      guard let str = stringArray[i] else { return nil }
+      return Data(str.utf8)
+    }
+  } else if let binaryArray = array as? BinaryArrayProtocol {
+    buffers = binaryArray.buffers
+    length = binaryArray.length
+    isStringView = false
+    getValue = { i in binaryArray[i] }
+  } else {
+    throw .init(.invalid("Expected StringView or BinaryView array"))
+  }
+  
+  // Get the data buffers (skip null and views buffers)
+  let dataBuffers = Array(buffers.dropFirst(2))
+  if !dataBuffers.isEmpty {
+    variadicDataBuffers = []
+  }
+  
+  // Serialize buffers and track cumulative offsets
+  var bufferOffsets: [Int] = [0]
+  var cumulativeOffset = 0
+  
+  for buffer in dataBuffers {
+    let hexString = buffer.withUnsafeBytes { ptr in
+      ptr.map { String(format: "%02X", $0) }.joined()
+    }
+    variadicDataBuffers?.append(hexString)
+    cumulativeOffset += buffer.length
+    bufferOffsets.append(cumulativeOffset)
+  }
+  // Helper to map global offset to (bufferIndex, localOffset)
+  func findBuffer(for globalOffset: Int) -> (bufferIndex: Int32, localOffset: Int32) {
+    for i in 0..<bufferOffsets.count - 1 {
+      if globalOffset >= bufferOffsets[i] && globalOffset < bufferOffsets[i + 1] {
+        return (Int32(i), Int32(globalOffset - bufferOffsets[i]))
+      }
+    }
+    fatalError("Offset \(globalOffset) out of range")
+  }
+  // Track position in logical concatenated buffer
+  var logicalOffset = 0
+  dataValues = (0..<length).map { i -> View? in
+    guard let data = getValue(i) else {
+      return nil
+    }
+    let bytes = Array(data)
+    let size = Int32(bytes.count)
+    if size <= 12 {
+      // Inline - for strings use UTF-8 string, for binary use hex
+      let inlinedValue: String
+      if isStringView, let str = String(data: data, encoding: .utf8) {
+        inlinedValue = str
+      } else {
+        inlinedValue = bytes.map { String(format: "%02X", $0) }.joined()
+      }
+      return View(size: size, inlined: inlinedValue)
+    } else {
+      // Map to buffer index and local offset
+      let (bufferIndex, localOffset) = findBuffer(for: logicalOffset)
+      logicalOffset += bytes.count
+      
+      let prefix = bytes.prefix(4).map { String(format: "%02X", $0) }.joined()
+      return View(
+        size: size,
+        prefixHex: prefix,
+        bufferIndex: bufferIndex,
+        offset: localOffset
+      )
+    }
   }
 }

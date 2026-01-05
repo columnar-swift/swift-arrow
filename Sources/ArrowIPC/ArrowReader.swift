@@ -73,10 +73,8 @@ public struct ArrowReader {
     let footerData = try data.withParserSpan { input in
       let count = input.count
       try input.seek(toAbsoluteOffset: count - 10)
-
       let footerLength = try Int(parsingLittleEndian: &input, byteCount: 4)
       try input.seek(toAbsoluteOffset: count - 10 - footerLength)
-
       return try [UInt8](parsing: &input, byteCount: footerLength)
     }
 
@@ -126,10 +124,16 @@ public struct ArrowReader {
         throw ArrowError(.invalid("Expected schema in footer"))
       }
 
+      print("RB \(index): buffer counts: \(rbMessage.buffersCount)")
+      print(
+        "RB \(index): variadic buffer counts: \(rbMessage.variadicBufferCounts)"
+      )
+
       // MARK: Load arrays
       var arrays: [AnyArrowArrayProtocol] = .init()
       var nodeIndex: Int32 = 0
       var bufferIndex: Int32 = 0
+      var variadicBufferIndex: Int32 = 0
 
       for field in arrowSchema.fields {
 
@@ -138,7 +142,8 @@ public struct ArrowReader {
           field: field,
           offset: offset,
           nodeIndex: &nodeIndex,
-          bufferIndex: &bufferIndex
+          bufferIndex: &bufferIndex,
+          variadicBufferIndex: &variadicBufferIndex
         )
         arrays.append(array)
       }
@@ -155,8 +160,9 @@ public struct ArrowReader {
     field: ArrowField,
     offset: Int64,
     nodeIndex: inout Int32,
-    bufferIndex: inout Int32
-  ) throws -> AnyArrowArrayProtocol {
+    bufferIndex: inout Int32,
+    variadicBufferIndex: inout Int32,
+  ) throws(ArrowError) -> AnyArrowArrayProtocol {
     guard nodeIndex < rbMessage.nodesCount,
       let node = rbMessage.nodes(at: nodeIndex)
     else {
@@ -248,8 +254,7 @@ public struct ArrowReader {
           length: length, elementType: UInt64.self,
           nullBuffer: nullBuffer, buffer: buffer1)
       default:
-        throw ArrowError(
-          .invalid("TODO: Unimplemented arrow type: \(arrowType)"))
+        throw .init(.notImplemented)
       }
     } else if arrowType.isTemporal {
       let buffer1 = try nextBuffer(
@@ -284,7 +289,6 @@ public struct ArrowReader {
           length: length, elementType: Int32.self,
           nullBuffer: nullBuffer, buffer: buffer1)
       default:
-        print("=== TODO: Unimplemented arrow type: \(arrowType) ===")
         throw ArrowError(.notImplemented)
       }
     } else if arrowType.isVariable {
@@ -315,7 +319,68 @@ public struct ArrowReader {
           valueBuffer: valueBufferTyped
         )
       } else {
-        throw ArrowError(.notImplemented)
+        throw .init(.notImplemented)
+      }
+    } else if arrowType.isBinaryView {
+      let viewsBuffer = try nextBuffer(
+        message: rbMessage,
+        index: &bufferIndex,
+        offset: offset,
+        data: data
+      )
+      let viewsBufferTyped = FixedWidthBufferIPC<BinaryView>(
+        buffer: viewsBuffer)
+
+      let variadicCount = rbMessage.variadicBufferCounts(
+        at: variadicBufferIndex)
+      variadicBufferIndex += 1
+
+      switch arrowType {
+      case .binaryView:
+        var dataBuffers: [VariableLengthBufferIPC<Data, Int32>] = []
+        for _ in 0..<variadicCount {
+          let dataBuffer = try nextBuffer(
+            message: rbMessage,
+            index: &bufferIndex,
+            offset: offset,
+            data: data
+          )
+          let dataBufferTyped = VariableLengthBufferIPC<Data, Int32>(
+            buffer: dataBuffer)
+          dataBuffers.append(dataBufferTyped)
+        }
+        print("buffer index after BV: \(bufferIndex)")
+        return ArrowArrayBinaryView<Data>(
+          offset: 0,
+          length: length,
+          nullBuffer: nullBuffer,
+          viewsBuffer: viewsBufferTyped,
+          dataBuffers: dataBuffers
+        )
+      case .utf8View:
+        var dataBuffers: [VariableLengthBufferIPC<String, Int32>] = []
+        for _ in 0..<variadicCount {
+          let dataBuffer = try nextBuffer(
+            message: rbMessage,
+            index: &bufferIndex,
+            offset: offset,
+            data: data
+          )
+          let dataBufferTyped = VariableLengthBufferIPC<String, Int32>(
+            buffer: dataBuffer
+          )
+          dataBuffers.append(dataBufferTyped)
+        }
+        print("buffer index after SV: \(bufferIndex)")
+        return ArrowArrayBinaryView<String>(
+          offset: 0,
+          length: length,
+          nullBuffer: nullBuffer,
+          viewsBuffer: viewsBufferTyped,
+          dataBuffers: dataBuffers
+        )
+      default:
+        throw .init(.notImplemented)
       }
     } else if arrowType.isNested {
       switch arrowType {
@@ -332,17 +397,17 @@ public struct ArrowReader {
           field: childField,
           offset: offset,
           nodeIndex: &nodeIndex,
-          bufferIndex: &bufferIndex
+          bufferIndex: &bufferIndex,
+          variadicBufferIndex: &variadicBufferIndex
         )
 
         if offsetsBuffer.length == 0 {
           // Empty offsets buffer is valid when child array is empty
           // There could be any number of empty lists referencing into an empty list
           guard array.length == 0 else {
-
-            throw ArrowError(
-              .invalid(
-                "Empty offsets buffer but non-empty child array"))
+            throw .init(
+              .invalid("Empty offsets buffer but non-empty child array")
+            )
           }
           let emptyBuffer = emptyOffsetBuffer(offsetCount: length + 1)
           offsetsBuffer = FixedWidthBufferIPC<Int32>(
@@ -382,7 +447,8 @@ public struct ArrowReader {
           field: field,
           offset: offset,
           nodeIndex: &nodeIndex,
-          bufferIndex: &bufferIndex
+          bufferIndex: &bufferIndex,
+          variadicBufferIndex: &variadicBufferIndex
         )
         return ArrowFixedSizeListArray(
           length: length,
@@ -398,7 +464,8 @@ public struct ArrowReader {
             field: field,
             offset: offset,
             nodeIndex: &nodeIndex,
-            bufferIndex: &bufferIndex
+            bufferIndex: &bufferIndex,
+            variadicBufferIndex: &variadicBufferIndex
           )
           arrays.append((field.name, array))
         }

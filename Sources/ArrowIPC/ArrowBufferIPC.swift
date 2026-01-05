@@ -53,9 +53,7 @@ struct NullBufferIPC: NullBuffer, ArrowBufferIPC {
 
 /// A `Data` backed buffer for fixed-width types.
 struct FixedWidthBufferIPC<Element>: FixedWidthBufferProtocol, ArrowBufferIPC
-where
-  Element: Numeric, Element: BitwiseCopyable
-{
+where Element: BitwiseCopyable {
   typealias ElementType = Element
   let buffer: FileDataBuffer
   var length: Int { buffer.range.count }

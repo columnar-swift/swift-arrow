@@ -99,8 +99,12 @@ extension ArrowType {
       }
     case .utf8:
       return .utf8
+    case .utf8view:
+      return .utf8View
     case .binary:
       return .binary
+    case .binaryview:
+      return .binaryView
     case .fixedsizebinary:
       guard let fType = field.type(type: FFixedSizeBinary.self) else {
         throw .init(

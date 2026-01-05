@@ -50,7 +50,6 @@ public protocol VariableLengthBufferProtocol<ElementType>: ArrowBufferProtocol {
     at startIndex: Int,
     arrayLength: Int
   ) -> ElementType
-
 }
 
 /// A buffer containing values with variable length, used in variable length type Arrow arrays.

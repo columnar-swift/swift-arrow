@@ -225,10 +225,14 @@ extension ArrowType {
       precision = "DOUBLE"
     case .boolean:
       name = "bool"
-    case .utf8:
-      name = "utf8"
     case .binary:
       name = "binary"
+    case .utf8:
+      name = "utf8"
+    case .binaryView:
+      name = "binaryview"
+    case .utf8View:
+      name = "utf8view"
     case .fixedSizeBinary(let byteWidth_):
       byteWidth = Int(byteWidth_)
       name = "fixedsizebinary"

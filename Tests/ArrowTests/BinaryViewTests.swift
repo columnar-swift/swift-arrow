@@ -85,14 +85,15 @@ struct BinaryViewTests {
 
   @Test("Multiple data buffers with small buffer size")
   func multipleDataBuffers() throws {
-    let builder = ArrayBuilderBinaryView<String>(maxBufferSize: 100)  // Small buffer to force rotation
+    // Small buffer to force rotation
+    let builder = ArrayBuilderBinaryView<String>(maxBufferSize: 100)
 
     // Each string is >12 bytes, so all referenced
-    builder.append("first long string value")  // ~24 bytes
-    builder.append("second long string value")  // ~25 bytes
-    builder.append("third long string value")  // ~24 bytes
-    builder.append("fourth long string value")  // ~25 bytes
-    builder.append("fifth long string value")  // ~24 bytes
+    builder.append("first long string value")
+    builder.append("second long string value")
+    builder.append("third long string value")
+    builder.append("fourth long string value")
+    builder.append("fifth long string value")
 
     let array = builder.finish()
 

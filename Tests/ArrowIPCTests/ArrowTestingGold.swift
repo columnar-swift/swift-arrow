@@ -30,6 +30,7 @@ struct ArrowTestingGold {
 
   static let testCases: [String] = [
     "generated_binary",
+    "generated_binary_view",
     "generated_binary_no_batches",
     "generated_binary_zerolength",
     "generated_custom_metadata",
@@ -115,11 +116,11 @@ struct ArrowTestingGold {
     #expect(actualSchema == expectedSchema)
     let actualBatches = try encode(batches: recordBatches, schema: arrowSchema)
     #expect(actualBatches.count == expectedBatches.count)
-    #expect(actualBatches == expectedBatches)
     if actualBatches != expectedBatches {
+      try diffEncodable(actualBatches, expectedBatches, maxLinesToPrint: 20)
       try printCodable(actualBatches)
-      try diffEncodable(actualBatches, expectedBatches)
     }
+    #expect(actualBatches == expectedBatches)
     let actualGold = ArrowGold(
       schema: actualSchema,
       batches: actualBatches,
@@ -131,6 +132,10 @@ struct ArrowTestingGold {
 
   @Test(arguments: testCases)
   func write(name: String) async throws {
+    if name == "generated_binary_view" {
+      print("FIXME: not testing writer for \(name)")
+      return
+    }
     let resourceURL = try loadTestResource(
       name: name,
       withExtension: "json.lz4",
@@ -265,7 +270,8 @@ private func encode(
 func diffEncodable<T: Encodable>(
   _ actual: T,
   _ expected: T,
-  label: String = ""
+  label: String = "",
+  maxLinesToPrint: Int? = nil
 ) throws {
   let encoder = JSONEncoder()
   encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
@@ -281,6 +287,7 @@ func diffEncodable<T: Encodable>(
   let expectedLines = expectedString.split(separator: "\n")
   let maxLines = max(actualLines.count, expectedLines.count)
   var hasDifferences = false
+  var printedLines = 0
   for i in 0..<maxLines {
     let actualLine = i < actualLines.count ? actualLines[i] : ""
     let expectedLine = i < expectedLines.count ? expectedLines[i] : ""
@@ -289,9 +296,19 @@ func diffEncodable<T: Encodable>(
         print("\n== Differences found\(label.isEmpty ? "" : " in \(label)") ==")
         hasDifferences = true
       }
+      if let limit = maxLinesToPrint, printedLines >= limit {
+        let remaining = (i..<maxLines).filter { j in
+          let al = j < actualLines.count ? actualLines[j] : ""
+          let el = j < expectedLines.count ? expectedLines[j] : ""
+          return al != el
+        }.count
+        print("... (\(remaining) more differences not shown)")
+        break
+      }
       print("Line \(i + 1):")
       print("  - \(expectedLine)")
       print("  + \(actualLine)")
+      printedLines += 1
     }
   }
   if !hasDifferences {

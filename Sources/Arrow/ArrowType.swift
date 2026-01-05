@@ -650,6 +650,14 @@ extension ArrowType {
     }
   }
 
+  @inlinable
+  public var isBinaryView: Bool {
+    switch self {
+    case .binaryView, .utf8View: true
+    default: false
+    }
+  }
+
   /// Returns true if this type is DataType::Null.
   @inlinable
   public var isNull: Bool {

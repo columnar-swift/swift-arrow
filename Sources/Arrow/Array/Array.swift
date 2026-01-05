@@ -49,6 +49,7 @@ public protocol StringArrayProtocol: AnyArrowArrayProtocol {
   subscript(index: Int) -> String? { get }
 }
 extension ArrowArrayVariable: StringArrayProtocol where ItemType == String {}
+extension ArrowArrayBinaryView: StringArrayProtocol where ItemType == String {}
 
 /// A type which provides access to arrays of `Data`,  with opaque offset types.
 ///
@@ -59,6 +60,7 @@ protocol BinaryArrayProtocol: AnyArrowArrayProtocol {
 extension ArrowArrayFixedSizeBinary: BinaryArrayProtocol {}
 extension ArrowArrayVariable: BinaryArrayProtocol
 where ItemType == Data, OffsetType: FixedWidthInteger & SignedInteger {}
+extension ArrowArrayBinaryView: BinaryArrayProtocol where ItemType == Data {}
 
 public protocol ListArrayProtocol: AnyArrowArrayProtocol {
   var values: AnyArrowArrayProtocol { get }
