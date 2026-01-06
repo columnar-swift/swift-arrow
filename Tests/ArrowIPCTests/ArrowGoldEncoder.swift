@@ -29,7 +29,7 @@ func encodeColumn(
   field: ArrowField
 ) throws(ArrowError) -> ArrowGold.Column {
   guard let array = array as? (any ArrowArrayProtocol) else {
-    throw .invalid("Expected ArrowArray, got \(type(of: array))")
+    throw .init(.invalid("Expected ArrowArray, got \(type(of: array))"))
   }
   // Validity is always present in the gold files.
   let validity: [Int] = (0..<array.length).map { i in
@@ -39,7 +39,7 @@ func encodeColumn(
   // public API would mean replicating edge cases here.
   let offsets: [Int]? =
     switch field.type {
-    case .binary, .utf8, .list(_):
+    case .binary, .utf8, .list(_), .map(_, _):
       array.buffers[1].withUnsafeBytes { ptr in
         let offsets = ptr.bindMemory(to: Int32.self)
         return Array(offsets).map(Int.init)
@@ -53,12 +53,20 @@ func encodeColumn(
     }
   // Data are retrieved via the public interface to test the array API.
   var data: [DataValue]? = []
+  var views: [View?]? = nil
+  var variadicDataBuffers: [String]? = nil
+  if field.type.isBinaryView {
+    // Binary view has a different structure to all the others.
+    variadicDataBuffers = []
+    views = []
+    data = nil
+  }
   var children: [ArrowGold.Column]? = nil
   if array.length > 0 {
     switch field.type {
-    case .list(let listField):
+    case .list(let listField), .map(let listField, _):
       guard let listArray = array as? ListArrayProtocol else {
-        throw ArrowError.invalid("Expected list array")
+        throw .init(.invalid("Expected list array."))
       }
       let childColumn = try encodeColumn(
         array: listArray.values, field: listField)
@@ -67,7 +75,7 @@ func encodeColumn(
       data = nil
     case .fixedSizeList(let listField, _):
       guard let listArray = array as? ListArrayProtocol else {
-        throw ArrowError.invalid("Expected list array")
+        throw .init(.invalid("Expected fixed-size list array."))
       }
       let childColumn = try encodeColumn(
         array: listArray.values, field: listField)
@@ -75,7 +83,7 @@ func encodeColumn(
       data = nil
     case .strct(let arrowFields):
       guard let structArray = array as? ArrowStructArray else {
-        throw ArrowError.invalid("Expected list array")
+        throw .init(.invalid("Expected struct array."))
       }
       children = []
       for (arrowField, (_, array)) in zip(arrowFields, structArray.fields) {
@@ -113,14 +121,41 @@ func encodeColumn(
       data = try extractFloatData(from: array, expectedType: Float32.self)
     case .float64:
       data = try extractFloatData(from: array, expectedType: Float64.self)
+    case .time32(_):
+      data = try extractIntData(from: array, expectedType: UInt32.self)
+    case .date32:
+      data = try extractIntData(from: array, expectedType: Int32.self)
+    case .date64:
+      data = try extractIntData(from: array, expectedType: Int64.self)
+    case .time64(_):
+      data = try extractIntData(from: array, expectedType: UInt64.self)
+    case .timestamp(_, _):
+      data = try extractIntData(from: array, expectedType: Int64.self)
+    case .duration(_):
+      data = try extractIntData(from: array, expectedType: Int64.self)
+    case .interval(.yearMonth):
+      data = try extractIntData(from: array, expectedType: Int32.self)
+    case .interval(.dayTime):
+      data = try extractIntData(from: array, expectedType: Int64.self)
+    case .interval(.monthDayNano):
+      // This is tricky - 128 bits (4 + 4 + 8 bytes)
+      // Might need special handling or extract as raw bytes
+      data = try extractIntData(from: array, expectedType: Int64.self)
     case .binary:
       try extractBinaryData(from: array, into: &data)
     case .fixedSizeBinary(_):
       try extractBinaryData(from: array, into: &data)
     case .utf8:
       try extractUtf8Data(from: array, into: &data)
+    case .binaryView, .utf8View:
+      try extractBinaryViewData(
+        from: array,
+        into: &views,
+        variadicDataBuffers: &variadicDataBuffers
+      )
     default:
-      throw .invalid("Encoder did not handle a field type: \(field.type)")
+      throw .init(
+        .invalid("Encoder did not handle a field type: \(field.type)"))
     }
   }
   return .init(
@@ -129,6 +164,8 @@ func encodeColumn(
     validity: validity,
     offset: offsets,
     data: data,
+    views: views,
+    variadicDataBuffers: variadicDataBuffers,
     children: children
   )
 }
@@ -138,7 +175,7 @@ func extractIntData<T: FixedWidthInteger & BitwiseCopyable>(
   expectedType: T.Type
 ) throws(ArrowError) -> [DataValue] {
   guard let typedArray = array as? ArrowArrayNumeric<T> else {
-    throw .invalid("Expected \(T.self) array, got \(type(of: array))")
+    throw .init(.invalid("Expected \(T.self) array, got \(type(of: array))"))
   }
   do {
     return try (0..<typedArray.length).map { i in
@@ -152,7 +189,7 @@ func extractIntData<T: FixedWidthInteger & BitwiseCopyable>(
       }
     }
   } catch {
-    throw .invalid("Failed to extract Int data: \(error)")
+    throw .init(.invalid("Failed to extract Int data: \(error)"))
   }
 }
 
@@ -161,7 +198,7 @@ func extractFloatData<T: BinaryFloatingPoint & BitwiseCopyable>(
   expectedType: T.Type
 ) throws(ArrowError) -> [DataValue] {
   guard let typedArray = array as? ArrowArrayNumeric<T> else {
-    throw ArrowError.invalid("Expected \(T.self) array, got \(type(of: array))")
+    throw .init(.invalid("Expected \(T.self) array, got \(type(of: array))"))
   }
   let encoder = JSONEncoder()
   let decoder = JSONDecoder()
@@ -184,11 +221,11 @@ func extractFloatData<T: BinaryFloatingPoint & BitwiseCopyable>(
         let jsonNumber = try decoder.decode(Float.self, from: data)
         return .string(String(jsonNumber))
       } else {
-        throw ArrowError.invalid("Expected float type")
+        throw ArrowError(.invalid("Expected float type"))
       }
     }
   } catch {
-    throw .ioError("Failed to round-trip float to/from JSON")
+    throw .init(.ioError("Failed to round-trip float to/from JSON"))
   }
 }
 
@@ -196,7 +233,7 @@ func extractBoolData(
   from array: AnyArrowArrayProtocol
 ) throws(ArrowError) -> [DataValue] {
   guard let typedArray = array as? ArrowArrayBoolean else {
-    throw .invalid("Expected boolean array, got \(type(of: array))")
+    throw .init(.invalid("Expected boolean array, got \(type(of: array))"))
   }
   return (0..<typedArray.length).map { i in
     guard let value = typedArray[i] else { return .null }
@@ -209,7 +246,7 @@ func extractBinaryData(
   into dataValues: inout [DataValue]?
 ) throws(ArrowError) {
   guard let binaryArray = array as? any BinaryArrayProtocol else {
-    throw .invalid("Expected binary array")
+    throw .init(.invalid("Expected binary array"))
   }
   dataValues = (0..<binaryArray.length).map { i in
     guard let value = binaryArray[i] else {
@@ -224,13 +261,103 @@ func extractUtf8Data(
   from array: AnyArrowArrayProtocol,
   into dataValues: inout [DataValue]?
 ) throws(ArrowError) {
-  guard let stringArray = array as? any Utf8ArrayProtocol else {
-    throw .invalid("Expected UTF-8 array")
+  guard let stringArray = array as? StringArrayProtocol else {
+    throw .init(.invalid("Expected UTF-8 array"))
   }
   dataValues = (0..<stringArray.length).map { i in
     guard let value = stringArray[i] else {
       return .null
     }
     return .string(value)
+  }
+}
+
+func extractBinaryViewData(
+  from array: AnyArrowArrayProtocol,
+  into dataValues: inout [View?]?,
+  variadicDataBuffers: inout [String]?
+) throws(ArrowError) {
+  // Check which type we're dealing with
+  let buffers: [ArrowBufferProtocol]
+  let length: Int
+  let getValue: (Int) -> Data?
+  let isStringView: Bool
+  if let stringArray = array as? StringArrayProtocol {
+    buffers = stringArray.buffers
+    length = stringArray.length
+    isStringView = true
+    getValue = { i in
+      guard let str = stringArray[i] else { return nil }
+      return Data(str.utf8)
+    }
+  } else if let binaryArray = array as? BinaryArrayProtocol {
+    buffers = binaryArray.buffers
+    length = binaryArray.length
+    isStringView = false
+    getValue = { i in binaryArray[i] }
+  } else {
+    throw .init(.invalid("Expected StringView or BinaryView array"))
+  }
+
+  // Get the data buffers (skip null and views buffers)
+  let dataBuffers = Array(buffers.dropFirst(2))
+  if !dataBuffers.isEmpty {
+    variadicDataBuffers = []
+  }
+
+  // Serialize buffers and track cumulative offsets
+  var bufferOffsets: [Int] = [0]
+  var cumulativeOffset = 0
+
+  for buffer in dataBuffers {
+    let hexString = buffer.withUnsafeBytes { ptr in
+      ptr.map { String(format: "%02X", $0) }.joined()
+    }
+    variadicDataBuffers?.append(hexString)
+    cumulativeOffset += buffer.length
+    bufferOffsets.append(cumulativeOffset)
+  }
+  // Helper to map global offset to (bufferIndex, localOffset)
+  func findBuffer(for globalOffset: Int) -> (
+    bufferIndex: Int32, localOffset: Int32
+  ) {
+    for i in 0..<bufferOffsets.count - 1 {
+      if globalOffset >= bufferOffsets[i] && globalOffset < bufferOffsets[i + 1]
+      {
+        return (Int32(i), Int32(globalOffset - bufferOffsets[i]))
+      }
+    }
+    fatalError("Offset \(globalOffset) out of range")
+  }
+  // Track position in logical concatenated buffer
+  var logicalOffset = 0
+  dataValues = (0..<length).map { i -> View? in
+    guard let data = getValue(i) else {
+      return nil
+    }
+    let bytes = Array(data)
+    let size = Int32(bytes.count)
+    if size <= 12 {
+      // Inline - for strings use UTF-8 string, for binary use hex
+      let inlinedValue: String
+      if isStringView, let str = String(data: data, encoding: .utf8) {
+        inlinedValue = str
+      } else {
+        inlinedValue = bytes.map { String(format: "%02X", $0) }.joined()
+      }
+      return View(size: size, inlined: inlinedValue)
+    } else {
+      // Map to buffer index and local offset
+      let (bufferIndex, localOffset) = findBuffer(for: logicalOffset)
+      logicalOffset += bytes.count
+
+      let prefix = bytes.prefix(4).map { String(format: "%02X", $0) }.joined()
+      return View(
+        size: size,
+        prefixHex: prefix,
+        bufferIndex: bufferIndex,
+        offset: localOffset
+      )
+    }
   }
 }

@@ -26,13 +26,19 @@ typealias FInt = org_apache_arrow_flatbuf_Int
 typealias FBool = org_apache_arrow_flatbuf_Bool
 typealias FDate = org_apache_arrow_flatbuf_Date
 typealias FTime = org_apache_arrow_flatbuf_Time
+typealias FDuration = org_apache_arrow_flatbuf_Duration
 typealias FTimestamp = org_apache_arrow_flatbuf_Timestamp
 typealias FTimeUnit = org_apache_arrow_flatbuf_TimeUnit
 typealias FStruct = org_apache_arrow_flatbuf_Struct_
+typealias FList = org_apache_arrow_flatbuf_List
 
 typealias FUtf8 = org_apache_arrow_flatbuf_Utf8
+typealias FUtf8View = org_apache_arrow_flatbuf_Utf8View
 typealias FBinary = org_apache_arrow_flatbuf_Binary
+typealias FBinaryView = org_apache_arrow_flatbuf_BinaryView
 typealias FFixedSizeBinary = org_apache_arrow_flatbuf_FixedSizeBinary
 typealias FFixedSizeList = org_apache_arrow_flatbuf_FixedSizeList
+typealias FMap = org_apache_arrow_flatbuf_Map
 
 typealias FMessageHeader = org_apache_arrow_flatbuf_MessageHeader
+typealias FKeyValue = org_apache_arrow_flatbuf_KeyValue

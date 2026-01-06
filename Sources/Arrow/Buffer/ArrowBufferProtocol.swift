@@ -15,7 +15,7 @@
 import Foundation
 
 /// An Arrow buffer.
-public protocol ArrowBufferProtocol {
+public protocol ArrowBufferProtocol: Sendable {
   var length: Int { get }
   func withUnsafeBytes<R>(
     _ body: (UnsafeRawBufferPointer) throws -> R

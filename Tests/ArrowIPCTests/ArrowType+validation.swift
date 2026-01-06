@@ -225,10 +225,14 @@ extension ArrowType {
       precision = "DOUBLE"
     case .boolean:
       name = "bool"
-    case .utf8:
-      name = "utf8"
     case .binary:
       name = "binary"
+    case .utf8:
+      name = "utf8"
+    case .binaryView:
+      name = "binaryview"
+    case .utf8View:
+      name = "utf8view"
     case .fixedSizeBinary(let byteWidth_):
       byteWidth = Int(byteWidth_)
       name = "fixedsizebinary"
@@ -264,17 +268,17 @@ extension ArrowType {
       bitWidth = 256
       precision = String(precision_)
       scale = Int(scale_)
-    case .list(let field):
+    case .list(_):
       name = "list"
-    case .largeList(let field):
+    case .largeList(_):
       name = "largelist"
-    case .fixedSizeList(let field, let listSize_):
+    case .fixedSizeList(_, let listSize_):
       name = "fixedsizelist"
       listSize = Int(listSize_)
-    case .strct(let fields):
+    case .strct(_):
       name = "struct"
     case .map:
-      name = "struct"
+      name = "map"
     default:
       fatalError("Unhandled type: \(self)")
     }
@@ -293,7 +297,8 @@ extension ArrowType {
 
   func goldChildren() -> [ArrowGold.Field]? {
     switch self {
-    case .list(let field), .largeList(let field), .fixedSizeList(let field, _):
+    case .list(let field), .largeList(let field), .fixedSizeList(let field, _),
+      .map(let field, _):
       return [field.toGoldField()]
     case .strct(let fields):
       return fields.map { $0.toGoldField() }

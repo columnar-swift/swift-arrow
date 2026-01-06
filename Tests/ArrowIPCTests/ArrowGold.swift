@@ -14,7 +14,7 @@
 
 import Foundation
 
-/// The JSON file structure used to validate gold-standard  Arrow test files.
+/// The JSON file structure used to validate gold-standard Arrow test files.
 struct ArrowGold: Codable, Equatable {
   let schema: Schema
   let batches: [Batch]
@@ -139,6 +139,8 @@ struct ArrowGold: Codable, Equatable {
     let validity: [Int]?
     let offset: [Int]?
     let data: [DataValue]?
+    let views: [View?]?
+    let variadicDataBuffers: [String]?
     let children: [Column]?
 
     enum CodingKeys: String, CodingKey {
@@ -147,6 +149,8 @@ struct ArrowGold: Codable, Equatable {
       case validity = "VALIDITY"
       case offset = "OFFSET"
       case data = "DATA"
+      case views = "VIEWS"
+      case variadicDataBuffers = "VARIADIC_DATA_BUFFERS"
       case children
     }
   }
@@ -195,6 +199,42 @@ enum DataValue: Codable, Equatable {
   }
 }
 
+/// Represents an inline value in a binary view or utf8 view.
+struct View: Codable, Equatable {
+
+  let size: Int32
+  let inlined: String?
+  let prefixHex: String?
+  let bufferIndex: Int32?
+  let offset: Int32?
+
+  // Inlined case (≤12 bytes)
+  init(size: Int32, inlined: String) {
+    self.size = size
+    self.inlined = inlined
+    self.prefixHex = nil
+    self.bufferIndex = nil
+    self.offset = nil
+  }
+
+  // Reference case (>12 bytes)
+  init(size: Int32, prefixHex: String, bufferIndex: Int32, offset: Int32) {
+    self.size = size
+    self.inlined = nil
+    self.prefixHex = prefixHex
+    self.bufferIndex = bufferIndex
+    self.offset = offset
+  }
+
+  enum CodingKeys: String, CodingKey {
+    case size = "SIZE"
+    case inlined = "INLINED"
+    case prefixHex = "PREFIX_HEX"
+    case bufferIndex = "BUFFER_INDEX"
+    case offset = "OFFSET"
+  }
+}
+
 extension ArrowGold.Column {
 
   /// Filter for the valid values.
@@ -206,12 +246,17 @@ extension ArrowGold.Column {
     let filteredData = data?.enumerated().map { index, value in
       validity[index] == 1 ? value : .null
     }
+    let filteredViews = views?.enumerated().map { index, value in
+      validity[index] == 1 ? value : nil
+    }
     return Self(
       name: name,
       count: count,
       validity: validity,
       offset: offset,
       data: filteredData,
+      views: filteredViews,
+      variadicDataBuffers: variadicDataBuffers,
       children: children?.map { $0.withoutJunkData() }
     )
   }

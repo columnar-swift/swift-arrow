@@ -23,7 +23,7 @@ func printTestJSON(_ value: ArrowGold) throws {
   encoder.outputFormatting = .prettyPrinted
   let result = try encoder.encode(value)
   guard let formattedString = String(data: result, encoding: .utf8) else {
-    throw ArrowError.unknownError("Unable to encode JSON.")
+    throw ArrowError(.unknownError("Unable to encode JSON."))
   }
   print(formattedString)
 }
@@ -38,7 +38,8 @@ func loadTestResource(
   ) {
     return resource
   } else {
-    throw .runtimeError("Couldn't find \(name).\(ext) in the test resources.")
+    throw .init(
+      .runtimeError("Couldn't find \(name).\(ext) in the test resources."))
   }
 }
 
@@ -92,5 +93,33 @@ extension Data {
       index = nextIndex
     }
     self = data
+  }
+}
+
+/// Pretty print an encodable value.
+/// - Parameter value: The value to print.
+/// - Throws: On failed utf8 encoding.
+func printCodable<T: Encodable>(_ value: T) throws {
+  let encoder = JSONEncoder()
+  encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+  let data = try encoder.encode(value)
+  guard let formattted = String(data: data, encoding: .utf8) else {
+    throw ArrowError(.invalid("UTF-8 encode failed."))
+  }
+  print(formattted)
+}
+
+extension ArrowArrayVariable {
+
+  /// Debug print offsets buffer.
+  func printOffsets() {
+    // Print offsets buffer values
+    buffers[1].withUnsafeBytes { bufferPtr in
+      let typedPtr = bufferPtr.bindMemory(to: OffsetType.self)
+      print("Offsets buffer (\(typedPtr.count) elements):")
+      for i in 0..<min(typedPtr.count, 20) {  // Print first 20
+        print("  [\(i)]: \(typedPtr[i])")
+      }
+    }
   }
 }

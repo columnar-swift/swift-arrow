@@ -20,13 +20,11 @@ import PackageDescription
 let package = Package(
   name: "Arrow",
   platforms: [
-    .macOS(.v15)
+    .macOS(.v26)
   ],
   products: [
-    .library(
-      name: "Arrow",
-      targets: ["Arrow"]
-    )
+    .library(name: "Arrow", targets: ["Arrow"]),
+    .library(name: "ArrowIPC", targets: ["ArrowIPC"]),
   ],
   dependencies: [
     .package(
@@ -46,8 +44,12 @@ let package = Package(
       from: "1.29.0"
     ),
     .package(
-      url: "https://github.com/apple/swift-binary-parsing",
+      url: "https://github.com/apple/swift-binary-parsing.git",
       from: "0.0.1"
+    ),
+    .package(
+      url: "https://github.com/swiftlang/swift-subprocess.git",
+      branch: "main"
     ),
   ],
   targets: [
@@ -81,16 +83,11 @@ let package = Package(
         // build: .unsafeFlags(["-warnings-as-errors"])
       ]
     ),
-    //    .target(
-    //      name: "ArrowC",
-    //      swiftSettings: [
-    //        // build: .unsafeFlags(["-warnings-as-errors"])
-    //      ]
-    //    ),
     .target(
       name: "ArrowFlight",
       dependencies: [
         "Arrow",
+        "ArrowIPC",
         .product(name: "GRPC", package: "grpc-swift"),
         .product(name: "SwiftProtobuf", package: "swift-protobuf"),
       ],
@@ -111,7 +108,11 @@ let package = Package(
     ),
     .testTarget(
       name: "ArrowIPCTests",
-      dependencies: ["Arrow", "ArrowIPC"],
+      dependencies: [
+        "Arrow",
+        "ArrowIPC",
+        .product(name: "Subprocess", package: "swift-subprocess"),
+      ],
       resources: [
         .copy("Resources/")
       ],

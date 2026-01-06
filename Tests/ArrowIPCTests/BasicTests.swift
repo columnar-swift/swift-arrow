@@ -12,12 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import Arrow
+import Foundation
 import Testing
 
+@testable import Arrow
 @testable import ArrowIPC
 
-struct ArrowReaderTests {
+struct BasicTests {
 
   @Test func boolFile() throws {
     let url = try loadTestResource(name: "testdata_bool")
@@ -73,7 +74,7 @@ struct ArrowReaderTests {
   @Test func structFile() throws {
     let url = try loadTestResource(name: "testdata_struct")
     let arrowReader = try ArrowReader(url: url)
-    let (arrowSchema, recordBatches) = try arrowReader.read()
+    let (_, recordBatches) = try arrowReader.read()
     for recordBatch in recordBatches {
       let structArray = try #require(
         recordBatch.arrays[0] as? ArrowStructArray)
@@ -92,5 +93,56 @@ struct ArrowReaderTests {
       let boolArray = structArray.fields[1].array
       #expect(boolArray.length == 3)
     }
+  }
+
+  @Test func writeBasics() throws {
+
+    let outputUrl = FileManager.default.temporaryDirectory
+      .appending(path: "bool-test.arrow")
+    let writer = ArrowWriter(url: outputUrl)
+    #expect(writer.data.count == 8)
+
+  }
+
+  @Test func writeBoolean() throws {
+    let schema: ArrowSchema = ArrowSchema.Builder()
+      .addField("one", type: .boolean, isNullable: true)
+      .addField("two", type: .utf8, isNullable: true)
+      .finish()
+
+    let builder = ArrayBuilderBoolean()
+    builder.append(true)
+    builder.append(false)
+    builder.appendNull()
+    builder.append(false)
+    builder.append(true)
+    let one = builder.finish()
+
+    let builder2 = ArrayBuilderString()
+    builder2.append("zero")
+    builder2.append("one")
+    builder2.append("two")
+    builder2.append("three")
+    builder2.append("four")
+    let two = builder2.finish()
+
+    let recordBatch = RecordBatch(schema: schema, columns: [one, two])
+
+    checkBoolRecordBatch(recordBatch: recordBatch)
+
+    let outputUrl = FileManager.default.temporaryDirectory
+      .appending(path: "bool-test.arrow")
+    var writer = ArrowWriter(url: outputUrl)
+    try writer.write(schema: schema, recordBatches: [recordBatch])
+    try writer.finish()
+
+    let arrowReader = try ArrowReader(url: outputUrl)
+    let (_, recordBatches) = try arrowReader.read()
+
+    for recordBatch in recordBatches {
+      checkBoolRecordBatch(recordBatch: recordBatch)
+    }
+    //    try FileManager.default.copyItem(at: outputUrl, to: URL(fileURLWithPath: "/tmp/bool-test-swift.arrow"))
+
   }
 }

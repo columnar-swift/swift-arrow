@@ -50,16 +50,15 @@ public protocol VariableLengthBufferProtocol<ElementType>: ArrowBufferProtocol {
     at startIndex: Int,
     arrayLength: Int
   ) -> ElementType
-
 }
 
 /// A buffer containing values with variable length, used in variable length type Arrow arrays.
 public final class VariableLengthTypeBuffer<T: VariableLength>:
-  VariableLengthBufferProtocol, ArrowBufferUInt8
+  VariableLengthBufferProtocol, ArrowBufferUInt8, @unchecked Sendable
 {
   public typealias ElementType = T
-  public var length: Int
-  var capacity: Int
+  public let length: Int
+  let capacity: Int
   let ownsMemory: Bool
   var buffer: UnsafePointer<UInt8>
 

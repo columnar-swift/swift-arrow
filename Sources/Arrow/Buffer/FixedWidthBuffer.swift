@@ -13,22 +13,23 @@
 // limitations under the License.
 
 public protocol FixedWidthBufferProtocol<ElementType>: ArrowBufferProtocol {
-  associatedtype ElementType: Numeric
+  associatedtype ElementType
   var length: Int { get }
   subscript(index: Int) -> ElementType { get }
 }
 
 /// A  buffer used in Arrow arrays that hold fixed-width types.
-final class FixedWidthBuffer<T>: FixedWidthBufferProtocol
-where T: Numeric {
+public final class FixedWidthBuffer<T>: @unchecked Sendable,
+  FixedWidthBufferProtocol
+{
   public typealias ElementType = T
-  public var length: Int
-  var capacity: Int
+  public let length: Int
+  let capacity: Int
   let valueCount: Int
   let ownsMemory: Bool
-  var buffer: UnsafePointer<T>
+  let buffer: UnsafePointer<T>
 
-  init(
+  public init(
     length: Int,
     capacity: Int,
     valueCount: Int,
@@ -59,5 +60,28 @@ where T: Numeric {
     if ownsMemory {
       buffer.deallocate()
     }
+  }
+}
+
+extension FixedWidthBuffer {
+
+  /// Build a fixed-width buffer from a fixed-width type array.
+  /// - Parameter values: The array to opy memory from.
+  /// - Returns: A buffer with the values copied into..
+  public static func from(_ values: [T]) -> FixedWidthBuffer<T> {
+    let count = values.count
+    let capacity = count * MemoryLayout<T>.stride
+    let buffer = UnsafeMutablePointer<T>.allocate(capacity: count)
+    // Copy values
+    for (index, value) in values.enumerated() {
+      buffer[index] = value
+    }
+    return FixedWidthBuffer(
+      length: capacity,
+      capacity: capacity,
+      valueCount: count,
+      ownsMemory: true,
+      buffer: UnsafePointer(buffer)
+    )
   }
 }

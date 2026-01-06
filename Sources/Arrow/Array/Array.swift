@@ -14,7 +14,8 @@
 
 import Foundation
 
-public protocol AnyArrowArrayProtocol {
+/// The type-independent Arrow array capabilities.
+public protocol AnyArrowArrayProtocol: Sendable {
   var offset: Int { get }
   var length: Int { get }
   var nullCount: Int { get }
@@ -24,7 +25,10 @@ public protocol AnyArrowArrayProtocol {
   var buffers: [ArrowBufferProtocol] { get }
 }
 
-internal protocol ArrowArrayProtocol: AnyArrowArrayProtocol {
+/// Typed array conformance.
+///
+/// Public access to typed arays is provided via concrete types or individual protocols as appropriate.
+public protocol ArrowArrayProtocol<ItemType>: AnyArrowArrayProtocol {
   associatedtype ItemType
   subscript(_ index: Int) -> ItemType? { get }
 }
@@ -38,28 +42,33 @@ extension ArrowArrayProtocol {
 
 // MARK: Capability protocols.
 
-public protocol StringArrayProtocol {
-  var length: Int { get }
+/// A type which provides access to arrays of utf8 encoded `String`,  with opaque offset types.
+///
+/// The underlying array may be `String` or `LargeString`.
+public protocol StringArrayProtocol: AnyArrowArrayProtocol {
   subscript(index: Int) -> String? { get }
 }
 extension ArrowArrayVariable: StringArrayProtocol where ItemType == String {}
+extension ArrowArrayBinaryView: StringArrayProtocol where ItemType == String {}
 
-protocol BinaryArrayProtocol: ArrowArrayProtocol where ItemType == Data {}
+/// A type which provides access to arrays of `Data`,  with opaque offset types.
+///
+/// The underlying array may have fixed or variable-length items.
+protocol BinaryArrayProtocol: AnyArrowArrayProtocol {
+  subscript(index: Int) -> Data? { get }
+}
 extension ArrowArrayFixedSizeBinary: BinaryArrayProtocol {}
 extension ArrowArrayVariable: BinaryArrayProtocol
 where ItemType == Data, OffsetType: FixedWidthInteger & SignedInteger {}
+extension ArrowArrayBinaryView: BinaryArrayProtocol where ItemType == Data {}
 
-protocol Utf8ArrayProtocol: ArrowArrayProtocol where ItemType == String {}
-extension ArrowArrayVariable: Utf8ArrayProtocol
-where ItemType == String, OffsetType: FixedWidthInteger & SignedInteger {}
-
-public protocol ListArrayProtocol {
-  var length: Int { get }
+public protocol ListArrayProtocol: AnyArrowArrayProtocol {
   var values: AnyArrowArrayProtocol { get }
   subscript(index: Int) -> AnyArrowArrayProtocol? { get }
 }
 extension ArrowListArray: ListArrayProtocol {}
 extension ArrowFixedSizeListArray: ListArrayProtocol {}
+// TODO: Add large lists.
 
 // MARK: Array implementations.
 
@@ -243,6 +252,7 @@ public struct ArrowArrayVariable<
     let startOffset = offsetsBuffer[offsetIndex]
     let endOffset = offsetsBuffer[offsetIndex + 1]
 
+    precondition(endOffset >= startOffset, "Corrupted Arrow data")
     return valueBuffer.loadVariable(
       at: Int(startOffset),
       arrayLength: Int(endOffset - startOffset)
@@ -315,11 +325,9 @@ public struct ArrowArrayDate64: ArrowArrayProtocol {
 }
 
 ///// An Arrow list array which may be nested arbitrarily.
-public struct ArrowListArray<OffsetsBuffer>: ArrowArrayProtocol
-where
-  OffsetsBuffer: FixedWidthBufferProtocol,
-  OffsetsBuffer.ElementType: FixedWidthInteger & SignedInteger
-{
+public struct ArrowListArray<
+  OffsetType: FixedWidthInteger & SignedInteger
+>: ArrowArrayProtocol {
   public let offset: Int
   public let length: Int
   public var bufferSizes: [Int] {
@@ -331,14 +339,14 @@ where
   public var nullCount: Int { nullBuffer.nullCount }
 
   let nullBuffer: NullBuffer
-  let offsetsBuffer: OffsetsBuffer
+  let offsetsBuffer: any FixedWidthBufferProtocol<OffsetType>
   public let values: AnyArrowArrayProtocol
 
   public init(
     offset: Int = 0,
     length: Int,
     nullBuffer: NullBuffer,
-    offsetsBuffer: OffsetsBuffer,
+    offsetsBuffer: any FixedWidthBufferProtocol<OffsetType>,
     values: AnyArrowArrayProtocol
   ) {
     self.offset = offset

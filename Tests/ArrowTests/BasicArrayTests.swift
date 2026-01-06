@@ -233,4 +233,23 @@ struct BasicArrayTests {
     #expect(nsArray[1] == 1_609_459_200_000_000_000)
     #expect(nsArray[2] == 1_609_545_600_000_000_000)
   }
+
+  @Test func inlineStrings() throws {
+    let builder = ArrayBuilderBinaryView<String>()
+
+    builder.append("hello")
+    builder.append("world")
+    builder.append("short")
+
+    let array: ArrowArrayBinaryView<String> = builder.finish()
+
+    #expect(array.length == 3)
+    #expect(array[0] == "hello")
+    #expect(array[1] == "world")
+    #expect(array[2] == "short")
+
+    // All inline, so no data buffers
+    print(array.buffers.count)  // prints 2
+    #expect(array.buffers.count == 2)
+  }
 }
