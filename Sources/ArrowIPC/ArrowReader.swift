@@ -123,12 +123,6 @@ public struct ArrowReader {
       guard footer.schema != nil else {
         throw ArrowError(.invalid("Expected schema in footer"))
       }
-
-      print("RB \(index): buffer counts: \(rbMessage.buffersCount)")
-      print(
-        "RB \(index): variadic buffer counts: \(rbMessage.variadicBufferCounts)"
-      )
-
       // MARK: Load arrays
       var arrays: [AnyArrowArrayProtocol] = .init()
       var nodeIndex: Int32 = 0
@@ -349,7 +343,6 @@ public struct ArrowReader {
             buffer: dataBuffer)
           dataBuffers.append(dataBufferTyped)
         }
-        print("buffer index after BV: \(bufferIndex)")
         return ArrowArrayBinaryView<Data>(
           offset: 0,
           length: length,
@@ -371,7 +364,6 @@ public struct ArrowReader {
           )
           dataBuffers.append(dataBufferTyped)
         }
-        print("buffer index after SV: \(bufferIndex)")
         return ArrowArrayBinaryView<String>(
           offset: 0,
           length: length,
@@ -425,11 +417,6 @@ public struct ArrowReader {
           // Verify last offset matches child array length
           let lastOffset = offsetsBuffer[length]
           guard lastOffset == Int32(array.length) else {
-
-            for idx in 0..<offsetsBuffer.length {
-              print("idx: \(idx), value: \(offsetsBuffer[idx])")
-            }
-
             throw ArrowError(
               .invalid(
                 "Expected last offset to match child array length."))

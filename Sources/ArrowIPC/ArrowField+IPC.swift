@@ -217,16 +217,22 @@ extension ArrowType {
     }
   }
 
+  /// Maps from `ArrowType` to FlatBuffers type.
+  /// - Returns: The FlatBuffers type.
   func fType() throws(ArrowError) -> FType {
     switch self {
     case .int8, .int16, .int32, .int64, .uint8, .uint16, .uint32, .uint64:
       return .int
     case .float16, .float32, .float64:
       return .floatingpoint
-    case .utf8:
-      return .utf8
     case .binary:
       return .binary
+    case .binaryView:
+      return .binaryview
+    case .utf8:
+      return .utf8
+    case .utf8View:
+      return .utf8view
     case .boolean:
       return .bool
     case .date32, .date64:

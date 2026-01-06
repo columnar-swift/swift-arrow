@@ -132,10 +132,6 @@ struct ArrowTestingGold {
 
   @Test(arguments: testCases)
   func write(name: String) async throws {
-    if name == "generated_binary_view" {
-      print("FIXME: not testing writer for \(name)")
-      return
-    }
     let resourceURL = try loadTestResource(
       name: name,
       withExtension: "json.lz4",
@@ -161,6 +157,8 @@ struct ArrowTestingGold {
       recordBatches: recordBatchesExpected
     )
     try arrowWriter.finish()
+
+    //    FileManager.default.createFile(atPath: "/tmp/\(name).arrow", contents: arrowWriter.data)
 
     // pyArrow round trip only supported on macOS.
     #if os(macOS)
@@ -266,6 +264,7 @@ private func encode(
 ///   - actual: The actual
 ///   - expected: The expected `Encodable` object.
 ///   - label: An optional label to differentiate multiple diffs.
+///   - maxLinesToPrint: An optional limit to the number of lines printed.
 /// - Throws: An error if encoding fails or string data is unrepresentable in utf8.
 func diffEncodable<T: Encodable>(
   _ actual: T,

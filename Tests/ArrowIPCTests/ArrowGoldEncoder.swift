@@ -298,17 +298,17 @@ func extractBinaryViewData(
   } else {
     throw .init(.invalid("Expected StringView or BinaryView array"))
   }
-  
+
   // Get the data buffers (skip null and views buffers)
   let dataBuffers = Array(buffers.dropFirst(2))
   if !dataBuffers.isEmpty {
     variadicDataBuffers = []
   }
-  
+
   // Serialize buffers and track cumulative offsets
   var bufferOffsets: [Int] = [0]
   var cumulativeOffset = 0
-  
+
   for buffer in dataBuffers {
     let hexString = buffer.withUnsafeBytes { ptr in
       ptr.map { String(format: "%02X", $0) }.joined()
@@ -318,9 +318,12 @@ func extractBinaryViewData(
     bufferOffsets.append(cumulativeOffset)
   }
   // Helper to map global offset to (bufferIndex, localOffset)
-  func findBuffer(for globalOffset: Int) -> (bufferIndex: Int32, localOffset: Int32) {
+  func findBuffer(for globalOffset: Int) -> (
+    bufferIndex: Int32, localOffset: Int32
+  ) {
     for i in 0..<bufferOffsets.count - 1 {
-      if globalOffset >= bufferOffsets[i] && globalOffset < bufferOffsets[i + 1] {
+      if globalOffset >= bufferOffsets[i] && globalOffset < bufferOffsets[i + 1]
+      {
         return (Int32(i), Int32(globalOffset - bufferOffsets[i]))
       }
     }
@@ -347,7 +350,7 @@ func extractBinaryViewData(
       // Map to buffer index and local offset
       let (bufferIndex, localOffset) = findBuffer(for: logicalOffset)
       logicalOffset += bytes.count
-      
+
       let prefix = bytes.prefix(4).map { String(format: "%02X", $0) }.joined()
       return View(
         size: size,

@@ -112,8 +112,13 @@ extension ArrowWriter {
       return FFloatingPoint.createFloatingPoint(&fbb, precision: .double)
     case .utf8:
       return FUtf8.endUtf8(&fbb, start: FUtf8.startUtf8(&fbb))
+    case .utf8View:
+      return FUtf8View.endUtf8View(&fbb, start: FUtf8View.startUtf8View(&fbb))
     case .binary:
       return FBinary.endBinary(&fbb, start: FBinary.startBinary(&fbb))
+    case .binaryView:
+      return FBinaryView.endBinaryView(
+        &fbb, start: FBinaryView.startBinaryView(&fbb))
     case .fixedSizeBinary(let byteWidth):
       let startOffset = FFixedSizeBinary.startFixedSizeBinary(&fbb)
       FFixedSizeBinary.add(byteWidth: byteWidth, &fbb)

@@ -16,12 +16,14 @@ IPC serialization uses the same methodology, except a serialization-deserializat
 
 The following types are fully supported:
 
-Primitive types: boolean, int8, int16, int32, int64, uint8, uint16, uint32, uint64, float16, float32, float64.
-Temporal types: timestamp, date32, date64, time32, time64, duration.
-Variable length types: binary and string, plus their fixed-width equivalents
-Nested and recursively nested types: lists and structs, structs of lists etc.
-Maps (currently not as a dedicated type but as a list of key-values).
+* Primitive types: boolean, int8, int16, int32, int64, uint8, uint16, uint32, uint64, float16, float32, float64.
+* Temporal types: timestamp, date32, date64, time32, time64, duration.
+* Variable length types: binary and string, plus their fixed-width equivalents
+* Nested and recursively nested types: lists and structs, structs of lists etc.
+* Maps: Represented as list of key-values, which is spec compliant, however the public API will change.
+* Binary views: binaryView and utf8View.
 
+All binary arrays (variable, fixed and view) can be accessed via BinaryArrayProtocol. The same applies to StringArrayProtocol.
 
 ## Array interface
 

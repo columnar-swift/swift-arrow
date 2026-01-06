@@ -207,23 +207,23 @@ struct View: Codable, Equatable {
   let prefixHex: String?
   let bufferIndex: Int32?
   let offset: Int32?
-  
+
   // Inlined case (≤12 bytes)
   init(size: Int32, inlined: String) {
-      self.size = size
-      self.inlined = inlined
-      self.prefixHex = nil
-      self.bufferIndex = nil
-      self.offset = nil
+    self.size = size
+    self.inlined = inlined
+    self.prefixHex = nil
+    self.bufferIndex = nil
+    self.offset = nil
   }
-  
+
   // Reference case (>12 bytes)
   init(size: Int32, prefixHex: String, bufferIndex: Int32, offset: Int32) {
-      self.size = size
-      self.inlined = nil
-      self.prefixHex = prefixHex
-      self.bufferIndex = bufferIndex
-      self.offset = offset
+    self.size = size
+    self.inlined = nil
+    self.prefixHex = prefixHex
+    self.bufferIndex = bufferIndex
+    self.offset = offset
   }
 
   enum CodingKeys: String, CodingKey {

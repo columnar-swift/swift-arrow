@@ -181,13 +181,12 @@ public struct ArrowWriter {
             "Invalid Block. Expected \(expectedSize), got \(data.count)"
           ))
       }
-      blocks.append(
-        FBlock(
-          offset: Int64(startIndex),
-          metaDataLength: Int32(metadataLength),
-          bodyLength: Int64(bodyLength)
-        )
+      let block = FBlock(
+        offset: Int64(startIndex),
+        metaDataLength: Int32(metadataLength),
+        bodyLength: Int64(bodyLength)
       )
+      blocks.append(block)
     }
     return blocks
   }
@@ -195,8 +194,9 @@ public struct ArrowWriter {
   private mutating func writeRecordBatchData(
     fields: [ArrowField],
     arrays: [AnyArrowArrayProtocol]
-  ) throws {
+  ) throws(ArrowError) {
     for index in 0..<fields.count {
+
       let array = arrays[index]
       let field = fields[index]
       let buffers = array.buffers
@@ -211,8 +211,7 @@ public struct ArrowWriter {
       switch field.type {
       case .strct(let fields):
         guard let structArray = array as? ArrowStructArray else {
-          throw ArrowError(
-            .invalid("Struct type array expected for nested type"))
+          throw .init(.invalid("Struct type array expected for nested type"))
         }
         try writeRecordBatchData(
           fields: fields,
@@ -220,7 +219,7 @@ public struct ArrowWriter {
         )
       case .list(let childType), .map(let childType, _):
         guard let listArray = array as? ArrowListArray<Int32> else {
-          throw ArrowError(.invalid("List type array expected."))
+          throw .init(.invalid("List type array expected."))
         }
         try writeRecordBatchData(
           fields: [childType],
@@ -228,7 +227,7 @@ public struct ArrowWriter {
         )
       case .fixedSizeList(let childType, _):
         guard let listArray = array as? ArrowFixedSizeListArray else {
-          throw ArrowError(.invalid("Fixed size list type array expected."))
+          throw .init(.invalid("Fixed size list type array expected."))
         }
         try writeRecordBatchData(
           fields: [childType],
@@ -240,9 +239,13 @@ public struct ArrowWriter {
     }
   }
 
+  /// Write the record batch message.
+  /// - Parameter batch: The `RecordBatch` to write metadata for.
+  /// - Returns: The FlatBuffers message serialized to `Data`.
+  /// - Throws: An `ArrowError`if arrays are unreadable.
   private func write(
     batch: RecordBatch
-  ) throws -> Data {
+  ) throws(ArrowError) -> Data {
     let schema = batch.schema
     var fbb = FlatBufferBuilder()
 
@@ -257,22 +260,25 @@ public struct ArrowWriter {
 
     // MARK: Buffers.
     var buffers: [FBuffer] = []
-    var bufferOffset: Int = 0
+    var variadicBufferCounts: [Int64] = []
+    var bufferOffset: Int64 = 0
     try writeBufferInfo(
       schema.fields,
-      columns: batch.arrays,
+      arrays: batch.arrays,
       bufferOffset: &bufferOffset,
       buffers: &buffers,
-      fbb: &fbb
+      variadicBufferCounts: &variadicBufferCounts
     )
-
     let batchBuffersOffset = fbb.createVector(ofStructs: buffers)
+    let variadicCountsOffset = fbb.createVector(variadicBufferCounts)
 
     // MARK: Start record batch.
     let startRb = FRecordBatch.startRecordBatch(&fbb)
     FRecordBatch.addVectorOf(nodes: nodeOffset, &fbb)
     FRecordBatch.addVectorOf(buffers: batchBuffersOffset, &fbb)
     FRecordBatch.add(length: Int64(batch.length), &fbb)
+    FRecordBatch.addVectorOf(variadicBufferCounts: variadicCountsOffset, &fbb)
+
     let recordBatchOffset = FRecordBatch.endRecordBatch(
       &fbb,
       start: startRb
@@ -339,60 +345,62 @@ public struct ArrowWriter {
 
   private func writeBufferInfo(
     _ fields: [ArrowField],
-    columns: [AnyArrowArrayProtocol],
-    bufferOffset: inout Int,
+    arrays: [AnyArrowArrayProtocol],
+    bufferOffset: inout Int64,
     buffers: inout [FBuffer],
-    fbb: inout FlatBufferBuilder
+    variadicBufferCounts: inout [Int64]
   ) throws(ArrowError) {
     for index in 0..<fields.count {
-      let column = columns[index]
+      let array = arrays[index]
       let field = fields[index]
 
       // Write all buffers for this field
-      for bufferDataSize in column.bufferSizes {
+      for bufferDataSize in array.bufferSizes {
         let buffer = FBuffer(
           offset: Int64(bufferOffset),
           length: Int64(bufferDataSize)
         )
         buffers.append(buffer)
         // Advance by padded amount
-        bufferOffset += padded(byteCount: bufferDataSize)
+        bufferOffset += Int64(padded(byteCount: bufferDataSize))
       }
-
+      if field.type.isBinaryView {
+        variadicBufferCounts.append(Int64(array.buffers.count - 2))
+      }
       // After writing this field's buffers, recurse into children
       switch field.type {
       case .strct(let fields):
-        guard let column = column as? ArrowStructArray else {
+        guard let column = array as? ArrowStructArray else {
           throw .init(.invalid("Expected ArrowStructArray for nested struct"))
         }
         try writeBufferInfo(
           fields,
-          columns: column.fields.map(\.array),
+          arrays: column.fields.map(\.array),
           bufferOffset: &bufferOffset,
           buffers: &buffers,
-          fbb: &fbb
+          variadicBufferCounts: &variadicBufferCounts
         )
       case .list(let childField), .map(let childField, _):
-        guard let column = column as? ArrowListArray<Int32> else {
+        guard let column = array as? ArrowListArray<Int32> else {
           throw .init(.invalid("Expected ArrowListArray<Int32>"))
         }
         try writeBufferInfo(
           [childField],
-          columns: [column.values],
+          arrays: [column.values],
           bufferOffset: &bufferOffset,
           buffers: &buffers,
-          fbb: &fbb
+          variadicBufferCounts: &variadicBufferCounts
         )
       case .fixedSizeList(let childField, _):
-        guard let column = column as? ArrowFixedSizeListArray else {
+        guard let column = array as? ArrowFixedSizeListArray else {
           throw .init(.invalid("Expected ArrowFixedSizeListArray"))
         }
         try writeBufferInfo(
           [childField],
-          columns: [column.values],
+          arrays: [column.values],
           bufferOffset: &bufferOffset,
           buffers: &buffers,
-          fbb: &fbb
+          variadicBufferCounts: &variadicBufferCounts
         )
       default:
         break
